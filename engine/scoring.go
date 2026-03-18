@@ -12,6 +12,25 @@ package engine
 // Score is floored at 0.
 type StandardScorer struct{}
 
-func (s StandardScorer) OnMove(move Move, state *GameState) int { panic("not implemented") }
-func (s StandardScorer) OnUndo(move Move, state *GameState) int { panic("not implemented") }
-func (s StandardScorer) OnRecycleStock() int                    { panic("not implemented") }
+func (s StandardScorer) OnMove(move Move, _ *GameState) int {
+	switch {
+	case move.From == PileWaste && isTableauPile(move.To):
+		return 5
+	case move.From == PileWaste && isFoundationPile(move.To):
+		return 10
+	case isTableauPile(move.From) && isFoundationPile(move.To):
+		return 10
+	case isFoundationPile(move.From) && isTableauPile(move.To):
+		return -15
+	default:
+		return 0 // tableau→tableau, stock flip: no points
+	}
+}
+
+func (s StandardScorer) OnUndo(move Move, state *GameState) int {
+	return -s.OnMove(move, state)
+}
+
+func (s StandardScorer) OnRecycleStock() int {
+	return -100
+}
