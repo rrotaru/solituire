@@ -202,6 +202,9 @@ func validateToFoundation(state *GameState, move Move) error {
 		if top == nil {
 			return errors.New("waste pile is empty")
 		}
+		if move.CardCount != 1 {
+			return errors.New("can only move one card to foundation")
+		}
 		card = *top
 	case isTableauPile(move.From):
 		src := state.Tableau[tableauIndex(move.From)]
@@ -229,6 +232,9 @@ func validateToFoundation(state *GameState, move Move) error {
 
 // validateFoundationToTableau validates a Foundation→Tableau move (Section 13.4).
 func validateFoundationToTableau(state *GameState, move Move) error {
+	if move.CardCount != 1 {
+		return errors.New("can only move one card from foundation")
+	}
 	foundation := state.Foundations[foundationIndex(move.From)]
 	top := foundation.TopCard()
 	if top == nil {

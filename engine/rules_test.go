@@ -366,6 +366,26 @@ func TestValidateMove_ToFoundation(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "waste CardCount zero rejected",
+			setup: func() *GameState {
+				s := buildState()
+				s.Waste.Cards = []Card{faceUpCard(Ace, Spades)}
+				return s
+			},
+			move:    Move{From: PileWaste, To: PileFoundation0, CardCount: 0},
+			wantErr: true,
+		},
+		{
+			name: "waste CardCount > 1 rejected",
+			setup: func() *GameState {
+				s := buildState()
+				s.Waste.Cards = []Card{faceUpCard(Ace, Spades)}
+				return s
+			},
+			move:    Move{From: PileWaste, To: PileFoundation0, CardCount: 2},
+			wantErr: true,
+		},
+		{
 			name: "Ace from tableau to empty foundation",
 			setup: func() *GameState {
 				s := buildState()
@@ -498,6 +518,42 @@ func TestValidateMove_FoundationToTableau(t *testing.T) {
 				return s
 			},
 			move:    Move{From: PileFoundation0, To: PileTableau0, CardCount: 1},
+			wantErr: true,
+		},
+		{
+			name: "CardCount > 1 rejected",
+			setup: func() *GameState {
+				s := buildState()
+				s.Foundations[1].Cards = []Card{
+					faceUpCard(Ace, Hearts), faceUpCard(Two, Hearts),
+					faceUpCard(Three, Hearts), faceUpCard(Four, Hearts),
+					faceUpCard(Five, Hearts), faceUpCard(Six, Hearts),
+					faceUpCard(Seven, Hearts), faceUpCard(Eight, Hearts),
+					faceUpCard(Nine, Hearts), faceUpCard(Ten, Hearts),
+					faceUpCard(Jack, Hearts), faceUpCard(Queen, Hearts),
+				}
+				s.Tableau[0].Cards = []Card{faceUpCard(King, Spades)}
+				return s
+			},
+			move:    Move{From: PileFoundation1, To: PileTableau0, CardCount: 2},
+			wantErr: true,
+		},
+		{
+			name: "CardCount zero rejected",
+			setup: func() *GameState {
+				s := buildState()
+				s.Foundations[1].Cards = []Card{
+					faceUpCard(Ace, Hearts), faceUpCard(Two, Hearts),
+					faceUpCard(Three, Hearts), faceUpCard(Four, Hearts),
+					faceUpCard(Five, Hearts), faceUpCard(Six, Hearts),
+					faceUpCard(Seven, Hearts), faceUpCard(Eight, Hearts),
+					faceUpCard(Nine, Hearts), faceUpCard(Ten, Hearts),
+					faceUpCard(Jack, Hearts), faceUpCard(Queen, Hearts),
+				}
+				s.Tableau[0].Cards = []Card{faceUpCard(King, Spades)}
+				return s
+			},
+			move:    Move{From: PileFoundation1, To: PileTableau0, CardCount: 0},
 			wantErr: true,
 		},
 	}
