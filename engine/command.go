@@ -240,6 +240,9 @@ type FlipTableauCardCmd struct {
 }
 
 func (c *FlipTableauCardCmd) Execute(state *GameState) error {
+	if c.ColumnIdx < 0 || c.ColumnIdx >= len(state.Tableau) {
+		return fmt.Errorf("FlipTableauCardCmd: ColumnIdx %d out of range [0, %d)", c.ColumnIdx, len(state.Tableau))
+	}
 	t := state.Tableau[c.ColumnIdx]
 	if t.IsEmpty() {
 		return errors.New("FlipTableauCardCmd: tableau column is empty")
@@ -253,6 +256,9 @@ func (c *FlipTableauCardCmd) Execute(state *GameState) error {
 }
 
 func (c *FlipTableauCardCmd) Undo(state *GameState) error {
+	if c.ColumnIdx < 0 || c.ColumnIdx >= len(state.Tableau) {
+		return fmt.Errorf("FlipTableauCardCmd: ColumnIdx %d out of range [0, %d)", c.ColumnIdx, len(state.Tableau))
+	}
 	t := state.Tableau[c.ColumnIdx]
 	if t.IsEmpty() {
 		return errors.New("FlipTableauCardCmd Undo: tableau column is empty")
