@@ -615,6 +615,16 @@ func TestValidateMove_StockFlip(t *testing.T) {
 			move:    Move{From: PileStock, To: PileTableau0},
 			wantErr: true,
 		},
+		{
+			name: "non-zero CardCount rejected",
+			setup: func() *GameState {
+				s := buildState()
+				s.Stock.Cards = []Card{faceDownCard(Ace, Spades), faceDownCard(Two, Hearts)}
+				return s
+			},
+			move:    Move{From: PileStock, To: PileWaste, CardCount: 3},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {

@@ -252,6 +252,9 @@ func validateStockFlip(state *GameState, move Move) error {
 	if move.To != PileWaste {
 		return errors.New("stock flip destination must be waste")
 	}
+	if move.CardCount != 0 {
+		return errors.New("stock flip must have CardCount 0")
+	}
 	if !state.Stock.IsEmpty() {
 		return nil // Normal flip: draw DrawCount cards.
 	}
