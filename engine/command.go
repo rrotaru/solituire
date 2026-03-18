@@ -15,6 +15,9 @@ type MoveCardCmd struct {
 }
 
 func (c *MoveCardCmd) Execute(state *GameState) error {
+	if !isTableauPile(c.To) {
+		return errors.New("MoveCardCmd: destination must be a tableau pile; use MoveToFoundationCmd for foundation moves")
+	}
 	if err := ValidateMove(state, Move{From: c.From, To: c.To, CardCount: c.CardCount}); err != nil {
 		return err
 	}
@@ -79,6 +82,9 @@ type MoveToFoundationCmd struct {
 }
 
 func (c *MoveToFoundationCmd) Execute(state *GameState) error {
+	if c.FoundationIdx < 0 || c.FoundationIdx >= 4 {
+		return errors.New("MoveToFoundationCmd: FoundationIdx out of range [0, 3]")
+	}
 	to := PileFoundation0 + PileID(c.FoundationIdx)
 	if err := ValidateMove(state, Move{From: c.From, To: to, CardCount: 1}); err != nil {
 		return err
@@ -103,6 +109,9 @@ func (c *MoveToFoundationCmd) Execute(state *GameState) error {
 }
 
 func (c *MoveToFoundationCmd) Undo(state *GameState) error {
+	if c.FoundationIdx < 0 || c.FoundationIdx >= 4 {
+		return errors.New("MoveToFoundationCmd: FoundationIdx out of range [0, 3]")
+	}
 	f := state.Foundations[c.FoundationIdx]
 	card := f.Cards[len(f.Cards)-1]
 	state.Foundations[c.FoundationIdx].Cards = f.Cards[:len(f.Cards)-1]

@@ -15,29 +15,31 @@ func (h *History) Push(cmd Command) {
 }
 
 // Undo reverses the most recent command and moves it to the redo stack.
+// If cmd.Undo returns an error the undo stack is left unchanged.
 func (h *History) Undo(s *GameState) error {
 	if len(h.undoStack) == 0 {
 		return errors.New("nothing to undo")
 	}
 	cmd := h.undoStack[len(h.undoStack)-1]
-	h.undoStack = h.undoStack[:len(h.undoStack)-1]
 	if err := cmd.Undo(s); err != nil {
 		return err
 	}
+	h.undoStack = h.undoStack[:len(h.undoStack)-1]
 	h.redoStack = append(h.redoStack, cmd)
 	return nil
 }
 
 // Redo re-applies the most recently undone command.
+// If cmd.Execute returns an error the redo stack is left unchanged.
 func (h *History) Redo(s *GameState) error {
 	if len(h.redoStack) == 0 {
 		return errors.New("nothing to redo")
 	}
 	cmd := h.redoStack[len(h.redoStack)-1]
-	h.redoStack = h.redoStack[:len(h.redoStack)-1]
 	if err := cmd.Execute(s); err != nil {
 		return err
 	}
+	h.redoStack = h.redoStack[:len(h.redoStack)-1]
 	h.undoStack = append(h.undoStack, cmd)
 	return nil
 }
