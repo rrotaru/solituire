@@ -41,6 +41,22 @@ func TestRegistry_GetByName(t *testing.T) {
 		}
 	})
 
+	t.Run("lowercase names resolve (config contract)", func(t *testing.T) {
+		cases := map[string]string{
+			"classic":        "Classic",
+			"dracula":        "Dracula",
+			"solarized dark": "Solarized Dark",
+			"solarized light": "Solarized Light",
+			"nord":           "Nord",
+		}
+		for input, want := range cases {
+			got := r.Get(input)
+			if got.Name != want {
+				t.Errorf("Get(%q): want %q, got %q", input, want, got.Name)
+			}
+		}
+	})
+
 	t.Run("unknown name returns Classic", func(t *testing.T) {
 		got := r.Get("DoesNotExist")
 		if got.Name != "Classic" {
@@ -77,6 +93,22 @@ func TestRegistry_NextCycles(t *testing.T) {
 			t.Errorf("Next(unknown) should return first theme %q, got %q", names[0], got.Name)
 		}
 	})
+
+	t.Run("lowercase current advances correctly", func(t *testing.T) {
+		got := r.Next("classic")
+		if got.Name != "Dracula" {
+			t.Errorf("Next(%q): want %q, got %q", "classic", "Dracula", got.Name)
+		}
+	})
+}
+
+func TestSolarizedLight_BlackSuitContrastsCardBackground(t *testing.T) {
+	r := theme.NewRegistry()
+	th := r.Get("Solarized Light")
+	if string(th.BlackSuit) == string(th.CardBackground) {
+		t.Errorf("SolarizedLight: BlackSuit (%s) must differ from CardBackground (%s) to ensure readability",
+			th.BlackSuit, th.CardBackground)
+	}
 }
 
 func TestAllThemesHaveNonZeroFields(t *testing.T) {

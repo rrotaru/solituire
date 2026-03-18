@@ -34,7 +34,7 @@ var SolarizedLight = Theme{
 	CardBorder:     lipgloss.Color("#93a1a1"),
 	CardFaceDown:   lipgloss.Color("#eee8d5"),
 	RedSuit:        lipgloss.Color("#cb4b16"),
-	BlackSuit:      lipgloss.Color("#073642"),
+	BlackSuit:      lipgloss.Color("#93a1a1"), // Base1 — contrasts against Base02 card face
 
 	HeaderBackground: lipgloss.Color("#eee8d5"),
 	HeaderForeground: lipgloss.Color("#657b83"),

@@ -1,5 +1,7 @@
 package theme
 
+import "strings"
+
 // ThemeRegistry holds the set of available themes and allows lookup and cycling.
 type ThemeRegistry struct {
 	themes []Theme
@@ -22,22 +24,22 @@ func (r *ThemeRegistry) List() []string {
 	return names
 }
 
-// Get returns the theme with the given name.
+// Get returns the theme with the given name (case-insensitive).
 // If no theme with that name is found, Classic is returned as the default.
 func (r *ThemeRegistry) Get(name string) Theme {
 	for _, t := range r.themes {
-		if t.Name == name {
+		if strings.EqualFold(t.Name, name) {
 			return t
 		}
 	}
 	return Classic
 }
 
-// Next returns the theme that follows the current theme in the cycle.
+// Next returns the theme that follows the current theme in the cycle (case-insensitive).
 // If current is the last theme (or not found), it wraps to the first theme.
 func (r *ThemeRegistry) Next(current string) Theme {
 	for i, t := range r.themes {
-		if t.Name == current {
+		if strings.EqualFold(t.Name, current) {
 			return r.themes[(i+1)%len(r.themes)]
 		}
 	}
