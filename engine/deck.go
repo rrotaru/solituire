@@ -30,11 +30,15 @@ func Shuffle(deck []Card, seed int64) []Card {
 //   - Remaining 24 cards go to Stock (all face-down).
 //   - Waste and all Foundations start empty.
 //
-// The caller is responsible for setting GameState.DrawCount and GameState.Seed after Deal.
-func Deal(deck []Card) *GameState {
+// drawCount must be 1 or 3. It is stored in both GameState.DrawCount and
+// WastePile.DrawCount so that WastePile.VisibleCards always reflects the
+// chosen draw mode without any additional caller setup.
+// The caller is responsible for setting GameState.Seed after Deal.
+func Deal(deck []Card, drawCount int) *GameState {
 	state := &GameState{
-		Waste: &WastePile{},
-		Stock: &StockPile{},
+		DrawCount: drawCount,
+		Waste:     &WastePile{DrawCount: drawCount},
+		Stock:     &StockPile{},
 	}
 	for i := 0; i < 4; i++ {
 		state.Foundations[i] = &FoundationPile{}

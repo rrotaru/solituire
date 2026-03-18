@@ -38,7 +38,7 @@ func TestShufflePreservesAllCards(t *testing.T) {
 
 func TestDealLayout(t *testing.T) {
 	deck := Shuffle(NewDeck(), 42)
-	state := Deal(deck)
+	state := Deal(deck, 1)
 
 	// Tableau column sizes and face-up/down counts
 	for col := 0; col < 7; col++ {
@@ -78,9 +78,19 @@ func TestDealLayout(t *testing.T) {
 	}
 }
 
+func TestDealDraw3PropagatesDrawCount(t *testing.T) {
+	state := Deal(Shuffle(NewDeck(), 1), 3)
+	if state.DrawCount != 3 {
+		t.Errorf("GameState.DrawCount = %d, want 3", state.DrawCount)
+	}
+	if state.Waste.DrawCount != 3 {
+		t.Errorf("WastePile.DrawCount = %d, want 3", state.Waste.DrawCount)
+	}
+}
+
 func TestDealNoduplicateCards(t *testing.T) {
 	deck := Shuffle(NewDeck(), 7)
-	state := Deal(deck)
+	state := Deal(deck, 1)
 
 	type key struct{ suit Suit; rank Rank }
 	seen := make(map[key]bool, 52)
