@@ -34,9 +34,10 @@ func tableauX(idx int) int {
 // pileOrigins returns the top-left terminal coordinate of each pile's
 // render region. Row 0 = header, row 1 = stock/waste/foundation row.
 func pileOrigins(termWidth int) map[engine.PileID]image.Point {
-	// Header takes 1 row. Stock/waste/foundation row starts at row 1.
-	topRow := 1
-	// Tableau row starts after the top row + card height + 1 gap row.
+	// Render() join order: header (row 0), "" spacer (row 1), top-row piles
+	// (rows 2..2+CardHeight-1), "" spacer, tableau.
+	topRow := 2
+	// Tableau row starts after the top-row piles + the blank spacer row.
 	tabRow := topRow + CardHeight + 1
 
 	origins := map[engine.PileID]image.Point{
