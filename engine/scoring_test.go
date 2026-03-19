@@ -72,29 +72,6 @@ func TestStandardScorer_OnMove(t *testing.T) {
 	}
 }
 
-func TestStandardScorer_OnUndo(t *testing.T) {
-	s := StandardScorer{}
-
-	// OnUndo must be the exact negation of OnMove for every move type.
-	moves := []Move{
-		{From: PileWaste, To: PileTableau0, CardCount: 1},
-		{From: PileWaste, To: PileFoundation0, CardCount: 1},
-		{From: PileTableau0, To: PileFoundation0, CardCount: 1},
-		{From: PileFoundation0, To: PileTableau0, CardCount: 1},
-		{From: PileTableau0, To: PileTableau1, CardCount: 1},
-		{From: PileStock, To: PileWaste, CardCount: 0},
-	}
-
-	for _, move := range moves {
-		forward := s.OnMove(move, nil)
-		reverse := s.OnUndo(move, nil)
-		if forward+reverse != 0 {
-			t.Errorf("OnMove+OnUndo should sum to 0 for move %v, got %d + %d = %d",
-				move, forward, reverse, forward+reverse)
-		}
-	}
-}
-
 func TestStandardScorer_OnFlipTableau(t *testing.T) {
 	s := StandardScorer{}
 	got := s.OnFlipTableau()

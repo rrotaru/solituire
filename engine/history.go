@@ -2,45 +2,59 @@ package engine
 
 import "errors"
 
-// History manages the undo/redo stacks for a game session.
-type History struct {
-	undoStack []Command
-	redoStack []Command
+// historyEntry pairs a command with the scores in effect immediately before
+// and after its execution (post-clamp). Both values are needed so that both
+// Undo and Redo can restore the exact score without relying on delta inversion.
+type historyEntry struct {
+	cmd         Command
+	scoreBefore int
+	scoreAfter  int
 }
 
-// Push records a successfully executed command. Clears the redo stack.
-func (h *History) Push(cmd Command) {
-	h.undoStack = append(h.undoStack, cmd)
+// History manages the undo/redo stacks for a game session.
+type History struct {
+	undoStack []historyEntry
+	redoStack []historyEntry
+}
+
+// Push records a successfully executed command together with the score that
+// was in effect immediately before (scoreBefore) and after (scoreAfter) the
+// command ran. Clears the redo stack.
+func (h *History) Push(cmd Command, scoreBefore, scoreAfter int) {
+	h.undoStack = append(h.undoStack, historyEntry{cmd, scoreBefore, scoreAfter})
 	h.redoStack = h.redoStack[:0]
 }
 
-// Undo reverses the most recent command and moves it to the redo stack.
+// Undo reverses the most recent command and restores the pre-command score.
 // If cmd.Undo returns an error the undo stack is left unchanged.
 func (h *History) Undo(s *GameState) error {
 	if len(h.undoStack) == 0 {
 		return errors.New("nothing to undo")
 	}
-	cmd := h.undoStack[len(h.undoStack)-1]
-	if err := cmd.Undo(s); err != nil {
+	entry := h.undoStack[len(h.undoStack)-1]
+	if err := entry.cmd.Undo(s); err != nil {
 		return err
 	}
+	s.Score = entry.scoreBefore
 	h.undoStack = h.undoStack[:len(h.undoStack)-1]
-	h.redoStack = append(h.redoStack, cmd)
+	h.redoStack = append(h.redoStack, entry)
 	return nil
 }
 
-// Redo re-applies the most recently undone command.
+// Redo re-applies the most recently undone command and restores the
+// post-command score recorded at the time of the original execution.
 // If cmd.Execute returns an error the redo stack is left unchanged.
 func (h *History) Redo(s *GameState) error {
 	if len(h.redoStack) == 0 {
 		return errors.New("nothing to redo")
 	}
-	cmd := h.redoStack[len(h.redoStack)-1]
-	if err := cmd.Execute(s); err != nil {
+	entry := h.redoStack[len(h.redoStack)-1]
+	if err := entry.cmd.Execute(s); err != nil {
 		return err
 	}
+	s.Score = entry.scoreAfter
 	h.redoStack = h.redoStack[:len(h.redoStack)-1]
-	h.undoStack = append(h.undoStack, cmd)
+	h.undoStack = append(h.undoStack, entry)
 	return nil
 }
 

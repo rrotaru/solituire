@@ -27,10 +27,6 @@ func (s StandardScorer) OnMove(move Move, _ *GameState) int {
 	}
 }
 
-func (s StandardScorer) OnUndo(move Move, state *GameState) int {
-	return -s.OnMove(move, state)
-}
-
 func (s StandardScorer) OnFlipTableau() int {
 	return 5
 }

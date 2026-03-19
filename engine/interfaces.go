@@ -40,7 +40,6 @@ type Command interface {
 // without changing existing code.
 type Scorer interface {
 	OnMove(move Move, state *GameState) int // returns point delta
-	OnUndo(move Move, state *GameState) int // returns point delta (negative of original)
 	OnFlipTableau() int                     // returns +5 for standard scoring
 	OnRecycleStock() int                    // returns -100 for standard scoring
 }

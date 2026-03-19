@@ -19,7 +19,7 @@ func TestHistory_PushAndUndo(t *testing.T) {
 	if err := cmd.Execute(state); err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
-	h.Push(cmd)
+	h.Push(cmd, 0, 0)
 
 	if !h.CanUndo() {
 		t.Error("CanUndo should be true after push")
@@ -52,7 +52,7 @@ func TestHistory_Redo(t *testing.T) {
 	if err := cmd.Execute(state); err != nil {
 		t.Fatalf("Execute: %v", err)
 	}
-	h.Push(cmd)
+	h.Push(cmd, 0, 0)
 	if err := h.Undo(state); err != nil {
 		t.Fatalf("Undo: %v", err)
 	}
@@ -96,7 +96,7 @@ func TestHistory_PushClearsRedo(t *testing.T) {
 	if err := cmdA.Execute(state); err != nil {
 		t.Fatalf("Execute A: %v", err)
 	}
-	h.Push(cmdA)
+	h.Push(cmdA, 0, 0)
 
 	// Undo it → redo stack now has cmdA.
 	if err := h.Undo(state); err != nil {
@@ -112,7 +112,7 @@ func TestHistory_PushClearsRedo(t *testing.T) {
 	if err := cmdB.Execute(state); err != nil {
 		t.Fatalf("Execute B: %v", err)
 	}
-	h.Push(cmdB)
+	h.Push(cmdB, 0, 0)
 
 	if h.CanRedo() {
 		t.Error("CanRedo should be false after new push")
@@ -137,7 +137,7 @@ func TestHistory_MultipleUndoRedoCycles(t *testing.T) {
 		if err := cmd.Execute(state); err != nil {
 			t.Fatalf("Execute %d: %v", i, err)
 		}
-		h.Push(cmd)
+		h.Push(cmd, 0, 0)
 	}
 
 	// All 3 columns face-up.
@@ -186,6 +186,38 @@ func TestHistory_MultipleUndoRedoCycles(t *testing.T) {
 	}
 }
 
+// TestHistory_ScoreRestoredOnUndoRedo verifies that History restores the exact
+// pre-command score on undo and the exact post-command score on redo, even when
+// the GameEngine has clamped the delta at zero. This prevents the "undo inflates
+// score" bug that arises when raw delta negation is used instead of snapshots.
+func TestHistory_ScoreRestoredOnUndoRedo(t *testing.T) {
+	state, cmd := buildFlippableState(0)
+
+	// Simulate a scenario where score was 10 before execute and clamped to 0 after.
+	state.Score = 10
+	if err := cmd.Execute(state); err != nil {
+		t.Fatalf("Execute: %v", err)
+	}
+	h := &History{}
+	h.Push(cmd, 10 /*scoreBefore*/, 0 /*scoreAfter — clamped*/)
+
+	// Undo must restore score to the pre-command value (10), not 0 + flip_delta.
+	if err := h.Undo(state); err != nil {
+		t.Fatalf("Undo: %v", err)
+	}
+	if state.Score != 10 {
+		t.Errorf("score after undo = %d, want 10", state.Score)
+	}
+
+	// Redo must restore score to the original post-command value (0), not 10 + flip_delta.
+	if err := h.Redo(state); err != nil {
+		t.Fatalf("Redo: %v", err)
+	}
+	if state.Score != 0 {
+		t.Errorf("score after redo = %d, want 0", state.Score)
+	}
+}
+
 func TestHistory_Clear(t *testing.T) {
 	state, cmdA := buildFlippableState(0)
 	h := &History{}
@@ -193,14 +225,14 @@ func TestHistory_Clear(t *testing.T) {
 	if err := cmdA.Execute(state); err != nil {
 		t.Fatalf("Execute A: %v", err)
 	}
-	h.Push(cmdA)
+	h.Push(cmdA, 0, 0)
 
 	state.Tableau[1].Cards = []Card{faceDownCard(Queen, Hearts)}
 	cmdB := &FlipTableauCardCmd{ColumnIdx: 1}
 	if err := cmdB.Execute(state); err != nil {
 		t.Fatalf("Execute B: %v", err)
 	}
-	h.Push(cmdB)
+	h.Push(cmdB, 0, 0)
 
 	h.Clear()
 
