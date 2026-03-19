@@ -58,15 +58,10 @@ func pileOrigins(termWidth int) map[engine.PileID]image.Point {
 	return origins
 }
 
-// PileHitTest maps terminal coordinates (x, y) to a pile and card index.
-// Returns (pileID, cardIndex, true) on hit, or (0, 0, false) on miss.
+// PileHitTestWithWidth maps terminal coordinates (x, y) to a pile and card index.
+// termWidth must be the actual terminal width so that right-justified foundations
+// are positioned correctly. Returns (pileID, cardIndex, true) on hit, or (0, 0, false).
 // cardIndex is 0-based from the top of the pile's visible cards.
-func PileHitTest(x, y int, state *engine.GameState) (engine.PileID, int, bool) {
-	termWidth := MinTermWidth // callers should use actual term width; this is a safe fallback
-	return pileHitTestWithWidth(x, y, state, termWidth)
-}
-
-// PileHitTestWithWidth is the width-aware version used internally and by Agent C.
 func PileHitTestWithWidth(x, y int, state *engine.GameState, termWidth int) (engine.PileID, int, bool) {
 	return pileHitTestWithWidth(x, y, state, termWidth)
 }
@@ -79,8 +74,18 @@ func pileHitTestWithWidth(x, y int, state *engine.GameState, termWidth int) (eng
 		return engine.PileStock, 0, true
 	}
 
-	// Check waste
-	if hitCard(x, y, origins[engine.PileWaste]) {
+	// Check waste.
+	// In draw-3 mode RenderWastePile places multiple full cards side-by-side;
+	// the playable top card is the rightmost one. Expand the hit region to
+	// cover all visible cards so clicks on the rightmost card are not missed.
+	wasteOrigin := origins[engine.PileWaste]
+	wasteVisCount := len(state.Waste.VisibleCards())
+	if wasteVisCount < 1 {
+		wasteVisCount = 1
+	}
+	wasteHitWidth := wasteVisCount * CardWidth
+	if x >= wasteOrigin.X && x < wasteOrigin.X+wasteHitWidth &&
+		y >= wasteOrigin.Y && y < wasteOrigin.Y+CardHeight {
 		return engine.PileWaste, 0, true
 	}
 

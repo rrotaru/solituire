@@ -93,20 +93,21 @@ func (r *Renderer) renderTopRow(state *engine.GameState, cursor CursorState) str
 	f2 := RenderFoundationPile(state.Foundations[2], 2, cursor, r.theme)
 	f3 := RenderFoundationPile(state.Foundations[3], 3, cursor, r.theme)
 
-	// Gap between stock/waste and foundations: fill remaining space
-	stockWasteWidth := 2*CardWidth + ColGap
-	foundationsWidth := 4*CardWidth + 3*ColGap
-	gapWidth := r.width - stockWasteWidth - foundationsWidth
-	if gapWidth < 1 {
-		gapWidth = 1
-	}
-	gap := strings.Repeat(" ", gapWidth)
-
 	leftSection := lipgloss.JoinHorizontal(lipgloss.Top,
 		stock,
 		strings.Repeat(" ", ColGap),
 		waste,
 	)
+
+	// Gap between stock/waste and foundations: fill remaining space.
+	// Use the actual rendered width of leftSection so draw-3 waste (2–3 full
+	// card widths) is accounted for rather than assuming a fixed 2-card width.
+	foundationsWidth := 4*CardWidth + 3*ColGap
+	gapWidth := r.width - lipgloss.Width(leftSection) - foundationsWidth
+	if gapWidth < 1 {
+		gapWidth = 1
+	}
+	gap := strings.Repeat(" ", gapWidth)
 	rightSection := lipgloss.JoinHorizontal(lipgloss.Top,
 		f0,
 		strings.Repeat(" ", ColGap),
