@@ -95,6 +95,14 @@ func TestStandardScorer_OnUndo(t *testing.T) {
 	}
 }
 
+func TestStandardScorer_OnFlipTableau(t *testing.T) {
+	s := StandardScorer{}
+	got := s.OnFlipTableau()
+	if got != 5 {
+		t.Errorf("OnFlipTableau() = %d, want 5", got)
+	}
+}
+
 func TestStandardScorer_OnRecycleStock(t *testing.T) {
 	s := StandardScorer{}
 	got := s.OnRecycleStock()

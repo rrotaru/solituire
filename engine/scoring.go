@@ -31,6 +31,10 @@ func (s StandardScorer) OnUndo(move Move, state *GameState) int {
 	return -s.OnMove(move, state)
 }
 
+func (s StandardScorer) OnFlipTableau() int {
+	return 5
+}
+
 func (s StandardScorer) OnRecycleStock() int {
 	return -100
 }
