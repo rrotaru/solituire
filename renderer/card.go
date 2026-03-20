@@ -66,9 +66,23 @@ const innerWidth = CardWidth - 2
 
 // renderEmpty renders an empty pile slot with a dashed border.
 func renderEmpty(t theme.Theme) string {
-	borderStyle := lipgloss.NewStyle().Foreground(t.EmptySlotBorder)
-	textStyle := lipgloss.NewStyle().Foreground(t.EmptySlotText)
-	_ = textStyle
+	return renderEmptyWithState(cardNormal, t)
+}
+
+// renderEmptyWithState renders an empty pile slot, tinting the border to
+// reflect cursor/hint interaction state (cardCursor, cardHintTo, etc.).
+func renderEmptyWithState(state cardVisualState, t theme.Theme) string {
+	var borderColor lipgloss.Color
+	switch state {
+	case cardCursor:
+		borderColor = t.CursorBorder
+	case cardHintFrom, cardHintTo:
+		borderColor = t.HintBorder
+	default:
+		borderColor = t.EmptySlotBorder
+	}
+
+	borderStyle := lipgloss.NewStyle().Foreground(borderColor)
 
 	top := borderStyle.Render("╭" + strings.Repeat("╌", innerWidth) + "╮")
 	mid := borderStyle.Render("│") + strings.Repeat(" ", innerWidth) + borderStyle.Render("│")

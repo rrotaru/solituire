@@ -49,7 +49,8 @@ func cardVisualStateForCursor(pileID engine.PileID, cardIdx int, cursor CursorSt
 // renderStockPileFull renders the stock pile respecting cursor state on the border.
 func renderStockPileFull(p *engine.StockPile, cursor CursorState, t theme.Theme) string {
 	if p.IsEmpty() {
-		return renderCard(cardContent{state: cardEmpty}, t)
+		state := cardVisualStateForCursor(engine.PileStock, 0, cursor)
+		return renderEmptyWithState(state, t)
 	}
 	state := cardVisualStateForCursor(engine.PileStock, 0, cursor)
 	return renderFaceDownWithState(state, t)
@@ -87,7 +88,8 @@ func RenderStockPile(p *engine.StockPile, cursor CursorState, t theme.Theme) str
 // Draw-3: shows up to 3 cards fanned (only the top is fully playable).
 func RenderWastePile(p *engine.WastePile, cursor CursorState, t theme.Theme) string {
 	if p.IsEmpty() {
-		return renderCard(cardContent{state: cardEmpty}, t)
+		state := cardVisualStateForCursor(engine.PileWaste, 0, cursor)
+		return renderEmptyWithState(state, t)
 	}
 
 	visible := p.VisibleCards()
@@ -115,18 +117,28 @@ func RenderWastePile(p *engine.WastePile, cursor CursorState, t theme.Theme) str
 func RenderFoundationPile(p *engine.FoundationPile, idx int, cursor CursorState, t theme.Theme) string {
 	pid := engine.PileID(engine.PileFoundation0 + engine.PileID(idx))
 	if p.TopCard() == nil {
-		// Show suit symbol in the empty slot
+		state := cardVisualStateForCursor(pid, 0, cursor)
 		sym := suitSymbolForIndex(idx)
-		return renderEmptyWithSuit(sym, t)
+		return renderEmptyWithSuit(sym, state, t)
 	}
 	top := p.TopCard()
 	state := cardVisualStateForCursor(pid, 0, cursor)
 	return renderCard(cardContent{card: *top, state: resolveStateForFaceUp(state)}, t)
 }
 
-// renderEmptyWithSuit renders an empty foundation slot with a suit symbol hint.
-func renderEmptyWithSuit(suit string, t theme.Theme) string {
-	borderStyle := lipgloss.NewStyle().Foreground(t.EmptySlotBorder)
+// renderEmptyWithSuit renders an empty foundation slot with a suit symbol hint,
+// tinting the border according to the active cursor/hint state.
+func renderEmptyWithSuit(suit string, state cardVisualState, t theme.Theme) string {
+	var borderColor lipgloss.Color
+	switch state {
+	case cardCursor:
+		borderColor = t.CursorBorder
+	case cardHintFrom, cardHintTo:
+		borderColor = t.HintBorder
+	default:
+		borderColor = t.EmptySlotBorder
+	}
+	borderStyle := lipgloss.NewStyle().Foreground(borderColor)
 	textStyle := lipgloss.NewStyle().Foreground(t.EmptySlotText)
 
 	top := borderStyle.Render("╭" + strings.Repeat("╌", innerWidth) + "╮")
@@ -156,7 +168,8 @@ func RenderTableauPile(p *engine.TableauPile, colIdx int, cursor CursorState, t 
 	pid := engine.PileID(engine.PileTableau0 + engine.PileID(colIdx))
 
 	if p.IsEmpty() {
-		return renderCard(cardContent{state: cardEmpty}, t)
+		state := cardVisualStateForCursor(pid, 0, cursor)
+		return renderEmptyWithState(state, t)
 	}
 
 	var rows []string

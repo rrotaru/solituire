@@ -59,10 +59,19 @@ func pileOrigins(termWidth int) map[engine.PileID]image.Point {
 	return origins
 }
 
-// PileHitTestWithWidth maps terminal coordinates (x, y) to a pile and card index.
-// termWidth must be the actual terminal width so that right-justified foundations
-// are positioned correctly. Returns (pileID, cardIndex, true) on hit, or (0, 0, false).
-// cardIndex is 0-based from the top of the pile's visible cards.
+// PileHitTest maps terminal coordinates (x, y) to a pile and card index using
+// MinTermWidth as a fallback terminal width. Prefer PileHitTestWithWidth when
+// the actual terminal width is available so that right-justified foundations
+// are positioned correctly. Returns (pileID, cardIndex, true) on hit, or
+// (0, 0, false) on miss. cardIndex is 0-based from the top of the pile's
+// visible cards.
+func PileHitTest(x, y int, state *engine.GameState) (engine.PileID, int, bool) {
+	return pileHitTestWithWidth(x, y, state, MinTermWidth)
+}
+
+// PileHitTestWithWidth is the width-aware version of PileHitTest. termWidth
+// must be the actual terminal width so that right-justified foundations are
+// positioned correctly.
 func PileHitTestWithWidth(x, y int, state *engine.GameState, termWidth int) (engine.PileID, int, bool) {
 	return pileHitTestWithWidth(x, y, state, termWidth)
 }
