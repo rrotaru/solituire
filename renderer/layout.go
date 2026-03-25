@@ -11,7 +11,7 @@ const (
 	CardWidth     = 9  // total lipgloss-rendered width including borders
 	CardHeight    = 7  // max full-card height including borders
 	MinTermWidth  = 78
-	MinTermHeight = 24
+	MinTermHeight = 25
 	ColGap        = 1  // gap between tableau columns
 )
 
