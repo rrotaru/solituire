@@ -64,6 +64,8 @@ func renderFaceDownWithState(state cardVisualState, t theme.Theme) string {
 		borderColor = t.CursorBorder
 	case cardSelected:
 		borderColor = t.SelectedBorder
+	case cardHintFrom, cardHintTo:
+		borderColor = t.HintBorder
 	default:
 		borderColor = t.CardBorder
 	}

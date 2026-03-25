@@ -31,7 +31,7 @@ func renderHeader(state *engine.GameState, termWidth int, t theme.Theme) string 
 
 // formatDuration formats a duration as mm:ss.
 func formatDuration(d time.Duration) string {
-	d = d.Round(time.Second)
+	d = d.Truncate(time.Second)
 	m := int(d.Minutes())
 	s := int(d.Seconds()) % 60
 	return fmt.Sprintf("%02d:%02d", m, s)
