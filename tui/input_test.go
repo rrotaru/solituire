@@ -133,6 +133,24 @@ func TestTranslateInput_PasteIgnored(t *testing.T) {
 	}
 }
 
+// TestTranslateInput_AltModifiedIgnored verifies that Alt-modified keys produce
+// ActionNone so terminal/tmux meta-key shortcuts are not misread as game commands.
+func TestTranslateInput_AltModifiedIgnored(t *testing.T) {
+	cases := []tea.KeyMsg{
+		{Type: tea.KeyRunes, Runes: []rune{'q'}, Alt: true},
+		{Type: tea.KeyRunes, Runes: []rune{'h'}, Alt: true},
+		{Type: tea.KeyRunes, Runes: []rune{'1'}, Alt: true},
+		{Type: tea.KeyLeft, Alt: true},
+		{Type: tea.KeyEnter, Alt: true},
+	}
+	for _, m := range cases {
+		got, _ := TranslateInput(m)
+		if got != ActionNone {
+			t.Errorf("Alt+%v: got %v, want ActionNone", m, got)
+		}
+	}
+}
+
 // TestTranslateInput_MultiRuneIgnored verifies that IME-composed multi-rune
 // KeyRunes events produce ActionNone rather than firing from the first rune.
 func TestTranslateInput_MultiRuneIgnored(t *testing.T) {

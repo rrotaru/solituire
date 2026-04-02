@@ -51,7 +51,7 @@ func TranslateInput(msg tea.Msg) (GameAction, interface{}) {
 }
 
 func translateKey(m tea.KeyMsg) (GameAction, interface{}) {
-	if m.Paste {
+	if m.Paste || m.Alt {
 		return ActionNone, nil
 	}
 	switch m.Type {
