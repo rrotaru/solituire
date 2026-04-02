@@ -120,6 +120,19 @@ func TestTranslateInput_JumpColumnPayload(t *testing.T) {
 	}
 }
 
+// TestTranslateInput_PasteIgnored verifies that KeyRunes events marked as paste
+// produce ActionNone, preventing bracketed paste from triggering game commands.
+func TestTranslateInput_PasteIgnored(t *testing.T) {
+	pasteRunes := []rune{'q', 'p', '1', 'f', 't', 'j', 'k', 'h', 'l', '?'}
+	for _, r := range pasteRunes {
+		msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}, Paste: true}
+		got, _ := TranslateInput(msg)
+		if got != ActionNone {
+			t.Errorf("pasted rune %q: got %v, want ActionNone", r, got)
+		}
+	}
+}
+
 // TestTranslateInput_MouseRelease verifies non-press mouse events are ignored.
 func TestTranslateInput_MouseRelease(t *testing.T) {
 	m := tea.MouseMsg{Action: tea.MouseActionRelease, Button: tea.MouseButtonLeft, X: 10, Y: 5}
