@@ -79,6 +79,12 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 	case ActionCursorRight:
 		m.cursor.MoveRight(state)
 
+	case ActionTabNext:
+		m.cursor.TabNext(state)
+
+	case ActionTabPrev:
+		m.cursor.TabPrev(state)
+
 	case ActionCursorUp:
 		m.cursor.MoveUp(state)
 
@@ -197,7 +203,21 @@ func dragCount(state *engine.GameState, c Cursor) int {
 func (m BoardModel) buildMoveCmd(state *engine.GameState, from engine.PileID, count int, to engine.PileID) engine.Command {
 	if isFoundationPile(to) && count == 1 {
 		fi := int(to - engine.PileFoundation0)
-		return &engine.MoveToFoundationCmd{From: from, FoundationIdx: fi}
+		moveCmd := &engine.MoveToFoundationCmd{From: from, FoundationIdx: fi}
+		if isTableauPile(from) {
+			srcCol := int(from - engine.PileTableau0)
+			srcPile := state.Tableau[srcCol]
+			newTopIdx := len(srcPile.Cards) - 2 // after removing the one moved card
+			if newTopIdx >= 0 && !srcPile.Cards[newTopIdx].FaceUp {
+				return &engine.CompoundCmd{
+					Cmds: []engine.Command{
+						moveCmd,
+						&engine.FlipTableauCardCmd{ColumnIdx: srcCol},
+					},
+				}
+			}
+		}
+		return moveCmd
 	}
 
 	if isTableauPile(to) {
@@ -249,7 +269,11 @@ func (m *BoardModel) moveToFoundation(state *engine.GameState) {
 	}
 	for fi, f := range state.Foundations {
 		if f.AcceptsCard(*card) {
-			_ = m.eng.Execute(&engine.MoveToFoundationCmd{From: m.cursor.Pile, FoundationIdx: fi})
+			to := engine.PileFoundation0 + engine.PileID(fi)
+			cmd := m.buildMoveCmd(state, m.cursor.Pile, 1, to)
+			if cmd != nil {
+				_ = m.eng.Execute(cmd)
+			}
 			m.clampCursor()
 			return
 		}

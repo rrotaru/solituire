@@ -303,6 +303,141 @@ func TestBoardTickUpdatesElapsed(t *testing.T) {
 	}
 }
 
+// TestBoardTabReachesFoundation verifies that Tab can visit a foundation pile,
+// confirming tabCycleOrder (not navCycleOrder) is used.
+func TestBoardTabReachesFoundation(t *testing.T) {
+	board, _ := newBoard()
+	board.cursor.Pile = engine.PileWaste // start just before foundations in tabCycleOrder
+	board.cursor.CardIndex = 0
+
+	board = sendKey(board, tea.KeyTab)
+	if !isFoundationPile(board.cursor.Pile) {
+		t.Errorf("Tab from Waste must land on a foundation pile, got %v", board.cursor.Pile)
+	}
+}
+
+// TestBoardShiftTabReachesFoundation verifies that Shift-Tab can visit a foundation.
+func TestBoardShiftTabReachesFoundation(t *testing.T) {
+	board, _ := newBoard()
+	board.cursor.Pile = engine.PileTableau0 // first in tabCycleOrder after foundations
+	board.cursor.CardIndex = 0
+
+	board = sendKey(board, tea.KeyShiftTab)
+	if !isFoundationPile(board.cursor.Pile) {
+		t.Errorf("Shift-Tab from Tableau0 must land on a foundation pile, got %v", board.cursor.Pile)
+	}
+}
+
+// TestBoardArrowDoesNotReachFoundation verifies that Left/Right arrow keys skip
+// foundations (navCycleOrder) so they still reach them only via Tab.
+func TestBoardArrowDoesNotReachFoundation(t *testing.T) {
+	board, _ := newBoard()
+	board.cursor.Pile = engine.PileWaste
+	board.cursor.CardIndex = 0
+
+	// Right from Waste with arrow key goes to Tableau0, not Foundation0.
+	board = sendKey(board, tea.KeyRight)
+	if isFoundationPile(board.cursor.Pile) {
+		t.Errorf("Right arrow from Waste must skip foundations, got %v", board.cursor.Pile)
+	}
+	if board.cursor.Pile != engine.PileTableau0 {
+		t.Errorf("Right arrow from Waste must land on PileTableau0, got %v", board.cursor.Pile)
+	}
+}
+
+// TestBoardFoundationAutoFlip verifies that moving a tableau top card to a
+// foundation via drag automatically flips the newly exposed face-down card.
+func TestBoardFoundationAutoFlip(t *testing.T) {
+	_, eng := newBoard()
+
+	// Find a to-foundation move from a tableau column that will expose a face-down card.
+	var move engine.Move
+	state := eng.State()
+	for _, m := range eng.ValidMoves() {
+		if !isTableauPile(m.From) || !isFoundationPile(m.To) {
+			continue
+		}
+		col := int(m.From - engine.PileTableau0)
+		pile := state.Tableau[col]
+		// Need at least 2 cards and the card below is face-down.
+		if len(pile.Cards) >= 2 && !pile.Cards[len(pile.Cards)-2].FaceUp {
+			move = m
+			break
+		}
+	}
+	if move.From == 0 && move.To == 0 {
+		t.Skip("no tableau-to-foundation move that exposes a face-down card with seed 42")
+	}
+
+	srcCol := int(move.From - engine.PileTableau0)
+
+	// Execute the move directly through board's drag flow.
+	board, _ := newBoard()
+	board.cursor.Pile = move.From
+	board.cursor.CardIndex = len(eng.State().Tableau[srcCol].Cards) - 1
+
+	board = sendKey(board, tea.KeyEnter) // pick up
+	board.cursor.Pile = move.To
+	board = sendKey(board, tea.KeyEnter) // place on foundation
+
+	// The previously face-down card must now be face-up.
+	topCard := eng.State().Tableau[srcCol].TopCard()
+	if topCard == nil {
+		t.Fatal("source tableau column is empty after move — unexpected")
+	}
+	if !topCard.FaceUp {
+		t.Errorf("card beneath moved card must be flipped face-up after foundation drop, got FaceUp=false")
+	}
+}
+
+// TestBoardMoveToFoundationKey_AutoFlip verifies that the 'f' shortcut also
+// triggers the auto-flip when a face-down card is exposed.
+func TestBoardMoveToFoundationKey_AutoFlip(t *testing.T) {
+	_, eng := newBoard()
+	state := eng.State()
+
+	// Find a tableau column whose top card can go to a foundation and has a
+	// face-down card immediately beneath it.
+	targetCol := -1
+	for col := 0; col < 7; col++ {
+		pile := state.Tableau[col]
+		top := pile.TopCard()
+		if top == nil || len(pile.Cards) < 2 {
+			continue
+		}
+		if pile.Cards[len(pile.Cards)-2].FaceUp {
+			continue // need a face-down card below
+		}
+		for _, f := range state.Foundations {
+			if f.AcceptsCard(*top) {
+				targetCol = col
+				break
+			}
+		}
+		if targetCol >= 0 {
+			break
+		}
+	}
+	if targetCol < 0 {
+		t.Skip("no suitable tableau column for 'f' auto-flip test with seed 42")
+	}
+
+	board, _ := newBoard()
+	board.cursor.Pile = engine.PileTableau0 + engine.PileID(targetCol)
+	board.cursor.CardIndex = len(eng.State().Tableau[targetCol].Cards) - 1
+
+	board = sendRune(board, 'f')
+
+	topCard := eng.State().Tableau[targetCol].TopCard()
+	if topCard == nil {
+		// Column is now empty — that's fine, nothing to check.
+		return
+	}
+	if !topCard.FaceUp {
+		t.Errorf("'f' key must flip the newly exposed face-down card, got FaceUp=false")
+	}
+}
+
 func TestBoardWindowResize(t *testing.T) {
 	board, _ := newBoard()
 

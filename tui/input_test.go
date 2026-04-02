@@ -27,9 +27,9 @@ func TestTranslateInput(t *testing.T) {
 		{"vim k", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("k")}, ActionCursorUp, nil},
 		{"vim j", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("j")}, ActionCursorDown, nil},
 
-		// Tab cycling
-		{"tab", tea.KeyMsg{Type: tea.KeyTab}, ActionCursorRight, nil},
-		{"shift+tab", tea.KeyMsg{Type: tea.KeyShiftTab}, ActionCursorLeft, nil},
+		// Tab cycling — uses tabCycleOrder which includes foundations
+		{"tab", tea.KeyMsg{Type: tea.KeyTab}, ActionTabNext, nil},
+		{"shift+tab", tea.KeyMsg{Type: tea.KeyShiftTab}, ActionTabPrev, nil},
 
 		// Number keys 1-7 — action only (payload checked in dedicated test)
 		{"key 1", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("1")}, ActionJumpToColumn, nil},

@@ -8,11 +8,15 @@ type GameAction int
 const (
 	ActionNone GameAction = iota
 
-	// Cursor movement
+	// Cursor movement — arrow keys and vim keys
 	ActionCursorUp
 	ActionCursorDown
 	ActionCursorLeft
 	ActionCursorRight
+
+	// Tab cycling — visits all 13 piles including foundations
+	ActionTabNext // Tab
+	ActionTabPrev // Shift-Tab
 
 	// Selection
 	ActionSelect // Enter or click — pick up or place card(s)
@@ -64,9 +68,9 @@ func translateKey(m tea.KeyMsg) (GameAction, interface{}) {
 	case tea.KeyDown:
 		return ActionCursorDown, nil
 	case tea.KeyTab:
-		return ActionCursorRight, nil
+		return ActionTabNext, nil
 	case tea.KeyShiftTab:
-		return ActionCursorLeft, nil
+		return ActionTabPrev, nil
 	case tea.KeyEnter:
 		return ActionSelect, nil
 	case tea.KeySpace:
