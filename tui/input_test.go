@@ -133,6 +133,16 @@ func TestTranslateInput_PasteIgnored(t *testing.T) {
 	}
 }
 
+// TestTranslateInput_MultiRuneIgnored verifies that IME-composed multi-rune
+// KeyRunes events produce ActionNone rather than firing from the first rune.
+func TestTranslateInput_MultiRuneIgnored(t *testing.T) {
+	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q', 'u'}}
+	got, _ := TranslateInput(msg)
+	if got != ActionNone {
+		t.Errorf("multi-rune KeyRunes: got %v, want ActionNone", got)
+	}
+}
+
 // TestTranslateInput_MouseRelease verifies non-press mouse events are ignored.
 func TestTranslateInput_MouseRelease(t *testing.T) {
 	m := tea.MouseMsg{Action: tea.MouseActionRelease, Button: tea.MouseButtonLeft, X: 10, Y: 5}

@@ -88,6 +88,11 @@ func translateKey(m tea.KeyMsg) (GameAction, interface{}) {
 	case tea.KeyCtrlC:
 		return ActionQuit, nil
 	case tea.KeyRunes:
+		if len(m.Runes) != 1 {
+			// Multi-rune events come from IME composition; ignore rather than
+			// firing a command from the first rune of an unrelated sequence.
+			return ActionNone, nil
+		}
 		return translateRune(m.Runes[0])
 	}
 	return ActionNone, nil
