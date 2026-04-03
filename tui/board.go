@@ -185,6 +185,7 @@ func (m BoardModel) handleSelect(state *engine.GameState) BoardModel {
 }
 
 // dragCount returns the number of cards to drag from the cursor position.
+// Returns 0 when the pile has no card to pick up.
 func dragCount(state *engine.GameState, c Cursor) int {
 	if isTableauPile(c.Pile) {
 		col := int(c.Pile - engine.PileTableau0)
@@ -195,8 +196,20 @@ func dragCount(state *engine.GameState, c Cursor) int {
 		}
 		return n
 	}
-	// Waste and foundation: only the top card is draggable.
-	return 1
+	if c.Pile == engine.PileWaste {
+		if state.Waste.TopCard() == nil {
+			return 0
+		}
+		return 1
+	}
+	if isFoundationPile(c.Pile) {
+		fi := int(c.Pile - engine.PileFoundation0)
+		if state.Foundations[fi].TopCard() == nil {
+			return 0
+		}
+		return 1
+	}
+	return 0
 }
 
 // buildMoveCmd constructs the appropriate command for a drag-and-drop placement.

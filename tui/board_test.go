@@ -150,6 +150,32 @@ func TestBoardDragCancel(t *testing.T) {
 	}
 }
 
+// TestBoardEnterOnEmptyWaste verifies that pressing Enter on an empty waste pile
+// does not start a drag (waste is empty at game start before any stock flip).
+func TestBoardEnterOnEmptyWaste(t *testing.T) {
+	board, _ := newBoard()
+	board.cursor.Pile = engine.PileWaste
+	board.cursor.CardIndex = 0
+
+	board = sendKey(board, tea.KeyEnter)
+	if board.cursor.Dragging {
+		t.Error("Enter on empty waste must not start a drag")
+	}
+}
+
+// TestBoardEnterOnEmptyFoundation verifies that pressing Enter on an empty
+// foundation pile does not start a drag.
+func TestBoardEnterOnEmptyFoundation(t *testing.T) {
+	board, _ := newBoard()
+	board.cursor.Pile = engine.PileFoundation0
+	board.cursor.CardIndex = 0
+
+	board = sendKey(board, tea.KeyEnter)
+	if board.cursor.Dragging {
+		t.Error("Enter on empty foundation must not start a drag")
+	}
+}
+
 func TestBoardSelectOnStock_FlipsNotDrags(t *testing.T) {
 	board, eng := newBoard()
 	wasteBefore := len(eng.State().Waste.Cards)
