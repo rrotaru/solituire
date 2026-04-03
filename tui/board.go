@@ -118,6 +118,7 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 
 	case ActionRedo:
 		_ = m.eng.Redo()
+		m.clampCursor()
 
 	case ActionHint:
 		m.toggleHint(state)

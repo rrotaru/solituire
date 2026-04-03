@@ -274,6 +274,52 @@ func TestBoardRedo(t *testing.T) {
 	}
 }
 
+// TestBoardRedoClampsCursor verifies that after a redo that removes cards from
+// the cursor's tableau pile, CardIndex is clamped to a valid position so that
+// subsequent drag attempts compute a positive card count.
+func TestBoardRedoClampsCursor(t *testing.T) {
+	board, eng := newBoard()
+
+	// Find a tableau-to-tableau move so the source pile shrinks after the move.
+	var move engine.Move
+	for _, m := range eng.ValidMoves() {
+		if isTableauPile(m.From) && isTableauPile(m.To) {
+			move = m
+			break
+		}
+	}
+	if move.From == 0 && move.To == 0 {
+		t.Skip("no tableau-to-tableau move available with seed 42")
+	}
+
+	srcCol := int(move.From - engine.PileTableau0)
+
+	// Position cursor at the bottom of the source pile and execute the move.
+	board.cursor.Pile = move.From
+	board.cursor.CardIndex = len(eng.State().Tableau[srcCol].Cards) - 1
+	board = sendKey(board, tea.KeyEnter) // pick up
+	board.cursor.Pile = move.To
+	board = sendKey(board, tea.KeyEnter) // place — source pile shrinks
+
+	// Undo restores the source pile; cursor may now be below the new top.
+	board = sendKey(board, tea.KeyCtrlZ)
+
+	// Redo re-applies the move; source pile shrinks again.
+	// Cursor must be clamped to remain within the pile.
+	board.cursor.Pile = move.From
+	board.cursor.CardIndex = len(eng.State().Tableau[srcCol].Cards) - 1 // park at bottom before redo
+	board = sendKey(board, tea.KeyCtrlY)
+
+	if isTableauPile(board.cursor.Pile) {
+		col := int(board.cursor.Pile - engine.PileTableau0)
+		pile := eng.State().Tableau[col]
+		if !pile.IsEmpty() && board.cursor.CardIndex >= len(pile.Cards) {
+			t.Errorf("after redo CardIndex %d is out of bounds for pile len %d",
+				board.cursor.CardIndex, len(pile.Cards))
+		}
+	}
+}
+
 func TestBoardHintToggle(t *testing.T) {
 	board, _ := newBoard()
 
