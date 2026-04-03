@@ -109,7 +109,18 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		m.flipStock(state)
 
 	case ActionMoveToFoundation:
-		m.moveToFoundation(state)
+		if m.cursor.Dragging {
+			// Only a single-card drag can go to a foundation.
+			if m.cursor.DragCardCount == 1 {
+				m.moveToFoundation(state, m.cursor.DragSource)
+			}
+			// Clear drag regardless — 'f' always ends the drag gesture.
+			m.cursor.Dragging = false
+			m.cursor.DragSource = 0
+			m.cursor.DragCardCount = 0
+		} else {
+			m.moveToFoundation(state, m.cursor.Pile)
+		}
 
 	case ActionUndo:
 		_ = m.eng.Undo()
@@ -265,17 +276,17 @@ func (m *BoardModel) flipStock(state *engine.GameState) {
 	}
 }
 
-// moveToFoundation moves the top card of the cursor's pile to the matching foundation.
-func (m *BoardModel) moveToFoundation(state *engine.GameState) {
+// moveToFoundation moves the top card of src to the matching foundation.
+func (m *BoardModel) moveToFoundation(state *engine.GameState, src engine.PileID) {
 	var card *engine.Card
 	switch {
-	case m.cursor.Pile == engine.PileWaste:
+	case src == engine.PileWaste:
 		card = state.Waste.TopCard()
-	case isTableauPile(m.cursor.Pile):
-		col := int(m.cursor.Pile - engine.PileTableau0)
+	case isTableauPile(src):
+		col := int(src - engine.PileTableau0)
 		card = state.Tableau[col].TopCard()
-	case isFoundationPile(m.cursor.Pile):
-		fi := int(m.cursor.Pile - engine.PileFoundation0)
+	case isFoundationPile(src):
+		fi := int(src - engine.PileFoundation0)
 		card = state.Foundations[fi].TopCard()
 	}
 	if card == nil {
@@ -284,7 +295,7 @@ func (m *BoardModel) moveToFoundation(state *engine.GameState) {
 	for fi, f := range state.Foundations {
 		if f.AcceptsCard(*card) {
 			to := engine.PileFoundation0 + engine.PileID(fi)
-			cmd := m.buildMoveCmd(state, m.cursor.Pile, 1, to)
+			cmd := m.buildMoveCmd(state, src, 1, to)
 			if cmd != nil {
 				_ = m.eng.Execute(cmd)
 			}

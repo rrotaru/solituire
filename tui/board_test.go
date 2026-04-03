@@ -346,6 +346,96 @@ func TestBoardRedoClampsCursor(t *testing.T) {
 	}
 }
 
+// TestBoardFKeyWhileDragging_SingleCard verifies that pressing 'f' during a
+// single-card drag completes the move to the foundation from DragSource (not
+// the hovered pile) and clears the drag state.
+func TestBoardFKeyWhileDragging_SingleCard(t *testing.T) {
+	board, eng := newBoard()
+
+	// Find a tableau top card that can go to a foundation.
+	var srcPile engine.PileID
+	for col := 0; col < 7; col++ {
+		pile := eng.State().Tableau[col]
+		top := pile.TopCard()
+		if top == nil {
+			continue
+		}
+		for _, f := range eng.State().Foundations {
+			if f.AcceptsCard(*top) {
+				srcPile = engine.PileTableau0 + engine.PileID(col)
+				break
+			}
+		}
+		if srcPile != 0 {
+			break
+		}
+	}
+	if srcPile == 0 {
+		t.Skip("no tableau card can go to a foundation with seed 42 at deal time")
+	}
+
+	srcCol := int(srcPile - engine.PileTableau0)
+	board.cursor.Pile = srcPile
+	board.cursor.CardIndex = len(eng.State().Tableau[srcCol].Cards) - 1
+
+	board = sendKey(board, tea.KeyEnter) // pick up one card
+	if !board.cursor.Dragging {
+		t.Fatal("precondition: expected Dragging=true")
+	}
+
+	// Move cursor to an unrelated pile to prove 'f' uses DragSource, not cursor.
+	board.cursor.Pile = engine.PileStock
+
+	board = sendRune(board, 'f') // should complete the drag to foundation
+
+	if board.cursor.Dragging {
+		t.Error("'f' while dragging must clear Dragging")
+	}
+	if board.cursor.DragSource != 0 {
+		t.Error("'f' while dragging must clear DragSource")
+	}
+}
+
+// TestBoardFKeyWhileDragging_MultiCard verifies that pressing 'f' during a
+// multi-card drag (count > 1, which cannot go to a foundation) still clears
+// the drag without moving any card.
+func TestBoardFKeyWhileDragging_MultiCard(t *testing.T) {
+	board, eng := newBoard()
+
+	// Find a tableau pile with at least 2 face-up cards to drag a stack.
+	var srcPile engine.PileID
+	for col := 0; col < 7; col++ {
+		pile := eng.State().Tableau[col]
+		if len(pile.FaceUpCards()) >= 2 {
+			srcPile = engine.PileTableau0 + engine.PileID(col)
+			break
+		}
+	}
+	if srcPile == 0 {
+		t.Skip("no tableau column with 2+ face-up cards at deal time with seed 42")
+	}
+
+	srcCol := int(srcPile - engine.PileTableau0)
+	fdCount := eng.State().Tableau[srcCol].FaceDownCount()
+	// Pick up from the first face-up card so DragCardCount >= 2.
+	board.cursor.Pile = srcPile
+	board.cursor.CardIndex = fdCount
+	board = sendKey(board, tea.KeyEnter)
+	if !board.cursor.Dragging || board.cursor.DragCardCount < 2 {
+		t.Skip("could not start a multi-card drag")
+	}
+
+	movesBefore := eng.State().MoveCount
+	board = sendRune(board, 'f')
+
+	if board.cursor.Dragging {
+		t.Error("'f' while dragging must clear Dragging even for multi-card drag")
+	}
+	if eng.State().MoveCount != movesBefore {
+		t.Error("multi-card drag + 'f' must not move any card")
+	}
+}
+
 func TestBoardHintToggle(t *testing.T) {
 	board, _ := newBoard()
 
