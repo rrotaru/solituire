@@ -482,6 +482,29 @@ func TestBoardFKeyWhileDragging_MultiCard(t *testing.T) {
 	}
 }
 
+// TestBoardHintClearedByAction verifies that any non-hint player action
+// clears an active hint so stale guidance does not persist on screen.
+func TestBoardHintClearedByAction(t *testing.T) {
+	board, _ := newBoard()
+
+	board = sendRune(board, '?') // show hint
+	if !board.cursor.ShowHint {
+		t.Fatal("precondition: ShowHint must be true after '?'")
+	}
+
+	// A cursor movement is a non-hint action and must clear the hint.
+	board = sendKey(board, tea.KeyRight)
+	if board.cursor.ShowHint {
+		t.Error("cursor movement must clear ShowHint")
+	}
+
+	// '?' after the hint was cleared should show a fresh hint (not toggle off).
+	board = sendRune(board, '?')
+	if !board.cursor.ShowHint {
+		t.Error("'?' after hint was cleared must re-show a hint")
+	}
+}
+
 func TestBoardHintToggle(t *testing.T) {
 	board, _ := newBoard()
 

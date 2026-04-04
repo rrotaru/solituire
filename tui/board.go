@@ -72,6 +72,14 @@ func (m BoardModel) View() string {
 func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Model, tea.Cmd) {
 	state := m.eng.State()
 
+	// Clear any active hint on the first non-hint player action so stale
+	// guidance doesn't linger across unrelated inputs.
+	// ActionNone (no recognised key) and ActionHint itself are excluded:
+	// ActionHint must see the current ShowHint value to toggle correctly.
+	if action != ActionNone && action != ActionHint {
+		m.cursor.ShowHint = false
+	}
+
 	switch action {
 	case ActionCursorLeft:
 		m.cursor.MoveLeft(state)
