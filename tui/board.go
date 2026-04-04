@@ -133,11 +133,16 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		}
 
 	case ActionUndo:
+		m.cursor.Dragging = false
+		m.cursor.DragSource = 0
+		m.cursor.DragCardCount = 0
 		_ = m.eng.Undo()
-		// Clamp cursor after undo in case piles shrank
 		m.clampCursor()
 
 	case ActionRedo:
+		m.cursor.Dragging = false
+		m.cursor.DragSource = 0
+		m.cursor.DragCardCount = 0
 		_ = m.eng.Redo()
 		m.clampCursor()
 

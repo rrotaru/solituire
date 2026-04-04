@@ -270,6 +270,52 @@ func TestBoardFlipStock(t *testing.T) {
 	}
 }
 
+// TestBoardUndoClearsDrag verifies that pressing Ctrl+Z while a drag is active
+// cancels the drag before reverting the last move.
+func TestBoardUndoClearsDrag(t *testing.T) {
+	board, _ := newBoard()
+	board.cursor.Pile = engine.PileTableau3
+	board.cursor.CardIndex = len(board.eng.State().Tableau[3].Cards) - 1
+	board = sendKey(board, tea.KeyEnter) // pick up
+	if !board.cursor.Dragging {
+		t.Fatal("precondition: expected Dragging=true")
+	}
+
+	board = sendKey(board, tea.KeyCtrlZ)
+	if board.cursor.Dragging {
+		t.Error("Ctrl+Z must clear Dragging")
+	}
+	if board.cursor.DragSource != 0 || board.cursor.DragCardCount != 0 {
+		t.Error("Ctrl+Z must clear DragSource and DragCardCount")
+	}
+}
+
+// TestBoardRedoClearsDrag verifies that pressing Ctrl+Y while a drag is active
+// cancels the drag before re-applying the last undone move.
+func TestBoardRedoClearsDrag(t *testing.T) {
+	board, eng := newBoard()
+
+	// Create an undone action to redo.
+	board = sendKey(board, tea.KeySpace)   // flip stock
+	board = sendKey(board, tea.KeyCtrlZ)   // undo
+
+	// Start a drag.
+	board.cursor.Pile = engine.PileTableau3
+	board.cursor.CardIndex = len(eng.State().Tableau[3].Cards) - 1
+	board = sendKey(board, tea.KeyEnter)
+	if !board.cursor.Dragging {
+		t.Fatal("precondition: expected Dragging=true")
+	}
+
+	board = sendKey(board, tea.KeyCtrlY)
+	if board.cursor.Dragging {
+		t.Error("Ctrl+Y must clear Dragging")
+	}
+	if board.cursor.DragSource != 0 || board.cursor.DragCardCount != 0 {
+		t.Error("Ctrl+Y must clear DragSource and DragCardCount")
+	}
+}
+
 func TestBoardUndo(t *testing.T) {
 	board, eng := newBoard()
 
