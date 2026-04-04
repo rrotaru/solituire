@@ -63,14 +63,26 @@ func (c Cursor) RendererCursor() renderer.CursorState {
 }
 
 // MoveLeft cycles one step left in navCycleOrder, wrapping at the start.
+// Foundations are not in navCycleOrder; when the cursor is on any foundation
+// the nearest left neighbour is Waste (the last top-row pile before foundations).
 func (c *Cursor) MoveLeft(state *engine.GameState) {
-	c.Pile = prevInCycle(navCycleOrder, c.Pile)
+	if isFoundationPile(c.Pile) {
+		c.Pile = engine.PileWaste
+	} else {
+		c.Pile = prevInCycle(navCycleOrder, c.Pile)
+	}
 	c.CardIndex = naturalCardIndex(c.Pile, state)
 }
 
 // MoveRight cycles one step right in navCycleOrder, wrapping at the end.
+// Foundations are not in navCycleOrder; when the cursor is on any foundation
+// the nearest right neighbour is Tableau0 (the first pile after foundations).
 func (c *Cursor) MoveRight(state *engine.GameState) {
-	c.Pile = nextInCycle(navCycleOrder, c.Pile)
+	if isFoundationPile(c.Pile) {
+		c.Pile = engine.PileTableau0
+	} else {
+		c.Pile = nextInCycle(navCycleOrder, c.Pile)
+	}
 	c.CardIndex = naturalCardIndex(c.Pile, state)
 }
 

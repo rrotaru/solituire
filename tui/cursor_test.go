@@ -181,6 +181,44 @@ func TestCursorJumpToColumn(t *testing.T) {
 	}
 }
 
+// TestCursorMoveLeft_FromFoundation verifies that pressing left from any foundation
+// lands on Waste — not a random fallback from an absent navCycleOrder entry.
+func TestCursorMoveLeft_FromFoundation(t *testing.T) {
+	state := newSeed42State()
+	foundations := []engine.PileID{
+		engine.PileFoundation0,
+		engine.PileFoundation1,
+		engine.PileFoundation2,
+		engine.PileFoundation3,
+	}
+	for _, pile := range foundations {
+		c := Cursor{Pile: pile, CardIndex: 0}
+		c.MoveLeft(state)
+		if c.Pile != engine.PileWaste {
+			t.Errorf("MoveLeft from %v: expected PileWaste, got %v", pile, c.Pile)
+		}
+	}
+}
+
+// TestCursorMoveRight_FromFoundation verifies that pressing right from any foundation
+// lands on Tableau0 — not a random fallback from an absent navCycleOrder entry.
+func TestCursorMoveRight_FromFoundation(t *testing.T) {
+	state := newSeed42State()
+	foundations := []engine.PileID{
+		engine.PileFoundation0,
+		engine.PileFoundation1,
+		engine.PileFoundation2,
+		engine.PileFoundation3,
+	}
+	for _, pile := range foundations {
+		c := Cursor{Pile: pile, CardIndex: 0}
+		c.MoveRight(state)
+		if c.Pile != engine.PileTableau0 {
+			t.Errorf("MoveRight from %v: expected PileTableau0, got %v", pile, c.Pile)
+		}
+	}
+}
+
 // TestRendererCursor verifies that RendererCursor correctly maps all fields.
 func TestRendererCursor(t *testing.T) {
 	c := Cursor{
