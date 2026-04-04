@@ -119,6 +119,16 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 			m.cursor.DragSource = 0
 			m.cursor.DragCardCount = 0
 		} else {
+			// For tableau piles the shortcut only applies when the cursor sits on
+			// the top card; pressing 'f' on a non-top face-up card is a no-op so
+			// that the action target always matches the highlighted card.
+			if isTableauPile(m.cursor.Pile) {
+				col := int(m.cursor.Pile - engine.PileTableau0)
+				pile := state.Tableau[col]
+				if pile.IsEmpty() || m.cursor.CardIndex != len(pile.Cards)-1 {
+					break
+				}
+			}
 			m.moveToFoundation(state, m.cursor.Pile)
 		}
 

@@ -510,7 +510,7 @@ func TestBoardArrowDoesNotReachFoundation(t *testing.T) {
 // TestBoardFoundationAutoFlip verifies that moving a tableau top card to a
 // foundation via drag automatically flips the newly exposed face-down card.
 func TestBoardFoundationAutoFlip(t *testing.T) {
-	_, eng := newBoard()
+	board, eng := newBoard()
 
 	// Find a to-foundation move from a tableau column that will expose a face-down card.
 	var move engine.Move
@@ -533,16 +533,15 @@ func TestBoardFoundationAutoFlip(t *testing.T) {
 
 	srcCol := int(move.From - engine.PileTableau0)
 
-	// Execute the move directly through board's drag flow.
-	board, _ := newBoard()
+	// Execute the move through the same board/engine pair used for discovery.
 	board.cursor.Pile = move.From
-	board.cursor.CardIndex = len(eng.State().Tableau[srcCol].Cards) - 1
+	board.cursor.CardIndex = len(state.Tableau[srcCol].Cards) - 1
 
 	board = sendKey(board, tea.KeyEnter) // pick up
 	board.cursor.Pile = move.To
 	board = sendKey(board, tea.KeyEnter) // place on foundation
 
-	// The previously face-down card must now be face-up.
+	// Assert through the same engine that board.Update mutated.
 	topCard := eng.State().Tableau[srcCol].TopCard()
 	if topCard == nil {
 		t.Fatal("source tableau column is empty after move — unexpected")
@@ -555,7 +554,7 @@ func TestBoardFoundationAutoFlip(t *testing.T) {
 // TestBoardMoveToFoundationKey_AutoFlip verifies that the 'f' shortcut also
 // triggers the auto-flip when a face-down card is exposed.
 func TestBoardMoveToFoundationKey_AutoFlip(t *testing.T) {
-	_, eng := newBoard()
+	board, eng := newBoard()
 	state := eng.State()
 
 	// Find a tableau column whose top card can go to a foundation and has a
@@ -584,12 +583,13 @@ func TestBoardMoveToFoundationKey_AutoFlip(t *testing.T) {
 		t.Skip("no suitable tableau column for 'f' auto-flip test with seed 42")
 	}
 
-	board, _ := newBoard()
+	// Execute through the same board/engine pair used for discovery.
 	board.cursor.Pile = engine.PileTableau0 + engine.PileID(targetCol)
-	board.cursor.CardIndex = len(eng.State().Tableau[targetCol].Cards) - 1
+	board.cursor.CardIndex = len(state.Tableau[targetCol].Cards) - 1
 
 	board = sendRune(board, 'f')
 
+	// Assert through the same engine that board.Update mutated.
 	topCard := eng.State().Tableau[targetCol].TopCard()
 	if topCard == nil {
 		// Column is now empty — that's fine, nothing to check.
@@ -597,6 +597,31 @@ func TestBoardMoveToFoundationKey_AutoFlip(t *testing.T) {
 	}
 	if !topCard.FaceUp {
 		t.Errorf("'f' key must flip the newly exposed face-down card, got FaceUp=false")
+	}
+}
+
+// TestBoardFKeyOnNonTopCard verifies that pressing 'f' when the cursor is on a
+// non-top face-up card is a no-op — the action target must match the highlighted card.
+func TestBoardFKeyOnNonTopCard(t *testing.T) {
+	board, eng := newBoard()
+
+	// Manually flip the second-to-last card of T6 face-up so there are two
+	// accessible face-up cards in the column.
+	col := 6
+	pile := eng.State().Tableau[col]
+	if len(pile.Cards) < 2 {
+		t.Skip("T6 needs at least 2 cards")
+	}
+	pile.Cards[len(pile.Cards)-2].FaceUp = true
+
+	moveBefore := eng.State().MoveCount
+	board.cursor.Pile = engine.PileTableau6
+	board.cursor.CardIndex = len(pile.Cards) - 2 // second-to-last — not the top
+
+	board = sendRune(board, 'f')
+
+	if eng.State().MoveCount != moveBefore {
+		t.Error("'f' on a non-top card must be a no-op; engine state must not change")
 	}
 }
 
