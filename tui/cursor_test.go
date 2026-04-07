@@ -250,6 +250,20 @@ func TestRendererCursor(t *testing.T) {
 	}
 }
 
+// TestCursorJumpToColumn_OutOfRange verifies that out-of-range column values are
+// silently ignored and leave the cursor unchanged.
+func TestCursorJumpToColumn_OutOfRange(t *testing.T) {
+	state := newSeed42State()
+	for _, col := range []int{-1, 7, 100, -100} {
+		c := Cursor{Pile: engine.PileStock, CardIndex: 0}
+		c.JumpToColumn(col, state)
+		if c.Pile != engine.PileStock || c.CardIndex != 0 {
+			t.Errorf("JumpToColumn(%d): cursor must not change, got pile=%v cardIndex=%d",
+				col, c.Pile, c.CardIndex)
+		}
+	}
+}
+
 // TestNaturalCardIndex verifies naturalCardIndex returns the last card index for
 // non-empty tableau piles and 0 for all others.
 func TestNaturalCardIndex(t *testing.T) {

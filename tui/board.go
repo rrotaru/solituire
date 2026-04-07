@@ -100,7 +100,7 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		m.cursor.MoveDown(state)
 
 	case ActionJumpToColumn:
-		if col, ok := payload.(int); ok {
+		if col, ok := payload.(int); ok && col >= 0 && col <= 6 {
 			m.cursor.JumpToColumn(col, state)
 		}
 

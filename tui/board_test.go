@@ -534,6 +534,28 @@ func TestBoardTickUpdatesElapsed(t *testing.T) {
 	}
 }
 
+// TestBoardJumpToColumn_OutOfRangePayload verifies that an out-of-range column
+// payload is silently ignored and leaves the cursor unchanged.
+func TestBoardJumpToColumn_OutOfRangePayload(t *testing.T) {
+	board, _ := newBoard()
+	board.cursor.Pile = engine.PileStock
+	board.cursor.CardIndex = 0
+
+	for _, col := range []int{-1, 7, 100} {
+		updated, _ := board.Update(tea.KeyMsg{
+			Type:  tea.KeyRunes,
+			Runes: []rune{rune('1' + col)}, // won't map to ActionJumpToColumn, so inject directly
+		})
+		// Inject the action directly to bypass TranslateInput's own guard.
+		model, _ := board.handleAction(ActionJumpToColumn, col)
+		b := model.(BoardModel)
+		if b.cursor.Pile != engine.PileStock {
+			t.Errorf("out-of-range col %d: cursor pile changed to %v", col, b.cursor.Pile)
+		}
+		_ = updated
+	}
+}
+
 // TestBoardTabReachesFoundation verifies that Tab can visit a foundation pile,
 // confirming tabCycleOrder (not navCycleOrder) is used.
 func TestBoardTabReachesFoundation(t *testing.T) {

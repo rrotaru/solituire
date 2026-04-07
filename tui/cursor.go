@@ -130,7 +130,11 @@ func (c *Cursor) MoveDown(state *engine.GameState) {
 }
 
 // JumpToColumn sets the cursor to the bottom card of tableau column col (0-based).
+// col must be in [0, 6]; values outside that range are silently ignored.
 func (c *Cursor) JumpToColumn(col int, state *engine.GameState) {
+	if col < 0 || col > 6 {
+		return
+	}
 	c.Pile = engine.PileTableau0 + engine.PileID(col)
 	c.CardIndex = naturalCardIndex(c.Pile, state)
 }
