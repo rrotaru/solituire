@@ -68,6 +68,16 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.screen = msg.Screen
 		return m, nil
 
+	case TickMsg:
+		// Always forward to the board regardless of screen so the tick chain
+		// stays alive. A TickMsg dropped on a non-playing screen kills the
+		// chain permanently because BoardModel only re-queues tickCmd when it
+		// processes TickMsg. On ScreenPaused the timer will still increment
+		// here; T15's pause sub-model will properly freeze it.
+		updated, cmd := m.board.Update(msg)
+		m.board = updated.(BoardModel)
+		return m, cmd
+
 	case NewGameMsg:
 		seed := msg.Seed
 		if seed == 0 {
@@ -81,7 +91,10 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		sizeUpdated, _ := m.board.Update(tea.WindowSizeMsg{Width: m.windowW, Height: m.windowH})
 		m.board = sizeUpdated.(BoardModel)
 		m.screen = ScreenPlaying
-		return m, m.board.Init()
+		// Do NOT call m.board.Init() here: the TickMsg handler above keeps the
+		// tick chain alive across board rebuilds, so calling Init() would
+		// schedule a second tickCmd and cause time to advance at 2× speed.
+		return m, nil
 
 	case RestartDealMsg:
 		m.engine.RestartDeal()
@@ -90,7 +103,8 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		sizeUpdated, _ := m.board.Update(tea.WindowSizeMsg{Width: m.windowW, Height: m.windowH})
 		m.board = sizeUpdated.(BoardModel)
 		m.screen = ScreenPlaying
-		return m, m.board.Init()
+		// Same reasoning as NewGameMsg: tick chain is already in flight.
+		return m, nil
 
 	case GameWonMsg:
 		m.screen = ScreenWin

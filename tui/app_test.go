@@ -2,6 +2,7 @@ package tui
 
 import (
 	"testing"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"solituire/config"
@@ -341,5 +342,41 @@ func TestAppModel_RestartDealMsg_PreservesWindowSize(t *testing.T) {
 	}
 	if app.board.height != bigH {
 		t.Errorf("board.height after RestartDealMsg = %d, want %d", app.board.height, bigH)
+	}
+}
+
+// --- Tick chain correctness ---
+
+// TestAppModel_TickMsg_ForwardedOnNonPlayingScreens verifies that TickMsg is
+// forwarded to the board regardless of current screen so the tick chain stays
+// alive (a TickMsg dropped on a non-playing screen would kill it permanently).
+func TestAppModel_TickMsg_ForwardedOnNonPlayingScreens(t *testing.T) {
+	screens := []AppScreen{ScreenPaused, ScreenHelp, ScreenQuitConfirm, ScreenWin, ScreenMenu}
+	for _, s := range screens {
+		app := newTestApp()
+		app.screen = s
+		before := app.board.eng.State().ElapsedTime
+		app = updateApp(app, TickMsg(time.Now()))
+		after := app.board.eng.State().ElapsedTime
+		if after <= before {
+			t.Errorf("screen %v: TickMsg not forwarded to board (ElapsedTime unchanged)", s)
+		}
+	}
+}
+
+// TestAppModel_NewGameMsg_NoExtraTickCmd verifies that handling NewGameMsg
+// does not return a Cmd, preventing a duplicate tick chain.
+func TestAppModel_NewGameMsg_NoExtraTickCmd(t *testing.T) {
+	_, cmd := newTestApp().Update(NewGameMsg{Seed: 1234, DrawCount: 1})
+	if cmd != nil {
+		t.Error("NewGameMsg returned a non-nil Cmd; would create a duplicate tick chain")
+	}
+}
+
+// TestAppModel_RestartDealMsg_NoExtraTickCmd mirrors the NewGameMsg check.
+func TestAppModel_RestartDealMsg_NoExtraTickCmd(t *testing.T) {
+	_, cmd := newTestApp().Update(RestartDealMsg{})
+	if cmd != nil {
+		t.Error("RestartDealMsg returned a non-nil Cmd; would create a duplicate tick chain")
 	}
 }
