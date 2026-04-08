@@ -248,6 +248,9 @@ func dragCount(state *engine.GameState, c Cursor) int {
 	if isTableauPile(c.Pile) {
 		col := int(c.Pile - engine.PileTableau0)
 		pile := state.Tableau[col]
+		if c.CardIndex < pile.FaceDownCount() {
+			return 0 // face-down cards cannot be dragged
+		}
 		n := len(pile.Cards) - c.CardIndex
 		if n < 1 {
 			return 0

@@ -150,6 +150,36 @@ func TestBoardDragCancel(t *testing.T) {
 	}
 }
 
+// TestBoardEnterOnFaceDownTableauCard verifies that pressing Enter (or a mouse
+// click resolved to a face-down stub) on a face-down tableau card does not
+// start a drag, since face-down cards are not legal drag sources.
+func TestBoardEnterOnFaceDownTableauCard(t *testing.T) {
+	board, eng := newBoard()
+
+	// Find a tableau column with at least one face-down card.
+	targetCol := -1
+	for col := 0; col < 7; col++ {
+		if eng.State().Tableau[col].FaceDownCount() > 0 {
+			targetCol = col
+			break
+		}
+	}
+	if targetCol < 0 {
+		t.Skip("no tableau column with a face-down card at deal time")
+	}
+
+	board.cursor.Pile = engine.PileTableau0 + engine.PileID(targetCol)
+	board.cursor.CardIndex = 0 // always face-down in a freshly dealt game
+
+	board = sendKey(board, tea.KeyEnter)
+	if board.cursor.Dragging {
+		t.Error("Enter on a face-down card must not start a drag")
+	}
+	if board.cursor.DragCardCount != 0 {
+		t.Errorf("DragCardCount must be 0 after no-op, got %d", board.cursor.DragCardCount)
+	}
+}
+
 // TestBoardEnterOnEmptyWaste verifies that pressing Enter on an empty waste pile
 // does not start a drag (waste is empty at game start before any stock flip).
 func TestBoardEnterOnEmptyWaste(t *testing.T) {
