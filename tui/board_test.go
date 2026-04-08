@@ -259,6 +259,37 @@ func TestBoardDragPlace_Invalid(t *testing.T) {
 	}
 }
 
+// TestBoardFlipStockCancelsDrag verifies that pressing Space while a drag is
+// active cancels the drag before flipping the stock, preventing stale drag
+// state from referencing a card that is no longer the waste top card.
+func TestBoardFlipStockCancelsDrag(t *testing.T) {
+	board, eng := newBoard()
+
+	// Flip a card to waste so we have something to drag from there.
+	board = sendKey(board, tea.KeySpace)
+	if len(eng.State().Waste.Cards) == 0 {
+		t.Fatal("precondition: expected a card on waste after stock flip")
+	}
+
+	// Start a drag from waste.
+	board.cursor.Pile = engine.PileWaste
+	board.cursor.CardIndex = 0
+	board = sendKey(board, tea.KeyEnter)
+	if !board.cursor.Dragging {
+		t.Fatal("precondition: expected Dragging=true after picking up from waste")
+	}
+
+	// Flip stock again while drag is active.
+	board = sendKey(board, tea.KeySpace)
+
+	if board.cursor.Dragging {
+		t.Error("Space while dragging must cancel the drag")
+	}
+	if board.cursor.DragSource != 0 || board.cursor.DragCardCount != 0 {
+		t.Error("Space while dragging must clear DragSource and DragCardCount")
+	}
+}
+
 func TestBoardFlipStock(t *testing.T) {
 	board, eng := newBoard()
 	wasteBefore := len(eng.State().Waste.Cards)

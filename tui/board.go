@@ -114,6 +114,11 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		m.cursor.ShowHint = false
 
 	case ActionFlipStock:
+		// Cancel any active drag before flipping so the drag source (which may be
+		// PileWaste) is not left pointing at a card that is no longer the top card.
+		m.cursor.Dragging = false
+		m.cursor.DragSource = 0
+		m.cursor.DragCardCount = 0
 		m.flipStock(state)
 
 	case ActionMoveToFoundation:
