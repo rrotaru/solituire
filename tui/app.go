@@ -76,12 +76,19 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.engine.NewGame(seed, msg.DrawCount)
 		m.cfg.DrawCount = msg.DrawCount
 		m.board = NewBoardModel(m.engine, m.rend, m.cfg)
+		// Restore current terminal dimensions so mouse hit-testing stays correct
+		// after the board is rebuilt (NewBoardModel defaults to MinTermWidth/Height).
+		sizeUpdated, _ := m.board.Update(tea.WindowSizeMsg{Width: m.windowW, Height: m.windowH})
+		m.board = sizeUpdated.(BoardModel)
 		m.screen = ScreenPlaying
 		return m, m.board.Init()
 
 	case RestartDealMsg:
 		m.engine.RestartDeal()
 		m.board = NewBoardModel(m.engine, m.rend, m.cfg)
+		// Same size-restore as NewGameMsg.
+		sizeUpdated, _ := m.board.Update(tea.WindowSizeMsg{Width: m.windowW, Height: m.windowH})
+		m.board = sizeUpdated.(BoardModel)
 		m.screen = ScreenPlaying
 		return m, m.board.Init()
 
@@ -103,14 +110,52 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	// Route remaining messages to the active sub-model.
+	// Non-playing screens handle key input minimally here so users are never
+	// trapped; these cases will be replaced by real sub-models in T14/T15/T18.
 	switch m.screen {
 	case ScreenPlaying:
 		updated, cmd := m.board.Update(msg)
 		m.board = updated.(BoardModel)
 		return m, cmd
+
+	case ScreenPaused:
+		// Any keypress resumes the game.
+		if _, ok := msg.(tea.KeyMsg); ok {
+			return m, func() tea.Msg { return ChangeScreenMsg{Screen: ScreenPlaying} }
+		}
+
+	case ScreenHelp:
+		// Any keypress closes the overlay.
+		if _, ok := msg.(tea.KeyMsg); ok {
+			return m, func() tea.Msg { return ChangeScreenMsg{Screen: ScreenPlaying} }
+		}
+
+	case ScreenQuitConfirm:
+		if key, ok := msg.(tea.KeyMsg); ok {
+			if key.Type == tea.KeyRunes && len(key.Runes) > 0 &&
+				(key.Runes[0] == 'y' || key.Runes[0] == 'Y') {
+				return m, tea.Quit
+			}
+			// Any other key cancels and returns to the game.
+			return m, func() tea.Msg { return ChangeScreenMsg{Screen: ScreenPlaying} }
+		}
+
+	case ScreenWin, ScreenMenu:
+		if key, ok := msg.(tea.KeyMsg); ok {
+			switch {
+			case key.Type == tea.KeyCtrlN:
+				return m, func() tea.Msg {
+					return NewGameMsg{Seed: appSeed(), DrawCount: m.cfg.DrawCount}
+				}
+			case key.Type == tea.KeyRunes && len(key.Runes) > 0 &&
+				(key.Runes[0] == 'q' || key.Runes[0] == 'Q'):
+				return m, func() tea.Msg { return ChangeScreenMsg{Screen: ScreenQuitConfirm} }
+			case key.Type == tea.KeyCtrlC:
+				return m, tea.Quit
+			}
+		}
 	}
 
-	// Screens without a sub-model in T13 silently drop unhandled messages.
 	return m, nil
 }
 

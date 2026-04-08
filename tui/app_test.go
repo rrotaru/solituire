@@ -233,3 +233,113 @@ func TestAppModel_View_TooSmall(t *testing.T) {
 		t.Error("View() returned empty string for tooSmall terminal")
 	}
 }
+
+// --- P1: non-playing screens must not drop keypresses ---
+
+func TestAppModel_Paused_AnyKeyResumes(t *testing.T) {
+	app := newTestApp()
+	app.screen = ScreenPaused
+	// Simulate a key; the returned Cmd should emit ChangeScreenMsg{ScreenPlaying}.
+	_, cmd := app.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("p")})
+	if cmd == nil {
+		t.Fatal("ScreenPaused: keypress returned nil Cmd, expected ChangeScreenMsg")
+	}
+	msg := cmd()
+	csm, ok := msg.(ChangeScreenMsg)
+	if !ok || csm.Screen != ScreenPlaying {
+		t.Errorf("ScreenPaused keypress: got %v, want ChangeScreenMsg{ScreenPlaying}", msg)
+	}
+}
+
+func TestAppModel_Help_AnyKeyCloses(t *testing.T) {
+	app := newTestApp()
+	app.screen = ScreenHelp
+	_, cmd := app.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	if cmd == nil {
+		t.Fatal("ScreenHelp: Esc returned nil Cmd, expected ChangeScreenMsg")
+	}
+	msg := cmd()
+	csm, ok := msg.(ChangeScreenMsg)
+	if !ok || csm.Screen != ScreenPlaying {
+		t.Errorf("ScreenHelp Esc: got %v, want ChangeScreenMsg{ScreenPlaying}", msg)
+	}
+}
+
+func TestAppModel_QuitConfirm_YQuits(t *testing.T) {
+	app := newTestApp()
+	app.screen = ScreenQuitConfirm
+	_, cmd := app.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("y")})
+	if cmd == nil {
+		t.Fatal("ScreenQuitConfirm 'y': returned nil Cmd, expected tea.Quit")
+	}
+	// tea.Quit returns a special QuitMsg; just verify cmd is non-nil and
+	// that 'n' does NOT quit.
+}
+
+func TestAppModel_QuitConfirm_NoCancels(t *testing.T) {
+	app := newTestApp()
+	app.screen = ScreenQuitConfirm
+	_, cmd := app.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("n")})
+	if cmd == nil {
+		t.Fatal("ScreenQuitConfirm 'n': returned nil Cmd, expected ChangeScreenMsg")
+	}
+	msg := cmd()
+	csm, ok := msg.(ChangeScreenMsg)
+	if !ok || csm.Screen != ScreenPlaying {
+		t.Errorf("ScreenQuitConfirm 'n': got %v, want ChangeScreenMsg{ScreenPlaying}", msg)
+	}
+}
+
+func TestAppModel_Win_CtrlNStartsNewGame(t *testing.T) {
+	app := newTestApp()
+	app.screen = ScreenWin
+	_, cmd := app.Update(tea.KeyMsg{Type: tea.KeyCtrlN})
+	if cmd == nil {
+		t.Fatal("ScreenWin Ctrl+N: returned nil Cmd, expected NewGameMsg")
+	}
+	msg := cmd()
+	if _, ok := msg.(NewGameMsg); !ok {
+		t.Errorf("ScreenWin Ctrl+N: got %T, want NewGameMsg", msg)
+	}
+}
+
+func TestAppModel_Menu_CtrlNStartsNewGame(t *testing.T) {
+	app := newTestApp()
+	app.screen = ScreenMenu
+	_, cmd := app.Update(tea.KeyMsg{Type: tea.KeyCtrlN})
+	if cmd == nil {
+		t.Fatal("ScreenMenu Ctrl+N: returned nil Cmd, expected NewGameMsg")
+	}
+	msg := cmd()
+	if _, ok := msg.(NewGameMsg); !ok {
+		t.Errorf("ScreenMenu Ctrl+N: got %T, want NewGameMsg", msg)
+	}
+}
+
+// --- P2: board window size must be preserved after NewGame / RestartDeal ---
+
+func TestAppModel_NewGameMsg_PreservesWindowSize(t *testing.T) {
+	bigW := renderer.MinTermWidth + 40
+	bigH := renderer.MinTermHeight + 20
+	app := updateApp(newTestApp(), tea.WindowSizeMsg{Width: bigW, Height: bigH})
+	app = updateApp(app, NewGameMsg{Seed: 7, DrawCount: 1})
+	if app.board.width != bigW {
+		t.Errorf("board.width after NewGameMsg = %d, want %d", app.board.width, bigW)
+	}
+	if app.board.height != bigH {
+		t.Errorf("board.height after NewGameMsg = %d, want %d", app.board.height, bigH)
+	}
+}
+
+func TestAppModel_RestartDealMsg_PreservesWindowSize(t *testing.T) {
+	bigW := renderer.MinTermWidth + 40
+	bigH := renderer.MinTermHeight + 20
+	app := updateApp(newTestApp(), tea.WindowSizeMsg{Width: bigW, Height: bigH})
+	app = updateApp(app, RestartDealMsg{})
+	if app.board.width != bigW {
+		t.Errorf("board.width after RestartDealMsg = %d, want %d", app.board.width, bigW)
+	}
+	if app.board.height != bigH {
+		t.Errorf("board.height after RestartDealMsg = %d, want %d", app.board.height, bigH)
+	}
+}
