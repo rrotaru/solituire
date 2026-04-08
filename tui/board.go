@@ -105,6 +105,17 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		}
 
 	case ActionSelect:
+		// For mouse clicks, hit-test the click coordinates to move the cursor to
+		// the target pile/card before running the select logic. Clicks outside any
+		// pile are ignored.
+		if mouse, ok := payload.(tea.MouseMsg); ok {
+			pile, cardIdx, hit := renderer.PileHitTestWithWidth(mouse.X, mouse.Y, state, m.width)
+			if !hit {
+				break
+			}
+			m.cursor.Pile = pile
+			m.cursor.CardIndex = cardIdx
+		}
 		m = m.handleSelect(state)
 
 	case ActionCancel:

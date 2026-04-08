@@ -792,6 +792,60 @@ func TestBoardWinEmitsGameWonMsg(t *testing.T) {
 	}
 }
 
+// TestBoardMouseClickMovesAndSelects verifies that a left-click mouse event
+// translates coordinates via PileHitTestWithWidth and runs select on the
+// clicked pile, not the current keyboard cursor position.
+func TestBoardMouseClickMovesAndSelects(t *testing.T) {
+	board, eng := newBoard()
+	wasteBefore := len(eng.State().Waste.Cards)
+
+	// Cursor starts somewhere other than stock.
+	board.cursor.Pile = engine.PileTableau3
+	board.cursor.CardIndex = 0
+
+	// Click at the stock pile coordinates (X=1, Y=2 is inside the stock region).
+	// Stock is at origin (0, 2) with CardWidth=9, CardHeight=7.
+	// Clicking stock while drag is false runs flipStock (not drag pick-up).
+	updated, _ := board.Update(tea.MouseMsg{
+		Action: tea.MouseActionPress,
+		Button: tea.MouseButtonLeft,
+		X:      1,
+		Y:      2,
+	})
+	board = updated.(BoardModel)
+
+	if board.cursor.Pile != engine.PileStock {
+		t.Errorf("mouse click on stock must move cursor to PileStock, got %v", board.cursor.Pile)
+	}
+	if len(eng.State().Waste.Cards) <= wasteBefore {
+		t.Error("mouse click on stock must flip a card to waste")
+	}
+}
+
+// TestBoardMouseClickOutsidePile verifies that a left-click outside any pile
+// region is silently ignored and leaves cursor and game state unchanged.
+func TestBoardMouseClickOutsidePile(t *testing.T) {
+	board, eng := newBoard()
+	board.cursor.Pile = engine.PileStock
+	moveBefore := eng.State().MoveCount
+
+	// Click far outside any pile region.
+	updated, _ := board.Update(tea.MouseMsg{
+		Action: tea.MouseActionPress,
+		Button: tea.MouseButtonLeft,
+		X:      79,
+		Y:      29,
+	})
+	board = updated.(BoardModel)
+
+	if board.cursor.Pile != engine.PileStock {
+		t.Errorf("miss-click must not change cursor pile, got %v", board.cursor.Pile)
+	}
+	if eng.State().MoveCount != moveBefore {
+		t.Error("miss-click must not change engine state")
+	}
+}
+
 func TestBoardWindowResize(t *testing.T) {
 	board, _ := newBoard()
 
