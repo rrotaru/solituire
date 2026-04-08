@@ -10,6 +10,24 @@ func newTestGame() *Game {
 	return NewGame(42, 1)
 }
 
+// TestGame_NewGame_InvalidDrawCount verifies that out-of-range drawCount values are
+// normalized to 1, preventing FlipStockCmd from panicking on state.DrawCount.
+func TestGame_NewGame_InvalidDrawCount(t *testing.T) {
+	for _, bad := range []int{0, -1, 2, 4, 100} {
+		g := NewGame(42, bad)
+		if g.state.DrawCount != 1 {
+			t.Errorf("drawCount=%d: GameState.DrawCount = %d, want 1", bad, g.state.DrawCount)
+		}
+		if g.state.Waste.DrawCount != 1 {
+			t.Errorf("drawCount=%d: WastePile.DrawCount = %d, want 1", bad, g.state.Waste.DrawCount)
+		}
+		// Verify FlipStockCmd doesn't panic with the normalized state.
+		if err := g.Execute(&FlipStockCmd{}); err != nil {
+			t.Errorf("drawCount=%d: FlipStockCmd returned unexpected error: %v", bad, err)
+		}
+	}
+}
+
 // --- NewGame / initial state ---
 
 func TestGame_NewGame_Layout(t *testing.T) {

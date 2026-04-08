@@ -65,7 +65,11 @@ func (g *Game) IsAutoCompletable() bool {
 }
 
 // NewGame resets the game with a fresh deal using the given seed and draw count.
+// drawCount must be 1 or 3; any other value is normalized to 1.
 func (g *Game) NewGame(seed int64, drawCount int) {
+	if drawCount != 1 && drawCount != 3 {
+		drawCount = 1
+	}
 	deck := Shuffle(NewDeck(), seed)
 	g.state = Deal(deck, drawCount)
 	g.state.Seed = seed
