@@ -186,7 +186,15 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		return m, func() tea.Msg { return ConfigChangedMsg{Config: &cfgCopy} }
 	}
 
-	return m, nil
+	return m, m.winCmd()
+}
+
+// winCmd returns a Cmd that emits GameWonMsg if the engine reports a win.
+func (m BoardModel) winCmd() tea.Cmd {
+	if m.eng.IsWon() {
+		return func() tea.Msg { return GameWonMsg{} }
+	}
+	return nil
 }
 
 // handleSelect implements the drag-style pick-up / place flow.

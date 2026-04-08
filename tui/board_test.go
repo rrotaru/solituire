@@ -716,6 +716,51 @@ func TestBoardFKeyOnNonTopCard(t *testing.T) {
 	}
 }
 
+// TestBoardWinEmitsGameWonMsg verifies that a move which completes all four
+// foundations causes Update to return a Cmd that emits GameWonMsg.
+func TestBoardWinEmitsGameWonMsg(t *testing.T) {
+	board, eng := newBoard()
+	state := eng.State()
+
+	// Clear all piles so only the cards we place exist.
+	for i := range state.Tableau {
+		state.Tableau[i].Cards = nil
+	}
+	state.Stock.Cards = nil
+	state.Waste.Cards = nil
+
+	// Fill foundations 1-3 completely (Hearts, Diamonds, Clubs).
+	for fi, suit := range []engine.Suit{engine.Hearts, engine.Diamonds, engine.Clubs} {
+		state.Foundations[fi+1].Cards = nil
+		for rank := engine.Ace; rank <= engine.King; rank++ {
+			state.Foundations[fi+1].Cards = append(state.Foundations[fi+1].Cards,
+				engine.Card{Suit: suit, Rank: rank, FaceUp: true})
+		}
+	}
+
+	// Fill foundation 0 with Ace-Queen of Spades (12 cards — one short).
+	state.Foundations[0].Cards = nil
+	for rank := engine.Ace; rank <= engine.Queen; rank++ {
+		state.Foundations[0].Cards = append(state.Foundations[0].Cards,
+			engine.Card{Suit: engine.Spades, Rank: rank, FaceUp: true})
+	}
+
+	// Place the King of Spades face-up on waste — the final winning card.
+	state.Waste.Cards = []engine.Card{{Suit: engine.Spades, Rank: engine.King, FaceUp: true}}
+
+	board.cursor.Pile = engine.PileWaste
+	board.cursor.CardIndex = 0
+
+	_, cmd := board.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'f'}})
+	if cmd == nil {
+		t.Fatal("winning move must return a non-nil cmd")
+	}
+	msg := cmd()
+	if _, ok := msg.(GameWonMsg); !ok {
+		t.Errorf("winning move cmd must emit GameWonMsg, got %T", msg)
+	}
+}
+
 func TestBoardWindowResize(t *testing.T) {
 	board, _ := newBoard()
 
