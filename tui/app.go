@@ -21,6 +21,7 @@ type AppModel struct {
 	themes   *theme.ThemeRegistry
 	rend     *renderer.Renderer
 	board    BoardModel
+	menu     MenuModel
 	windowW  int
 	windowH  int
 	tooSmall bool
@@ -36,12 +37,13 @@ func NewAppModel(
 	themes *theme.ThemeRegistry,
 ) AppModel {
 	return AppModel{
-		screen:  ScreenPlaying,
+		screen:  ScreenMenu,
 		engine:  eng,
 		cfg:     cfg,
 		themes:  themes,
 		rend:    rend,
 		board:   NewBoardModel(eng, rend, cfg),
+		menu:    NewMenuModel(cfg, themes),
 		windowW: renderer.MinTermWidth,
 		windowH: renderer.MinTermHeight,
 	}
@@ -154,7 +156,22 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, func() tea.Msg { return ChangeScreenMsg{Screen: ScreenPlaying} }
 		}
 
-	case ScreenWin, ScreenMenu:
+	case ScreenMenu:
+		// Global exit keys handled before delegating to the sub-model.
+		if key, ok := msg.(tea.KeyMsg); ok {
+			switch {
+			case key.Type == tea.KeyCtrlC:
+				return m, tea.Quit
+			case key.Type == tea.KeyRunes && len(key.Runes) > 0 &&
+				(key.Runes[0] == 'q' || key.Runes[0] == 'Q'):
+				return m, func() tea.Msg { return ChangeScreenMsg{Screen: ScreenQuitConfirm} }
+			}
+		}
+		updated, cmd := m.menu.Update(msg)
+		m.menu = updated.(MenuModel)
+		return m, cmd
+
+	case ScreenWin:
 		if key, ok := msg.(tea.KeyMsg); ok {
 			switch {
 			case key.Type == tea.KeyCtrlN:
@@ -201,7 +218,7 @@ func (m AppModel) View() string {
 	case ScreenWin:
 		return "You won! Press Ctrl+N for a new game."
 	case ScreenMenu:
-		return "Klondike Solitaire\n\nPress Ctrl+N to start a new game."
+		return m.menu.View()
 	}
 	return ""
 }
