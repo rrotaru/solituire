@@ -146,6 +146,27 @@ func TestAppModel_ConfigChangedMsg_UpdatesConfig(t *testing.T) {
 	}
 }
 
+func TestAppModel_ConfigChangedMsg_UpdatesRendererTheme(t *testing.T) {
+	// When ConfigChangedMsg carries a different ThemeName, the renderer must
+	// be updated via SetTheme so that a subsequent game start renders with the
+	// menu-selected theme rather than the original default theme.
+	app := newTestApp() // ThemeName = "classic"
+	newCfg := &config.Config{DrawCount: 1, ThemeName: "dracula", AutoMoveEnabled: false}
+	app = updateApp(app, ConfigChangedMsg{Config: newCfg})
+
+	// Trigger a new game so the board is rebuilt and renders with the new theme.
+	app = updateApp(app, NewGameMsg{Seed: 42, DrawCount: 1})
+	app.windowW = renderer.MinTermWidth + 10
+	app.windowH = renderer.MinTermHeight + 5
+
+	// board.View() must not panic — SetTheme wired the renderer to "dracula"
+	// before NewBoardModel was called, so the board renders with the correct theme.
+	got := app.board.View()
+	if got == "" {
+		t.Error("board.View() returned empty string after ConfigChangedMsg theme change")
+	}
+}
+
 func TestAppModel_ConfigChangedMsg_NilConfigNoOp(t *testing.T) {
 	app := newTestApp()
 	original := app.cfg

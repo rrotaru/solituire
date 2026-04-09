@@ -120,6 +120,9 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case ConfigChangedMsg:
 		if msg.Config != nil {
+			if msg.Config.ThemeName != m.cfg.ThemeName {
+				m.rend.SetTheme(m.themes.Get(msg.Config.ThemeName))
+			}
 			m.cfg = msg.Config
 		}
 		return m, nil
