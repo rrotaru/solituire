@@ -298,9 +298,11 @@ func TestAppModel_QuitConfirm_YQuits(t *testing.T) {
 	// that 'n' does NOT quit.
 }
 
-func TestAppModel_QuitConfirm_NoCancels(t *testing.T) {
+func TestAppModel_QuitConfirm_NoCancelsToPlaying(t *testing.T) {
+	// Open the quit dialog from ScreenPlaying via ChangeScreenMsg so prevScreen is set.
 	app := newTestApp()
-	app.screen = ScreenQuitConfirm
+	app.screen = ScreenPlaying
+	app = updateApp(app, ChangeScreenMsg{Screen: ScreenQuitConfirm})
 	_, cmd := app.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("n")})
 	if cmd == nil {
 		t.Fatal("ScreenQuitConfirm 'n': returned nil Cmd, expected ChangeScreenMsg")
@@ -308,7 +310,22 @@ func TestAppModel_QuitConfirm_NoCancels(t *testing.T) {
 	msg := cmd()
 	csm, ok := msg.(ChangeScreenMsg)
 	if !ok || csm.Screen != ScreenPlaying {
-		t.Errorf("ScreenQuitConfirm 'n': got %v, want ChangeScreenMsg{ScreenPlaying}", msg)
+		t.Errorf("ScreenQuitConfirm 'n' from playing: got %v, want ChangeScreenMsg{ScreenPlaying}", msg)
+	}
+}
+
+func TestAppModel_QuitConfirm_CancelFromMenuReturnsToMenu(t *testing.T) {
+	// Pressing q on the menu then canceling must return to ScreenMenu, not ScreenPlaying.
+	app := newTestApp() // starts on ScreenMenu
+	app = updateApp(app, ChangeScreenMsg{Screen: ScreenQuitConfirm})
+	_, cmd := app.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("n")})
+	if cmd == nil {
+		t.Fatal("cancel from menu: returned nil Cmd, expected ChangeScreenMsg")
+	}
+	msg := cmd()
+	csm, ok := msg.(ChangeScreenMsg)
+	if !ok || csm.Screen != ScreenMenu {
+		t.Errorf("cancel from menu: got %v, want ChangeScreenMsg{ScreenMenu}", msg)
 	}
 }
 

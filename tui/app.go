@@ -15,16 +15,17 @@ import (
 // to the active sub-model, and delegates rendering to the appropriate view.
 // AppScreen is defined in messages.go — do not redefine it here.
 type AppModel struct {
-	screen   AppScreen
-	engine   engine.GameEngine
-	cfg      *config.Config
-	themes   *theme.ThemeRegistry
-	rend     *renderer.Renderer
-	board    BoardModel
-	menu     MenuModel
-	windowW  int
-	windowH  int
-	tooSmall bool
+	screen     AppScreen
+	prevScreen AppScreen // screen to return to when ScreenQuitConfirm is cancelled
+	engine     engine.GameEngine
+	cfg        *config.Config
+	themes     *theme.ThemeRegistry
+	rend       *renderer.Renderer
+	board      BoardModel
+	menu       MenuModel
+	windowW    int
+	windowH    int
+	tooSmall   bool
 }
 
 // NewAppModel creates a ready-to-run AppModel starting on ScreenPlaying.
@@ -67,6 +68,9 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case ChangeScreenMsg:
+		if msg.Screen == ScreenQuitConfirm {
+			m.prevScreen = m.screen
+		}
 		m.screen = msg.Screen
 		return m, nil
 
@@ -155,8 +159,12 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				(key.Runes[0] == 'y' || key.Runes[0] == 'Y') {
 				return m, tea.Quit
 			}
-			// Any other key cancels and returns to the game.
-			return m, func() tea.Msg { return ChangeScreenMsg{Screen: ScreenPlaying} }
+			// Any other key cancels — return to whichever screen opened the dialog.
+			prev := m.prevScreen
+			if prev == ScreenQuitConfirm {
+				prev = ScreenPlaying // safeguard against self-referential prev
+			}
+			return m, func() tea.Msg { return ChangeScreenMsg{Screen: prev} }
 		}
 
 	case ScreenMenu:
