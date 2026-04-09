@@ -146,6 +146,27 @@ func TestAppModel_ConfigChangedMsg_UpdatesConfig(t *testing.T) {
 	}
 }
 
+func TestAppModel_ConfigChangedMsg_UpdatesRendererTheme(t *testing.T) {
+	// When ConfigChangedMsg carries a different ThemeName, the renderer must
+	// be updated via SetTheme so that a subsequent game start renders with the
+	// menu-selected theme rather than the original default theme.
+	app := newTestApp() // ThemeName = "classic"
+	newCfg := &config.Config{DrawCount: 1, ThemeName: "dracula", AutoMoveEnabled: false}
+	app = updateApp(app, ConfigChangedMsg{Config: newCfg})
+
+	// Trigger a new game so the board is rebuilt and renders with the new theme.
+	app = updateApp(app, NewGameMsg{Seed: 42, DrawCount: 1})
+	app.windowW = renderer.MinTermWidth + 10
+	app.windowH = renderer.MinTermHeight + 5
+
+	// board.View() must not panic — SetTheme wired the renderer to "dracula"
+	// before NewBoardModel was called, so the board renders with the correct theme.
+	got := app.board.View()
+	if got == "" {
+		t.Error("board.View() returned empty string after ConfigChangedMsg theme change")
+	}
+}
+
 func TestAppModel_ConfigChangedMsg_NilConfigNoOp(t *testing.T) {
 	app := newTestApp()
 	original := app.cfg
@@ -277,9 +298,11 @@ func TestAppModel_QuitConfirm_YQuits(t *testing.T) {
 	// that 'n' does NOT quit.
 }
 
-func TestAppModel_QuitConfirm_NoCancels(t *testing.T) {
+func TestAppModel_QuitConfirm_NoCancelsToPlaying(t *testing.T) {
+	// Open the quit dialog from ScreenPlaying via ChangeScreenMsg so prevScreen is set.
 	app := newTestApp()
-	app.screen = ScreenQuitConfirm
+	app.screen = ScreenPlaying
+	app = updateApp(app, ChangeScreenMsg{Screen: ScreenQuitConfirm})
 	_, cmd := app.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("n")})
 	if cmd == nil {
 		t.Fatal("ScreenQuitConfirm 'n': returned nil Cmd, expected ChangeScreenMsg")
@@ -287,7 +310,22 @@ func TestAppModel_QuitConfirm_NoCancels(t *testing.T) {
 	msg := cmd()
 	csm, ok := msg.(ChangeScreenMsg)
 	if !ok || csm.Screen != ScreenPlaying {
-		t.Errorf("ScreenQuitConfirm 'n': got %v, want ChangeScreenMsg{ScreenPlaying}", msg)
+		t.Errorf("ScreenQuitConfirm 'n' from playing: got %v, want ChangeScreenMsg{ScreenPlaying}", msg)
+	}
+}
+
+func TestAppModel_QuitConfirm_CancelFromMenuReturnsToMenu(t *testing.T) {
+	// Pressing q on the menu then canceling must return to ScreenMenu, not ScreenPlaying.
+	app := newTestApp() // starts on ScreenMenu
+	app = updateApp(app, ChangeScreenMsg{Screen: ScreenQuitConfirm})
+	_, cmd := app.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("n")})
+	if cmd == nil {
+		t.Fatal("cancel from menu: returned nil Cmd, expected ChangeScreenMsg")
+	}
+	msg := cmd()
+	csm, ok := msg.(ChangeScreenMsg)
+	if !ok || csm.Screen != ScreenMenu {
+		t.Errorf("cancel from menu: got %v, want ChangeScreenMsg{ScreenMenu}", msg)
 	}
 }
 

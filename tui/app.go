@@ -15,15 +15,17 @@ import (
 // to the active sub-model, and delegates rendering to the appropriate view.
 // AppScreen is defined in messages.go — do not redefine it here.
 type AppModel struct {
-	screen   AppScreen
-	engine   engine.GameEngine
-	cfg      *config.Config
-	themes   *theme.ThemeRegistry
-	rend     *renderer.Renderer
-	board    BoardModel
-	windowW  int
-	windowH  int
-	tooSmall bool
+	screen     AppScreen
+	prevScreen AppScreen // screen to return to when ScreenQuitConfirm is cancelled
+	engine     engine.GameEngine
+	cfg        *config.Config
+	themes     *theme.ThemeRegistry
+	rend       *renderer.Renderer
+	board      BoardModel
+	menu       MenuModel
+	windowW    int
+	windowH    int
+	tooSmall   bool
 }
 
 // NewAppModel creates a ready-to-run AppModel starting on ScreenPlaying.
@@ -36,12 +38,13 @@ func NewAppModel(
 	themes *theme.ThemeRegistry,
 ) AppModel {
 	return AppModel{
-		screen:  ScreenPlaying,
+		screen:  ScreenMenu,
 		engine:  eng,
 		cfg:     cfg,
 		themes:  themes,
 		rend:    rend,
 		board:   NewBoardModel(eng, rend, cfg),
+		menu:    NewMenuModel(cfg, themes),
 		windowW: renderer.MinTermWidth,
 		windowH: renderer.MinTermHeight,
 	}
@@ -65,6 +68,9 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case ChangeScreenMsg:
+		if msg.Screen == ScreenQuitConfirm {
+			m.prevScreen = m.screen
+		}
 		m.screen = msg.Screen
 		return m, nil
 
@@ -118,6 +124,9 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case ConfigChangedMsg:
 		if msg.Config != nil {
+			if msg.Config.ThemeName != m.cfg.ThemeName {
+				m.rend.SetTheme(m.themes.Get(msg.Config.ThemeName))
+			}
 			m.cfg = msg.Config
 		}
 		return m, nil
@@ -150,11 +159,30 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				(key.Runes[0] == 'y' || key.Runes[0] == 'Y') {
 				return m, tea.Quit
 			}
-			// Any other key cancels and returns to the game.
-			return m, func() tea.Msg { return ChangeScreenMsg{Screen: ScreenPlaying} }
+			// Any other key cancels — return to whichever screen opened the dialog.
+			prev := m.prevScreen
+			if prev == ScreenQuitConfirm {
+				prev = ScreenPlaying // safeguard against self-referential prev
+			}
+			return m, func() tea.Msg { return ChangeScreenMsg{Screen: prev} }
 		}
 
-	case ScreenWin, ScreenMenu:
+	case ScreenMenu:
+		// Global exit keys handled before delegating to the sub-model.
+		if key, ok := msg.(tea.KeyMsg); ok {
+			switch {
+			case key.Type == tea.KeyCtrlC:
+				return m, tea.Quit
+			case key.Type == tea.KeyRunes && len(key.Runes) > 0 &&
+				(key.Runes[0] == 'q' || key.Runes[0] == 'Q'):
+				return m, func() tea.Msg { return ChangeScreenMsg{Screen: ScreenQuitConfirm} }
+			}
+		}
+		updated, cmd := m.menu.Update(msg)
+		m.menu = updated.(MenuModel)
+		return m, cmd
+
+	case ScreenWin:
 		if key, ok := msg.(tea.KeyMsg); ok {
 			switch {
 			case key.Type == tea.KeyCtrlN:
@@ -201,7 +229,7 @@ func (m AppModel) View() string {
 	case ScreenWin:
 		return "You won! Press Ctrl+N for a new game."
 	case ScreenMenu:
-		return "Klondike Solitaire\n\nPress Ctrl+N to start a new game."
+		return m.menu.View()
 	}
 	return ""
 }
