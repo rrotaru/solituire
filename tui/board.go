@@ -62,9 +62,15 @@ func (m BoardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.handleAutoCompleteStep()
 	}
 
-	// Any keypress interrupts an in-progress auto-complete.
+	// Any keypress or mouse button press interrupts an in-progress auto-complete.
+	// Mouse motion/release/scroll produce ActionNone and are already no-ops via
+	// the early return in handleAction, so only MouseActionPress needs handling here.
 	if m.autoCompleting {
 		if _, ok := msg.(tea.KeyMsg); ok {
+			m.autoCompleting = false
+			return m, nil
+		}
+		if mm, ok := msg.(tea.MouseMsg); ok && mm.Action == tea.MouseActionPress {
 			m.autoCompleting = false
 			return m, nil
 		}

@@ -1507,3 +1507,25 @@ func TestBoardActionNone_NoAutomation(t *testing.T) {
 		t.Error("ActionNone must not clear autoCompleting")
 	}
 }
+
+// TestBoardAutoCompleteInterruptByMouseClick verifies that a left mouse button
+// press interrupts auto-complete, just like a keypress does.
+func TestBoardAutoCompleteInterruptByMouseClick(t *testing.T) {
+	board, _ := newNearWonBoard()
+	board.autoCompleting = true
+
+	updated, cmd := board.Update(tea.MouseMsg{
+		Action: tea.MouseActionPress,
+		Button: tea.MouseButtonLeft,
+		X:      4,
+		Y:      5,
+	})
+	board = updated.(BoardModel)
+
+	if board.autoCompleting {
+		t.Error("mouse click must clear autoCompleting")
+	}
+	if cmd != nil {
+		t.Error("interrupt must return nil cmd (click is consumed, no drag started)")
+	}
+}
