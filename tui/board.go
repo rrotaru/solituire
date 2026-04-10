@@ -216,7 +216,12 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		return m, func() tea.Msg { return ConfigChangedMsg{Config: &cfgCopy} }
 	}
 
-	m.applyAutoMove()
+	// Skip auto-move while a drag is in progress: the drag source card is still
+	// in the engine state, so auto-move could steal it before the user places it.
+	// After placement handleSelect sets Dragging=false, so auto-move runs then.
+	if !m.cursor.Dragging {
+		m.applyAutoMove()
+	}
 	if m.eng.IsWon() {
 		return m, m.winCmd()
 	}

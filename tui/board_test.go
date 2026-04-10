@@ -1396,3 +1396,59 @@ func TestBoardAutoMove_SkipOneEmptyOppositeFoundation(t *testing.T) {
 		t.Error("3♠ must not be auto-moved: Diamonds foundation is empty (rank 0 < 2)")
 	}
 }
+
+// TestBoardAutoMove_SkippedWhileDragging verifies that auto-move does not run
+// while a drag is in progress (P3 bug regression).
+// A safe card that is the drag source must not be auto-moved to foundation
+// before the user gets a chance to place it.
+func TestBoardAutoMove_SkippedWhileDragging(t *testing.T) {
+	// State: all four Aces on foundations, 2♠ face-up in tableau[0].
+	// A face-down card in tableau[1] prevents IsAutoCompletable from triggering.
+	state := &engine.GameState{
+		Stock:     &engine.StockPile{},
+		Waste:     &engine.WastePile{DrawCount: 1},
+		DrawCount: 1,
+	}
+	for i := range state.Foundations {
+		state.Foundations[i] = &engine.FoundationPile{}
+	}
+	for i := range state.Tableau {
+		state.Tableau[i] = &engine.TableauPile{}
+	}
+	suits := []engine.Suit{engine.Spades, engine.Hearts, engine.Diamonds, engine.Clubs}
+	for fi, suit := range suits {
+		state.Foundations[fi].Cards = []engine.Card{
+			{Suit: suit, Rank: engine.Ace, FaceUp: true},
+		}
+	}
+	state.Tableau[0].Cards = []engine.Card{
+		{Suit: engine.Spades, Rank: engine.Two, FaceUp: true},
+	}
+	state.Tableau[1].Cards = []engine.Card{
+		{Suit: engine.Hearts, Rank: engine.Three, FaceUp: false},
+	}
+
+	eng := &testEngine{state: state}
+	rend := renderer.New(theme.Classic)
+	rend.SetSize(80, 30)
+	cfg := config.DefaultConfig()
+	cfg.AutoMoveEnabled = true
+	board := NewBoardModel(eng, rend, cfg)
+
+	// Pick up 2♠ (first Enter → Dragging = true).
+	board.cursor.Pile = engine.PileTableau0
+	board.cursor.CardIndex = 0
+	board = sendKey(board, tea.KeyEnter)
+
+	if !board.cursor.Dragging {
+		t.Fatal("setup: Enter must start a drag")
+	}
+
+	// 2♠ must still be in tableau[0] — auto-move must not have stolen it.
+	if eng.State().Tableau[0].IsEmpty() {
+		t.Error("drag source 2♠ must not be auto-moved while drag is active")
+	}
+	if len(eng.State().Foundations[0].Cards) != 1 {
+		t.Error("Spades foundation must still have only the Ace while drag is active")
+	}
+}
