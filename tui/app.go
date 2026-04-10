@@ -21,9 +21,10 @@ type AppModel struct {
 	cfg        *config.Config
 	themes     *theme.ThemeRegistry
 	rend       *renderer.Renderer
-	board      BoardModel
-	menu       MenuModel
-	windowW    int
+	board       BoardModel
+	menu        MenuModel
+	celebration CelebrationModel
+	windowW     int
 	windowH    int
 	tooSmall   bool
 }
@@ -65,6 +66,11 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Always propagate to board so renderer dimensions stay current.
 		updated, cmd := m.board.Update(msg)
 		m.board = updated.(BoardModel)
+		// Propagate to celebration so card positions reflow on resize.
+		if m.screen == ScreenWin {
+			celebUpdated, _ := m.celebration.Update(msg)
+			m.celebration = celebUpdated.(CelebrationModel)
+		}
 		return m, cmd
 
 	case ChangeScreenMsg:
@@ -113,8 +119,16 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case GameWonMsg:
+		state := m.engine.State()
+		m.celebration = NewCelebrationModel(
+			m.engine.Score(),
+			m.engine.MoveCount(),
+			state.ElapsedTime,
+			m.themes.Get(m.cfg.ThemeName),
+			m.cfg.DrawCount,
+		)
 		m.screen = ScreenWin
-		return m, nil
+		return m, m.celebration.Init()
 
 	case ThemeChangedMsg:
 		if msg.Theme != nil {
@@ -183,19 +197,9 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case ScreenWin:
-		if key, ok := msg.(tea.KeyMsg); ok {
-			switch {
-			case key.Type == tea.KeyCtrlN:
-				return m, func() tea.Msg {
-					return NewGameMsg{Seed: appSeed(), DrawCount: m.cfg.DrawCount}
-				}
-			case key.Type == tea.KeyRunes && len(key.Runes) > 0 &&
-				(key.Runes[0] == 'q' || key.Runes[0] == 'Q'):
-				return m, func() tea.Msg { return ChangeScreenMsg{Screen: ScreenQuitConfirm} }
-			case key.Type == tea.KeyCtrlC:
-				return m, tea.Quit
-			}
-		}
+		celebUpdated, cmd := m.celebration.Update(msg)
+		m.celebration = celebUpdated.(CelebrationModel)
+		return m, cmd
 	}
 
 	return m, nil
@@ -227,7 +231,7 @@ func (m AppModel) View() string {
 	case ScreenQuitConfirm:
 		return "Quit? (y) Yes  (n) No"
 	case ScreenWin:
-		return "You won! Press Ctrl+N for a new game."
+		return m.celebration.View()
 	case ScreenMenu:
 		return m.menu.View()
 	}
