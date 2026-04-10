@@ -886,3 +886,171 @@ func TestBoardWindowResize(t *testing.T) {
 		t.Errorf("expected 120x40, got %dx%d", board.width, board.height)
 	}
 }
+
+// tableauCardY returns the terminal Y coordinate for cardIdx within tableau
+// column col. tabRow is the Y origin of the tableau row.
+func tableauCardY(state *engine.GameState, col, cardIdx, tabRow int) int {
+	pile := state.Tableau[col]
+	fdCount := pile.FaceDownCount()
+	row := tabRow
+	// Face-down stubs occupy exactly 1 row each.
+	if cardIdx < fdCount {
+		return row + cardIdx
+	}
+	row += fdCount
+	// Face-up cards: all but last occupy 2 rows; last occupies CardHeight rows.
+	fuCards := pile.FaceUpCards()
+	for fi := range fuCards {
+		height := 2
+		if fi == len(fuCards)-1 {
+			height = renderer.CardHeight
+		}
+		ci := fdCount + fi
+		if ci == cardIdx {
+			return row + height/2
+		}
+		row += height
+	}
+	return tabRow // fallback: top of column
+}
+
+// clickPile delivers a left-press mouse click aimed at a specific card within
+// pileID and returns the updated BoardModel. Coordinates are derived from the
+// renderer layout constants so the hit-test inside BoardModel.Update resolves
+// to the intended pile and card index.
+//
+// Layout reference (mirrors renderer.pileOrigins):
+//
+//	topRow = 2
+//	tabRow = topRow + renderer.CardHeight + 1 = 10
+func clickPile(board BoardModel, pileID engine.PileID, cardIdx int) BoardModel {
+	const (
+		topRow = 2
+		tabRow = topRow + renderer.CardHeight + 1 // 10
+	)
+
+	state := board.eng.State()
+	var x, y int
+
+	switch {
+	case pileID == engine.PileStock:
+		x = renderer.CardWidth / 2
+		y = topRow + renderer.CardHeight/2
+
+	case pileID == engine.PileWaste:
+		x = renderer.CardWidth + renderer.ColGap + renderer.CardWidth/2
+		y = topRow + renderer.CardHeight/2
+
+	case isFoundationPile(pileID):
+		fi := int(pileID - engine.PileFoundation0)
+		fStartX := board.width - (4*renderer.CardWidth + 3*renderer.ColGap)
+		x = fStartX + fi*(renderer.CardWidth+renderer.ColGap) + renderer.CardWidth/2
+		y = topRow + renderer.CardHeight/2
+
+	case isTableauPile(pileID):
+		col := int(pileID - engine.PileTableau0)
+		x = col*(renderer.CardWidth+renderer.ColGap) + renderer.CardWidth/2
+		y = tableauCardY(state, col, cardIdx, tabRow)
+	}
+
+	updated, _ := board.Update(tea.MouseMsg{
+		Action: tea.MouseActionPress,
+		Button: tea.MouseButtonLeft,
+		X:      x,
+		Y:      y,
+	})
+	return updated.(BoardModel)
+}
+
+// TestBoardMousePickUp verifies that a left-click on a face-up tableau card
+// starts a drag (Dragging becomes true) with the correct DragSource.
+func TestBoardMousePickUp(t *testing.T) {
+	board, eng := newBoard()
+
+	// T0 has exactly 1 card (0 face-down, 1 face-up) with seed 42.
+	state := eng.State()
+	if state.Tableau[0].FaceDownCount() != 0 || len(state.Tableau[0].Cards) == 0 {
+		t.Skip("T0 layout does not match seed-42 expectation")
+	}
+
+	board = clickPile(board, engine.PileTableau0, 0)
+
+	if !board.cursor.Dragging {
+		t.Fatal("mouse click on face-up card must set Dragging=true")
+	}
+	if board.cursor.DragSource != engine.PileTableau0 {
+		t.Errorf("DragSource: got %v, want PileTableau0", board.cursor.DragSource)
+	}
+	if board.cursor.DragCardCount < 1 {
+		t.Errorf("DragCardCount must be >= 1, got %d", board.cursor.DragCardCount)
+	}
+}
+
+// TestBoardMouseDragPlace_Valid verifies that two sequential mouse clicks
+// (pick up then place) execute a valid tableau-to-tableau move, mirroring
+// the keyboard-driven TestBoardDragPlace_Valid but via mouse events.
+func TestBoardMouseDragPlace_Valid(t *testing.T) {
+	board, eng := newBoard()
+
+	// Find a valid tableau-to-tableau move.
+	var move engine.Move
+	for _, m := range eng.ValidMoves() {
+		if isTableauPile(m.From) && isTableauPile(m.To) {
+			move = m
+			break
+		}
+	}
+	if move.From == 0 && move.To == 0 {
+		t.Skip("no tableau-to-tableau move available with seed 42")
+	}
+
+	srcCol := int(move.From - engine.PileTableau0)
+	srcLen := len(eng.State().Tableau[srcCol].Cards)
+	srcCardIdx := srcLen - move.CardCount
+
+	// Click 1: pick up the source card(s).
+	board = clickPile(board, move.From, srcCardIdx)
+	if !board.cursor.Dragging {
+		t.Fatal("first mouse click must pick up card (Dragging=true)")
+	}
+
+	// Click 2: place on destination.
+	destCardIdx := naturalCardIndex(move.To, eng.State())
+	board = clickPile(board, move.To, destCardIdx)
+
+	if board.cursor.Dragging {
+		t.Error("second mouse click must clear Dragging")
+	}
+	afterLen := len(eng.State().Tableau[srcCol].Cards)
+	if afterLen >= srcLen {
+		t.Errorf("source pile must shrink after valid move: before=%d after=%d", srcLen, afterLen)
+	}
+}
+
+// TestBoardMouseDragPlace_FaceDownCard verifies that clicking a face-down
+// tableau card does not start a drag (face-down cards are not legal drag sources).
+func TestBoardMouseDragPlace_FaceDownCard(t *testing.T) {
+	board, eng := newBoard()
+
+	// Find any column with a face-down card.
+	targetCol := -1
+	for col := 0; col < 7; col++ {
+		if eng.State().Tableau[col].FaceDownCount() > 0 {
+			targetCol = col
+			break
+		}
+	}
+	if targetCol < 0 {
+		t.Skip("no face-down cards at deal time")
+	}
+
+	pileID := engine.PileTableau0 + engine.PileID(targetCol)
+	board = clickPile(board, pileID, 0) // cardIdx=0 is always face-down in a fresh deal
+
+	if board.cursor.Dragging {
+		t.Error("mouse click on face-down card must not start a drag")
+	}
+	if board.cursor.DragCardCount != 0 {
+		t.Errorf("DragCardCount must be 0 after no-op, got %d", board.cursor.DragCardCount)
+	}
+}
