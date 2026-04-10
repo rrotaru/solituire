@@ -237,7 +237,7 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 	if m.eng.IsWon() {
 		return m, m.winCmd()
 	}
-	if !m.autoCompleting && m.eng.IsAutoCompletable() {
+	if !m.cursor.Dragging && !m.autoCompleting && m.eng.IsAutoCompletable() {
 		m.autoCompleting = true
 	}
 	if m.autoCompleting {

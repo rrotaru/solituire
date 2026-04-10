@@ -1581,3 +1581,31 @@ func TestBoardAutoCompleteInterruptByMouseClick(t *testing.T) {
 		t.Error("interrupt must return nil cmd (click is consumed, no drag started)")
 	}
 }
+
+// TestBoardAutoComplete_NotStartedWhileDragging verifies that picking up a card
+// on an auto-completable board does not arm the auto-complete loop (P1 regression).
+// If it did, the next AutoCompleteStepMsg tick could move the drag-source card to
+// a foundation while DragSource/DragCardCount still reference it.
+func TestBoardAutoComplete_NotStartedWhileDragging(t *testing.T) {
+	board, eng := newNearWonBoard()
+
+	// Press Enter on a King in tableau[0] to start a drag.
+	board.cursor.Pile = engine.PileTableau0
+	board.cursor.CardIndex = 0
+	board = sendKey(board, tea.KeyEnter)
+
+	if !board.cursor.Dragging {
+		t.Fatal("setup: Enter must start a drag on a near-won board")
+	}
+
+	// autoCompleting must NOT have been set — drag is in progress.
+	if board.autoCompleting {
+		t.Error("autoCompleting must not be set while a drag is active: " +
+			"AutoCompleteStepMsg could move the drag-source card before placement")
+	}
+
+	// The dragged card must still be in the engine state.
+	if eng.State().Tableau[0].IsEmpty() {
+		t.Error("drag-source card must remain in tableau until the drag is completed")
+	}
+}
