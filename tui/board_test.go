@@ -888,6 +888,58 @@ func TestBoardMouseClickOutsidePile(t *testing.T) {
 	}
 }
 
+// TestBoardMouseMissClick_NoAutoMove verifies that a miss-click does not trigger
+// applyAutoMove even when AutoMoveEnabled is true and safe cards exist.
+func TestBoardMouseMissClick_NoAutoMove(t *testing.T) {
+	state := &engine.GameState{
+		Stock:     &engine.StockPile{},
+		Waste:     &engine.WastePile{DrawCount: 1},
+		DrawCount: 1,
+	}
+	for i := range state.Foundations {
+		state.Foundations[i] = &engine.FoundationPile{}
+	}
+	for i := range state.Tableau {
+		state.Tableau[i] = &engine.TableauPile{}
+	}
+	suits := []engine.Suit{engine.Spades, engine.Hearts, engine.Diamonds, engine.Clubs}
+	for fi, suit := range suits {
+		state.Foundations[fi].Cards = []engine.Card{
+			{Suit: suit, Rank: engine.Ace, FaceUp: true},
+		}
+	}
+	// 2♠ is safe to auto-move (all Aces on foundations).
+	state.Tableau[0].Cards = []engine.Card{
+		{Suit: engine.Spades, Rank: engine.Two, FaceUp: true},
+	}
+	// Face-down card prevents IsAutoCompletable.
+	state.Tableau[1].Cards = []engine.Card{
+		{Suit: engine.Hearts, Rank: engine.Three, FaceUp: false},
+	}
+
+	eng := &testEngine{state: state}
+	rend := renderer.New(theme.Classic)
+	rend.SetSize(80, 30)
+	cfg := config.DefaultConfig()
+	cfg.AutoMoveEnabled = true
+	board := NewBoardModel(eng, rend, cfg)
+
+	// Click outside all pile regions (bottom-right corner).
+	board.Update(tea.MouseMsg{ //nolint
+		Action: tea.MouseActionPress,
+		Button: tea.MouseButtonLeft,
+		X:      79,
+		Y:      29,
+	})
+
+	if eng.State().Tableau[0].IsEmpty() {
+		t.Error("miss-click must not auto-move 2♠: no pile was hit")
+	}
+	if len(eng.State().Foundations[0].Cards) != 1 {
+		t.Error("miss-click must not change foundation state")
+	}
+}
+
 func TestBoardWindowResize(t *testing.T) {
 	board, _ := newBoard()
 

@@ -135,7 +135,7 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		if mouse, ok := payload.(tea.MouseMsg); ok {
 			pile, cardIdx, hit := renderer.PileHitTestWithWidth(mouse.X, mouse.Y, state, m.width)
 			if !hit {
-				break
+				return m, nil // miss-click: completely ignored, no automation
 			}
 			m.cursor.Pile = pile
 			m.cursor.CardIndex = cardIdx
