@@ -35,7 +35,19 @@ func (e *testEngine) IsWon() bool {
 	}
 	return true
 }
-func (e *testEngine) IsAutoCompletable() bool { return false }
+func (e *testEngine) IsAutoCompletable() bool {
+	if !e.state.Stock.IsEmpty() {
+		return false
+	}
+	for _, t := range e.state.Tableau {
+		for _, c := range t.Cards {
+			if !c.FaceUp {
+				return false
+			}
+		}
+	}
+	return true
+}
 func (e *testEngine) Score() int              { return e.state.Score }
 func (e *testEngine) MoveCount() int          { return e.state.MoveCount }
 func (e *testEngine) Seed() int64             { return e.state.Seed }
@@ -876,6 +888,58 @@ func TestBoardMouseClickOutsidePile(t *testing.T) {
 	}
 }
 
+// TestBoardMouseMissClick_NoAutoMove verifies that a miss-click does not trigger
+// applyAutoMove even when AutoMoveEnabled is true and safe cards exist.
+func TestBoardMouseMissClick_NoAutoMove(t *testing.T) {
+	state := &engine.GameState{
+		Stock:     &engine.StockPile{},
+		Waste:     &engine.WastePile{DrawCount: 1},
+		DrawCount: 1,
+	}
+	for i := range state.Foundations {
+		state.Foundations[i] = &engine.FoundationPile{}
+	}
+	for i := range state.Tableau {
+		state.Tableau[i] = &engine.TableauPile{}
+	}
+	suits := []engine.Suit{engine.Spades, engine.Hearts, engine.Diamonds, engine.Clubs}
+	for fi, suit := range suits {
+		state.Foundations[fi].Cards = []engine.Card{
+			{Suit: suit, Rank: engine.Ace, FaceUp: true},
+		}
+	}
+	// 2♠ is safe to auto-move (all Aces on foundations).
+	state.Tableau[0].Cards = []engine.Card{
+		{Suit: engine.Spades, Rank: engine.Two, FaceUp: true},
+	}
+	// Face-down card prevents IsAutoCompletable.
+	state.Tableau[1].Cards = []engine.Card{
+		{Suit: engine.Hearts, Rank: engine.Three, FaceUp: false},
+	}
+
+	eng := &testEngine{state: state}
+	rend := renderer.New(theme.Classic)
+	rend.SetSize(80, 30)
+	cfg := config.DefaultConfig()
+	cfg.AutoMoveEnabled = true
+	board := NewBoardModel(eng, rend, cfg)
+
+	// Click outside all pile regions (bottom-right corner).
+	board.Update(tea.MouseMsg{ //nolint
+		Action: tea.MouseActionPress,
+		Button: tea.MouseButtonLeft,
+		X:      79,
+		Y:      29,
+	})
+
+	if eng.State().Tableau[0].IsEmpty() {
+		t.Error("miss-click must not auto-move 2♠: no pile was hit")
+	}
+	if len(eng.State().Foundations[0].Cards) != 1 {
+		t.Error("miss-click must not change foundation state")
+	}
+}
+
 func TestBoardWindowResize(t *testing.T) {
 	board, _ := newBoard()
 
@@ -1052,5 +1116,496 @@ func TestBoardMouseDragPlace_FaceDownCard(t *testing.T) {
 	}
 	if board.cursor.DragCardCount != 0 {
 		t.Errorf("DragCardCount must be 0 after no-op, got %d", board.cursor.DragCardCount)
+	}
+}
+
+// ── T17: Auto-Complete + Auto-Move ───────────────────────────────────────────
+
+// newNearWonBoard creates a BoardModel where only 4 Kings remain (one per suit,
+// face-up in tableau[0..3]). All other 48 cards are on their foundations.
+// IsAutoCompletable() == true, IsWon() == false.
+func newNearWonBoard() (BoardModel, *testEngine) {
+	state := &engine.GameState{
+		Stock:     &engine.StockPile{},
+		Waste:     &engine.WastePile{DrawCount: 1},
+		DrawCount: 1,
+	}
+	suits := []engine.Suit{engine.Spades, engine.Hearts, engine.Diamonds, engine.Clubs}
+	for i := range state.Foundations {
+		state.Foundations[i] = &engine.FoundationPile{}
+	}
+	for i := range state.Tableau {
+		state.Tableau[i] = &engine.TableauPile{}
+	}
+	// Fill foundations Ace–Queen for each suit.
+	for fi, suit := range suits {
+		for r := engine.Ace; r <= engine.Queen; r++ {
+			state.Foundations[fi].Cards = append(state.Foundations[fi].Cards,
+				engine.Card{Suit: suit, Rank: r, FaceUp: true})
+		}
+	}
+	// Place each King face-up in its own tableau column.
+	for col, suit := range suits {
+		state.Tableau[col].Cards = []engine.Card{
+			{Suit: suit, Rank: engine.King, FaceUp: true},
+		}
+	}
+
+	eng := &testEngine{state: state}
+	rend := renderer.New(theme.Classic)
+	rend.SetSize(80, 30)
+	cfg := config.DefaultConfig()
+	board := NewBoardModel(eng, rend, cfg)
+	return board, eng
+}
+
+// TestBoardAutoCompleteInterruptByKeypress verifies that any keypress while
+// autoCompleting is true clears the flag and returns a nil cmd.
+func TestBoardAutoCompleteInterruptByKeypress(t *testing.T) {
+	board, _ := newNearWonBoard()
+	board.autoCompleting = true
+
+	updated, cmd := board.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	board = updated.(BoardModel)
+
+	if board.autoCompleting {
+		t.Error("keypress must clear autoCompleting")
+	}
+	if cmd != nil {
+		t.Error("interrupt must return nil cmd (no further ticks)")
+	}
+}
+
+// TestBoardAutoCompleteStep_MovesToFoundation verifies that one AutoCompleteStepMsg
+// moves exactly one card from tableau to a foundation.
+func TestBoardAutoCompleteStep_MovesToFoundation(t *testing.T) {
+	board, eng := newNearWonBoard()
+	board.autoCompleting = true
+
+	before := 0
+	for _, f := range eng.State().Foundations {
+		before += len(f.Cards)
+	}
+
+	updated, _ := board.Update(AutoCompleteStepMsg{})
+	_ = updated
+
+	after := 0
+	for _, f := range eng.State().Foundations {
+		after += len(f.Cards)
+	}
+	if after != before+1 {
+		t.Errorf("one AutoCompleteStepMsg must move exactly 1 card to foundation: before=%d after=%d", before, after)
+	}
+}
+
+// TestBoardAutoCompleteStep_EmitsGameWonMsg verifies that the final auto-complete
+// step emits GameWonMsg and clears autoCompleting.
+func TestBoardAutoCompleteStep_EmitsGameWonMsg(t *testing.T) {
+	// Build a state with only the King of Spades remaining.
+	state := &engine.GameState{
+		Stock:     &engine.StockPile{},
+		Waste:     &engine.WastePile{DrawCount: 1},
+		DrawCount: 1,
+	}
+	suits := []engine.Suit{engine.Spades, engine.Hearts, engine.Diamonds, engine.Clubs}
+	for i := range state.Foundations {
+		state.Foundations[i] = &engine.FoundationPile{}
+	}
+	for i := range state.Tableau {
+		state.Tableau[i] = &engine.TableauPile{}
+	}
+	// All suits complete (Ace–King), except Spades stops at Queen.
+	for fi, suit := range suits {
+		limit := engine.King
+		if suit == engine.Spades {
+			limit = engine.Queen
+		}
+		for r := engine.Ace; r <= limit; r++ {
+			state.Foundations[fi].Cards = append(state.Foundations[fi].Cards,
+				engine.Card{Suit: suit, Rank: r, FaceUp: true})
+		}
+	}
+	// The lone King of Spades sits face-up in tableau[0].
+	state.Tableau[0].Cards = []engine.Card{
+		{Suit: engine.Spades, Rank: engine.King, FaceUp: true},
+	}
+
+	eng := &testEngine{state: state}
+	rend := renderer.New(theme.Classic)
+	rend.SetSize(80, 30)
+	board := NewBoardModel(eng, rend, config.DefaultConfig())
+	board.autoCompleting = true
+
+	updated, cmd := board.Update(AutoCompleteStepMsg{})
+	board = updated.(BoardModel)
+
+	if cmd == nil {
+		t.Fatal("final auto-complete step must return a non-nil cmd")
+	}
+	msg := cmd()
+	if _, ok := msg.(GameWonMsg); !ok {
+		t.Errorf("final step must emit GameWonMsg, got %T", msg)
+	}
+	if board.autoCompleting {
+		t.Error("autoCompleting must be false after game is won")
+	}
+}
+
+// TestBoardAutoMove_MovesCardAfterAction verifies that with AutoMoveEnabled = true
+// a safe tableau card is automatically moved to its foundation after a player action.
+func TestBoardAutoMove_MovesCardAfterAction(t *testing.T) {
+	// State: four Aces on foundations; 2♠ (safe) and 3♥ (not yet safe) in tableau.
+	state := &engine.GameState{
+		Stock:     &engine.StockPile{},
+		Waste:     &engine.WastePile{DrawCount: 1},
+		DrawCount: 1,
+	}
+	for i := range state.Foundations {
+		state.Foundations[i] = &engine.FoundationPile{}
+	}
+	for i := range state.Tableau {
+		state.Tableau[i] = &engine.TableauPile{}
+	}
+	suits := []engine.Suit{engine.Spades, engine.Hearts, engine.Diamonds, engine.Clubs}
+	for fi, suit := range suits {
+		state.Foundations[fi].Cards = []engine.Card{
+			{Suit: suit, Rank: engine.Ace, FaceUp: true},
+		}
+	}
+	// 2♠ is safe: both Red Aces (Ace >= 2-1=1) are on foundations.
+	state.Tableau[0].Cards = []engine.Card{
+		{Suit: engine.Spades, Rank: engine.Two, FaceUp: true},
+	}
+	// 3♥ is NOT yet safe: Clubs foundation only has Ace (rank 1 < 3-1=2).
+	state.Tableau[1].Cards = []engine.Card{
+		{Suit: engine.Hearts, Rank: engine.Three, FaceUp: true},
+	}
+
+	eng := &testEngine{state: state}
+	rend := renderer.New(theme.Classic)
+	rend.SetSize(80, 30)
+	cfg := config.DefaultConfig()
+	cfg.AutoMoveEnabled = true
+	board := NewBoardModel(eng, rend, cfg)
+
+	before := 0
+	for _, f := range eng.State().Foundations {
+		before += len(f.Cards)
+	}
+
+	// Any player action triggers auto-move at end of handleAction.
+	board = sendKey(board, tea.KeyLeft)
+
+	after := 0
+	for _, f := range eng.State().Foundations {
+		after += len(f.Cards)
+	}
+	if after != before+1 {
+		t.Errorf("2♠ must be auto-moved after action: before=%d after=%d", before, after)
+	}
+	// 3♥ must not have been moved: Clubs only has Ace (rank 1 < 2).
+	if eng.State().Tableau[1].IsEmpty() {
+		t.Error("3♥ must not be auto-moved yet (opposite-color min rank insufficient)")
+	}
+}
+
+// TestBoardAutoMove_DisabledDoesNotMove verifies that with AutoMoveEnabled = false
+// (the default) safe cards remain in place after a player action.
+func TestBoardAutoMove_DisabledDoesNotMove(t *testing.T) {
+	state := &engine.GameState{
+		Stock:     &engine.StockPile{},
+		Waste:     &engine.WastePile{DrawCount: 1},
+		DrawCount: 1,
+	}
+	for i := range state.Foundations {
+		state.Foundations[i] = &engine.FoundationPile{}
+	}
+	for i := range state.Tableau {
+		state.Tableau[i] = &engine.TableauPile{}
+	}
+	suits := []engine.Suit{engine.Spades, engine.Hearts, engine.Diamonds, engine.Clubs}
+	for fi, suit := range suits {
+		state.Foundations[fi].Cards = []engine.Card{
+			{Suit: suit, Rank: engine.Ace, FaceUp: true},
+		}
+	}
+	state.Tableau[0].Cards = []engine.Card{
+		{Suit: engine.Spades, Rank: engine.Two, FaceUp: true},
+	}
+
+	eng := &testEngine{state: state}
+	rend := renderer.New(theme.Classic)
+	rend.SetSize(80, 30)
+	cfg := config.DefaultConfig() // AutoMoveEnabled = false
+	board := NewBoardModel(eng, rend, cfg)
+
+	before := len(eng.State().Foundations[0].Cards) // Spades foundation: 1 card
+
+	board = sendKey(board, tea.KeyLeft)
+
+	after := len(eng.State().Foundations[0].Cards)
+	if after != before {
+		t.Errorf("auto-move disabled: Spades foundation must not grow: before=%d after=%d", before, after)
+	}
+}
+
+// TestBoardAutoMove_SkippedAfterUndo verifies that undo is not immediately
+// reversed by auto-move when AutoMoveEnabled is true (P1 bug regression).
+func TestBoardAutoMove_SkippedAfterUndo(t *testing.T) {
+	// State: all four Aces on foundations, 2♠ face-up in tableau[0].
+	// A face-down card in tableau[1] keeps IsAutoCompletable() = false so the
+	// Ctrl+Z keypress reaches handleAction as ActionUndo rather than being
+	// consumed as an auto-complete interrupt.
+	state := &engine.GameState{
+		Stock:     &engine.StockPile{},
+		Waste:     &engine.WastePile{DrawCount: 1},
+		DrawCount: 1,
+	}
+	for i := range state.Foundations {
+		state.Foundations[i] = &engine.FoundationPile{}
+	}
+	for i := range state.Tableau {
+		state.Tableau[i] = &engine.TableauPile{}
+	}
+	suits := []engine.Suit{engine.Spades, engine.Hearts, engine.Diamonds, engine.Clubs}
+	for fi, suit := range suits {
+		state.Foundations[fi].Cards = []engine.Card{
+			{Suit: suit, Rank: engine.Ace, FaceUp: true},
+		}
+	}
+	state.Tableau[0].Cards = []engine.Card{
+		{Suit: engine.Spades, Rank: engine.Two, FaceUp: true},
+	}
+	// Face-down card in tableau[1] prevents IsAutoCompletable() from triggering
+	// after the setup move, ensuring Ctrl+Z is processed as ActionUndo.
+	state.Tableau[1].Cards = []engine.Card{
+		{Suit: engine.Hearts, Rank: engine.Three, FaceUp: false},
+	}
+
+	eng := &testEngine{state: state}
+	rend := renderer.New(theme.Classic)
+	rend.SetSize(80, 30)
+	cfg := config.DefaultConfig()
+	cfg.AutoMoveEnabled = true
+	board := NewBoardModel(eng, rend, cfg)
+
+	// Move 2♠ manually to its foundation so there is something to undo.
+	board.cursor.Pile = engine.PileTableau0
+	board.cursor.CardIndex = 0
+	board = sendRune(board, 'f')
+	if len(eng.State().Foundations[0].Cards) != 2 {
+		t.Fatal("setup: 2♠ must be on foundation before undo test")
+	}
+
+	// Undo the move: 2♠ should return to tableau[0] and stay there.
+	board = sendKey(board, tea.KeyCtrlZ)
+	_ = board
+
+	if len(eng.State().Foundations[0].Cards) != 1 {
+		t.Error("after undo: Spades foundation must be back to 1 card (undo must not be re-applied by auto-move)")
+	}
+	if eng.State().Tableau[0].IsEmpty() {
+		t.Error("after undo: 2♠ must be back in tableau[0]")
+	}
+}
+
+// TestBoardAutoMove_SkipOneEmptyOppositeFoundation verifies that a card is NOT
+// auto-moved when only one of two opposite-color foundations is started (P2 bug regression).
+func TestBoardAutoMove_SkipOneEmptyOppositeFoundation(t *testing.T) {
+	// State: only Hearts Ace on foundation (one Red started, one Red empty).
+	// 3♠ (Black, rank 3) requires BOTH Red foundations at rank >= 2.
+	// With only Hearts at rank 1 and Diamonds empty, it must NOT be auto-moved.
+	state := &engine.GameState{
+		Stock:     &engine.StockPile{},
+		Waste:     &engine.WastePile{DrawCount: 1},
+		DrawCount: 1,
+	}
+	for i := range state.Foundations {
+		state.Foundations[i] = &engine.FoundationPile{}
+	}
+	for i := range state.Tableau {
+		state.Tableau[i] = &engine.TableauPile{}
+	}
+	// Foundation 0 = Spades Ace, Foundation 1 = Hearts Ace; Diamonds and Clubs empty.
+	state.Foundations[0].Cards = []engine.Card{{Suit: engine.Spades, Rank: engine.Ace, FaceUp: true}}
+	state.Foundations[1].Cards = []engine.Card{{Suit: engine.Hearts, Rank: engine.Ace, FaceUp: true}}
+	// 3♠ in tableau[0]: opposite color is Red; Hearts rank=1 < 2; Diamonds rank=0 < 2 → NOT safe.
+	state.Tableau[0].Cards = []engine.Card{
+		{Suit: engine.Spades, Rank: engine.Three, FaceUp: true},
+	}
+
+	eng := &testEngine{state: state}
+	rend := renderer.New(theme.Classic)
+	rend.SetSize(80, 30)
+	cfg := config.DefaultConfig()
+	cfg.AutoMoveEnabled = true
+	board := NewBoardModel(eng, rend, cfg)
+
+	board = sendKey(board, tea.KeyLeft) // trigger auto-move check
+
+	if eng.State().Tableau[0].IsEmpty() {
+		t.Error("3♠ must not be auto-moved: Diamonds foundation is empty (rank 0 < 2)")
+	}
+}
+
+// TestBoardAutoMove_SkippedWhileDragging verifies that auto-move does not run
+// while a drag is in progress (P3 bug regression).
+// A safe card that is the drag source must not be auto-moved to foundation
+// before the user gets a chance to place it.
+func TestBoardAutoMove_SkippedWhileDragging(t *testing.T) {
+	// State: all four Aces on foundations, 2♠ face-up in tableau[0].
+	// A face-down card in tableau[1] prevents IsAutoCompletable from triggering.
+	state := &engine.GameState{
+		Stock:     &engine.StockPile{},
+		Waste:     &engine.WastePile{DrawCount: 1},
+		DrawCount: 1,
+	}
+	for i := range state.Foundations {
+		state.Foundations[i] = &engine.FoundationPile{}
+	}
+	for i := range state.Tableau {
+		state.Tableau[i] = &engine.TableauPile{}
+	}
+	suits := []engine.Suit{engine.Spades, engine.Hearts, engine.Diamonds, engine.Clubs}
+	for fi, suit := range suits {
+		state.Foundations[fi].Cards = []engine.Card{
+			{Suit: suit, Rank: engine.Ace, FaceUp: true},
+		}
+	}
+	state.Tableau[0].Cards = []engine.Card{
+		{Suit: engine.Spades, Rank: engine.Two, FaceUp: true},
+	}
+	state.Tableau[1].Cards = []engine.Card{
+		{Suit: engine.Hearts, Rank: engine.Three, FaceUp: false},
+	}
+
+	eng := &testEngine{state: state}
+	rend := renderer.New(theme.Classic)
+	rend.SetSize(80, 30)
+	cfg := config.DefaultConfig()
+	cfg.AutoMoveEnabled = true
+	board := NewBoardModel(eng, rend, cfg)
+
+	// Pick up 2♠ (first Enter → Dragging = true).
+	board.cursor.Pile = engine.PileTableau0
+	board.cursor.CardIndex = 0
+	board = sendKey(board, tea.KeyEnter)
+
+	if !board.cursor.Dragging {
+		t.Fatal("setup: Enter must start a drag")
+	}
+
+	// 2♠ must still be in tableau[0] — auto-move must not have stolen it.
+	if eng.State().Tableau[0].IsEmpty() {
+		t.Error("drag source 2♠ must not be auto-moved while drag is active")
+	}
+	if len(eng.State().Foundations[0].Cards) != 1 {
+		t.Error("Spades foundation must still have only the Ace while drag is active")
+	}
+}
+
+// TestBoardActionNone_NoAutomation verifies that ActionNone events (e.g. mouse
+// motion/release) do not trigger applyAutoMove or extra auto-complete ticks.
+func TestBoardActionNone_NoAutomation(t *testing.T) {
+	// State: Aces on foundations, 2♠ face-up in tableau[0] (safe to auto-move).
+	// Face-down card in tableau[1] prevents IsAutoCompletable.
+	state := &engine.GameState{
+		Stock:     &engine.StockPile{},
+		Waste:     &engine.WastePile{DrawCount: 1},
+		DrawCount: 1,
+	}
+	for i := range state.Foundations {
+		state.Foundations[i] = &engine.FoundationPile{}
+	}
+	for i := range state.Tableau {
+		state.Tableau[i] = &engine.TableauPile{}
+	}
+	suits := []engine.Suit{engine.Spades, engine.Hearts, engine.Diamonds, engine.Clubs}
+	for fi, suit := range suits {
+		state.Foundations[fi].Cards = []engine.Card{
+			{Suit: suit, Rank: engine.Ace, FaceUp: true},
+		}
+	}
+	state.Tableau[0].Cards = []engine.Card{
+		{Suit: engine.Spades, Rank: engine.Two, FaceUp: true},
+	}
+	state.Tableau[1].Cards = []engine.Card{
+		{Suit: engine.Hearts, Rank: engine.Three, FaceUp: false},
+	}
+
+	eng := &testEngine{state: state}
+	rend := renderer.New(theme.Classic)
+	rend.SetSize(80, 30)
+	cfg := config.DefaultConfig()
+	cfg.AutoMoveEnabled = true
+	board := NewBoardModel(eng, rend, cfg)
+	board.autoCompleting = true // simulate an active auto-complete loop
+
+	// Mouse motion maps to ActionNone.
+	updated, cmd := board.Update(tea.MouseMsg{Action: tea.MouseActionMotion})
+	board = updated.(BoardModel)
+
+	// 2♠ must not have been auto-moved.
+	if eng.State().Tableau[0].IsEmpty() {
+		t.Error("ActionNone must not trigger applyAutoMove: 2♠ must still be in tableau")
+	}
+	// No extra auto-complete tick must have been scheduled.
+	if cmd != nil {
+		t.Error("ActionNone must return nil cmd: no extra auto-complete tick must be enqueued")
+	}
+	// autoCompleting must remain unchanged (not reset by ActionNone).
+	if !board.autoCompleting {
+		t.Error("ActionNone must not clear autoCompleting")
+	}
+}
+
+// TestBoardAutoCompleteInterruptByMouseClick verifies that a left mouse button
+// press interrupts auto-complete, just like a keypress does.
+func TestBoardAutoCompleteInterruptByMouseClick(t *testing.T) {
+	board, _ := newNearWonBoard()
+	board.autoCompleting = true
+
+	updated, cmd := board.Update(tea.MouseMsg{
+		Action: tea.MouseActionPress,
+		Button: tea.MouseButtonLeft,
+		X:      4,
+		Y:      5,
+	})
+	board = updated.(BoardModel)
+
+	if board.autoCompleting {
+		t.Error("mouse click must clear autoCompleting")
+	}
+	if cmd != nil {
+		t.Error("interrupt must return nil cmd (click is consumed, no drag started)")
+	}
+}
+
+// TestBoardAutoComplete_NotStartedWhileDragging verifies that picking up a card
+// on an auto-completable board does not arm the auto-complete loop (P1 regression).
+// If it did, the next AutoCompleteStepMsg tick could move the drag-source card to
+// a foundation while DragSource/DragCardCount still reference it.
+func TestBoardAutoComplete_NotStartedWhileDragging(t *testing.T) {
+	board, eng := newNearWonBoard()
+
+	// Press Enter on a King in tableau[0] to start a drag.
+	board.cursor.Pile = engine.PileTableau0
+	board.cursor.CardIndex = 0
+	board = sendKey(board, tea.KeyEnter)
+
+	if !board.cursor.Dragging {
+		t.Fatal("setup: Enter must start a drag on a near-won board")
+	}
+
+	// autoCompleting must NOT have been set — drag is in progress.
+	if board.autoCompleting {
+		t.Error("autoCompleting must not be set while a drag is active: " +
+			"AutoCompleteStepMsg could move the drag-source card before placement")
+	}
+
+	// The dragged card must still be in the engine state.
+	if eng.State().Tableau[0].IsEmpty() {
+		t.Error("drag-source card must remain in tableau until the drag is completed")
 	}
 }

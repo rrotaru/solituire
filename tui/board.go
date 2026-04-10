@@ -14,13 +14,14 @@ import (
 // It manages cursor state, delegates game commands to the engine, and
 // delegates rendering to the renderer.
 type BoardModel struct {
-	eng      engine.GameEngine
-	cursor   Cursor
-	rend     *renderer.Renderer
-	cfg      *config.Config
-	themes   *theme.ThemeRegistry
-	width    int
-	height   int
+	eng            engine.GameEngine
+	cursor         Cursor
+	rend           *renderer.Renderer
+	cfg            *config.Config
+	themes         *theme.ThemeRegistry
+	width          int
+	height         int
+	autoCompleting bool // true while the auto-complete animation loop is running
 }
 
 // NewBoardModel creates a BoardModel with the cursor positioned at the bottom
@@ -56,6 +57,23 @@ func (m BoardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case TickMsg:
 		m.eng.State().ElapsedTime += time.Second
 		return m, tickCmd()
+
+	case AutoCompleteStepMsg:
+		return m.handleAutoCompleteStep()
+	}
+
+	// Any keypress or mouse button press interrupts an in-progress auto-complete.
+	// Mouse motion/release/scroll produce ActionNone and are already no-ops via
+	// the early return in handleAction, so only MouseActionPress needs handling here.
+	if m.autoCompleting {
+		if _, ok := msg.(tea.KeyMsg); ok {
+			m.autoCompleting = false
+			return m, nil
+		}
+		if mm, ok := msg.(tea.MouseMsg); ok && mm.Action == tea.MouseActionPress {
+			m.autoCompleting = false
+			return m, nil
+		}
 	}
 
 	action, payload := TranslateInput(msg)
@@ -70,13 +88,19 @@ func (m BoardModel) View() string {
 // handleAction translates a GameAction into cursor movement, engine commands,
 // or emitted messages.
 func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Model, tea.Cmd) {
+	// Unmapped events (mouse motion, release, scroll, unknown keys) produce
+	// ActionNone. Return immediately: no state change, no automation, no extra
+	// auto-complete ticks.
+	if action == ActionNone {
+		return m, nil
+	}
+
 	state := m.eng.State()
 
 	// Clear any active hint on the first non-hint player action so stale
 	// guidance doesn't linger across unrelated inputs.
-	// ActionNone (no recognised key) and ActionHint itself are excluded:
-	// ActionHint must see the current ShowHint value to toggle correctly.
-	if action != ActionNone && action != ActionHint {
+	// ActionHint is excluded: it must see the current ShowHint value to toggle correctly.
+	if action != ActionHint {
 		m.cursor.ShowHint = false
 	}
 
@@ -111,7 +135,7 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		if mouse, ok := payload.(tea.MouseMsg); ok {
 			pile, cardIdx, hit := renderer.PileHitTestWithWidth(mouse.X, mouse.Y, state, m.width)
 			if !hit {
-				break
+				return m, nil // miss-click: completely ignored, no automation
 			}
 			m.cursor.Pile = pile
 			m.cursor.CardIndex = cardIdx
@@ -162,6 +186,7 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		m.cursor.DragCardCount = 0
 		_ = m.eng.Undo()
 		m.clampCursor()
+		return m, m.winCmd() // skip auto-move: undo must not be immediately reversed
 
 	case ActionRedo:
 		m.cursor.Dragging = false
@@ -169,6 +194,7 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		m.cursor.DragCardCount = 0
 		_ = m.eng.Redo()
 		m.clampCursor()
+		return m, m.winCmd() // skip auto-move: keep redo result stable
 
 	case ActionHint:
 		m.toggleHint(state)
@@ -202,6 +228,21 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		return m, func() tea.Msg { return ConfigChangedMsg{Config: &cfgCopy} }
 	}
 
+	// Skip auto-move while a drag is in progress: the drag source card is still
+	// in the engine state, so auto-move could steal it before the user places it.
+	// After placement handleSelect sets Dragging=false, so auto-move runs then.
+	if !m.cursor.Dragging {
+		m.applyAutoMove()
+	}
+	if m.eng.IsWon() {
+		return m, m.winCmd()
+	}
+	if !m.cursor.Dragging && !m.autoCompleting && m.eng.IsAutoCompletable() {
+		m.autoCompleting = true
+	}
+	if m.autoCompleting {
+		return m, autoCompleteTickCmd()
+	}
 	return m, m.winCmd()
 }
 
@@ -390,9 +431,148 @@ func (m *BoardModel) clampCursor() {
 	}
 }
 
+// handleAutoCompleteStep executes one foundation move for the auto-complete loop,
+// then schedules the next tick or ends the loop.
+func (m BoardModel) handleAutoCompleteStep() (tea.Model, tea.Cmd) {
+	if !m.autoCompleting {
+		return m, nil
+	}
+	moved := m.doAutoCompleteStep()
+	if !moved || m.eng.IsWon() {
+		m.autoCompleting = false
+		if m.eng.IsWon() {
+			return m, func() tea.Msg { return GameWonMsg{} }
+		}
+		return m, nil
+	}
+	return m, autoCompleteTickCmd()
+}
+
+// doAutoCompleteStep finds the lowest-rank card that can move to a foundation and
+// executes that move. Returns true if a move was made.
+func (m *BoardModel) doAutoCompleteStep() bool {
+	state := m.eng.State()
+
+	var bestRank engine.Rank = engine.King + 1 // sentinel: no candidate yet
+	var bestSrc engine.PileID
+	bestFI := -1
+
+	consider := func(card *engine.Card, src engine.PileID) {
+		if card == nil || !card.FaceUp {
+			return
+		}
+		for fi, f := range state.Foundations {
+			if f.AcceptsCard(*card) && card.Rank < bestRank {
+				bestRank = card.Rank
+				bestSrc = src
+				bestFI = fi
+			}
+		}
+	}
+
+	consider(state.Waste.TopCard(), engine.PileWaste)
+	for col := 0; col < 7; col++ {
+		consider(state.Tableau[col].TopCard(), engine.PileTableau0+engine.PileID(col))
+	}
+
+	if bestFI < 0 {
+		return false
+	}
+
+	dest := engine.PileFoundation0 + engine.PileID(bestFI)
+	cmd := m.buildMoveCmd(state, bestSrc, 1, dest)
+	if cmd == nil {
+		return false
+	}
+	_ = m.eng.Execute(cmd)
+	m.clampCursor()
+	return true
+}
+
+// applyAutoMove repeatedly moves safe cards to foundations while AutoMoveEnabled.
+// Each call to autoMoveOneCard re-fetches state, so cascading moves are handled
+// correctly (e.g., moving a 2 may make a 3 safe on the next pass).
+func (m *BoardModel) applyAutoMove() {
+	if !m.cfg.AutoMoveEnabled {
+		return
+	}
+	for m.autoMoveOneCard() {
+	}
+}
+
+// autoMoveOneCard checks waste and tableau tops for a single safe auto-move and
+// executes the first one found. Returns true if a card was moved.
+func (m *BoardModel) autoMoveOneCard() bool {
+	state := m.eng.State()
+
+	tryMove := func(card *engine.Card, src engine.PileID) bool {
+		if card == nil || !card.FaceUp || !isSafeToAutoMove(*card, state) {
+			return false
+		}
+		for fi, f := range state.Foundations {
+			if f.AcceptsCard(*card) {
+				dest := engine.PileFoundation0 + engine.PileID(fi)
+				cmd := m.buildMoveCmd(state, src, 1, dest)
+				if cmd != nil {
+					_ = m.eng.Execute(cmd)
+					m.clampCursor()
+					return true
+				}
+			}
+		}
+		return false
+	}
+
+	if tryMove(state.Waste.TopCard(), engine.PileWaste) {
+		return true
+	}
+	for col := 0; col < 7; col++ {
+		if tryMove(state.Tableau[col].TopCard(), engine.PileTableau0+engine.PileID(col)) {
+			return true
+		}
+	}
+	return false
+}
+
+// isSafeToAutoMove reports whether card can be safely auto-moved to its foundation.
+// "Safe" means BOTH opposite-colored foundation piles have rank >= card.Rank-1.
+// Unstarted (nil-suit) foundations count as rank 0 and will fail the check.
+// Aces and 2s are unconditionally safe.
+func isSafeToAutoMove(card engine.Card, state *engine.GameState) bool {
+	if card.Rank <= 2 {
+		return true
+	}
+	oppositeColor := engine.Black
+	if card.Color() == engine.Black {
+		oppositeColor = engine.Red
+	}
+	// There are exactly 2 foundations of each color. Both must satisfy rank >= card.Rank-1.
+	// Unstarted foundations (nil Suit) are skipped — they can never contribute to safeCount,
+	// so requiring safeCount >= 2 correctly treats them as rank 0.
+	safeCount := 0
+	for _, f := range state.Foundations {
+		s := f.Suit()
+		if s == nil || s.Color() != oppositeColor {
+			continue
+		}
+		top := f.TopCard()
+		if top != nil && top.Rank >= card.Rank-1 {
+			safeCount++
+		}
+	}
+	return safeCount >= 2
+}
+
 // tickCmd returns a tea.Cmd that fires a TickMsg after one second.
 func tickCmd() tea.Cmd {
 	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
 		return TickMsg(t)
+	})
+}
+
+// autoCompleteTickCmd returns a Cmd that fires AutoCompleteStepMsg after 100 ms.
+func autoCompleteTickCmd() tea.Cmd {
+	return tea.Tick(100*time.Millisecond, func(_ time.Time) tea.Msg {
+		return AutoCompleteStepMsg{}
 	})
 }
