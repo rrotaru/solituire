@@ -1452,3 +1452,58 @@ func TestBoardAutoMove_SkippedWhileDragging(t *testing.T) {
 		t.Error("Spades foundation must still have only the Ace while drag is active")
 	}
 }
+
+// TestBoardActionNone_NoAutomation verifies that ActionNone events (e.g. mouse
+// motion/release) do not trigger applyAutoMove or extra auto-complete ticks.
+func TestBoardActionNone_NoAutomation(t *testing.T) {
+	// State: Aces on foundations, 2♠ face-up in tableau[0] (safe to auto-move).
+	// Face-down card in tableau[1] prevents IsAutoCompletable.
+	state := &engine.GameState{
+		Stock:     &engine.StockPile{},
+		Waste:     &engine.WastePile{DrawCount: 1},
+		DrawCount: 1,
+	}
+	for i := range state.Foundations {
+		state.Foundations[i] = &engine.FoundationPile{}
+	}
+	for i := range state.Tableau {
+		state.Tableau[i] = &engine.TableauPile{}
+	}
+	suits := []engine.Suit{engine.Spades, engine.Hearts, engine.Diamonds, engine.Clubs}
+	for fi, suit := range suits {
+		state.Foundations[fi].Cards = []engine.Card{
+			{Suit: suit, Rank: engine.Ace, FaceUp: true},
+		}
+	}
+	state.Tableau[0].Cards = []engine.Card{
+		{Suit: engine.Spades, Rank: engine.Two, FaceUp: true},
+	}
+	state.Tableau[1].Cards = []engine.Card{
+		{Suit: engine.Hearts, Rank: engine.Three, FaceUp: false},
+	}
+
+	eng := &testEngine{state: state}
+	rend := renderer.New(theme.Classic)
+	rend.SetSize(80, 30)
+	cfg := config.DefaultConfig()
+	cfg.AutoMoveEnabled = true
+	board := NewBoardModel(eng, rend, cfg)
+	board.autoCompleting = true // simulate an active auto-complete loop
+
+	// Mouse motion maps to ActionNone.
+	updated, cmd := board.Update(tea.MouseMsg{Action: tea.MouseActionMotion})
+	board = updated.(BoardModel)
+
+	// 2♠ must not have been auto-moved.
+	if eng.State().Tableau[0].IsEmpty() {
+		t.Error("ActionNone must not trigger applyAutoMove: 2♠ must still be in tableau")
+	}
+	// No extra auto-complete tick must have been scheduled.
+	if cmd != nil {
+		t.Error("ActionNone must return nil cmd: no extra auto-complete tick must be enqueued")
+	}
+	// autoCompleting must remain unchanged (not reset by ActionNone).
+	if !board.autoCompleting {
+		t.Error("ActionNone must not clear autoCompleting")
+	}
+}

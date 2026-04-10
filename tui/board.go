@@ -82,13 +82,19 @@ func (m BoardModel) View() string {
 // handleAction translates a GameAction into cursor movement, engine commands,
 // or emitted messages.
 func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Model, tea.Cmd) {
+	// Unmapped events (mouse motion, release, scroll, unknown keys) produce
+	// ActionNone. Return immediately: no state change, no automation, no extra
+	// auto-complete ticks.
+	if action == ActionNone {
+		return m, nil
+	}
+
 	state := m.eng.State()
 
 	// Clear any active hint on the first non-hint player action so stale
 	// guidance doesn't linger across unrelated inputs.
-	// ActionNone (no recognised key) and ActionHint itself are excluded:
-	// ActionHint must see the current ShowHint value to toggle correctly.
-	if action != ActionNone && action != ActionHint {
+	// ActionHint is excluded: it must see the current ShowHint value to toggle correctly.
+	if action != ActionHint {
 		m.cursor.ShowHint = false
 	}
 
