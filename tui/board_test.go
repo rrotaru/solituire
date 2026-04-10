@@ -1297,3 +1297,102 @@ func TestBoardAutoMove_DisabledDoesNotMove(t *testing.T) {
 		t.Errorf("auto-move disabled: Spades foundation must not grow: before=%d after=%d", before, after)
 	}
 }
+
+// TestBoardAutoMove_SkippedAfterUndo verifies that undo is not immediately
+// reversed by auto-move when AutoMoveEnabled is true (P1 bug regression).
+func TestBoardAutoMove_SkippedAfterUndo(t *testing.T) {
+	// State: all four Aces on foundations, 2♠ face-up in tableau[0].
+	// A face-down card in tableau[1] keeps IsAutoCompletable() = false so the
+	// Ctrl+Z keypress reaches handleAction as ActionUndo rather than being
+	// consumed as an auto-complete interrupt.
+	state := &engine.GameState{
+		Stock:     &engine.StockPile{},
+		Waste:     &engine.WastePile{DrawCount: 1},
+		DrawCount: 1,
+	}
+	for i := range state.Foundations {
+		state.Foundations[i] = &engine.FoundationPile{}
+	}
+	for i := range state.Tableau {
+		state.Tableau[i] = &engine.TableauPile{}
+	}
+	suits := []engine.Suit{engine.Spades, engine.Hearts, engine.Diamonds, engine.Clubs}
+	for fi, suit := range suits {
+		state.Foundations[fi].Cards = []engine.Card{
+			{Suit: suit, Rank: engine.Ace, FaceUp: true},
+		}
+	}
+	state.Tableau[0].Cards = []engine.Card{
+		{Suit: engine.Spades, Rank: engine.Two, FaceUp: true},
+	}
+	// Face-down card in tableau[1] prevents IsAutoCompletable() from triggering
+	// after the setup move, ensuring Ctrl+Z is processed as ActionUndo.
+	state.Tableau[1].Cards = []engine.Card{
+		{Suit: engine.Hearts, Rank: engine.Three, FaceUp: false},
+	}
+
+	eng := &testEngine{state: state}
+	rend := renderer.New(theme.Classic)
+	rend.SetSize(80, 30)
+	cfg := config.DefaultConfig()
+	cfg.AutoMoveEnabled = true
+	board := NewBoardModel(eng, rend, cfg)
+
+	// Move 2♠ manually to its foundation so there is something to undo.
+	board.cursor.Pile = engine.PileTableau0
+	board.cursor.CardIndex = 0
+	board = sendRune(board, 'f')
+	if len(eng.State().Foundations[0].Cards) != 2 {
+		t.Fatal("setup: 2♠ must be on foundation before undo test")
+	}
+
+	// Undo the move: 2♠ should return to tableau[0] and stay there.
+	board = sendKey(board, tea.KeyCtrlZ)
+	_ = board
+
+	if len(eng.State().Foundations[0].Cards) != 1 {
+		t.Error("after undo: Spades foundation must be back to 1 card (undo must not be re-applied by auto-move)")
+	}
+	if eng.State().Tableau[0].IsEmpty() {
+		t.Error("after undo: 2♠ must be back in tableau[0]")
+	}
+}
+
+// TestBoardAutoMove_SkipOneEmptyOppositeFoundation verifies that a card is NOT
+// auto-moved when only one of two opposite-color foundations is started (P2 bug regression).
+func TestBoardAutoMove_SkipOneEmptyOppositeFoundation(t *testing.T) {
+	// State: only Hearts Ace on foundation (one Red started, one Red empty).
+	// 3♠ (Black, rank 3) requires BOTH Red foundations at rank >= 2.
+	// With only Hearts at rank 1 and Diamonds empty, it must NOT be auto-moved.
+	state := &engine.GameState{
+		Stock:     &engine.StockPile{},
+		Waste:     &engine.WastePile{DrawCount: 1},
+		DrawCount: 1,
+	}
+	for i := range state.Foundations {
+		state.Foundations[i] = &engine.FoundationPile{}
+	}
+	for i := range state.Tableau {
+		state.Tableau[i] = &engine.TableauPile{}
+	}
+	// Foundation 0 = Spades Ace, Foundation 1 = Hearts Ace; Diamonds and Clubs empty.
+	state.Foundations[0].Cards = []engine.Card{{Suit: engine.Spades, Rank: engine.Ace, FaceUp: true}}
+	state.Foundations[1].Cards = []engine.Card{{Suit: engine.Hearts, Rank: engine.Ace, FaceUp: true}}
+	// 3♠ in tableau[0]: opposite color is Red; Hearts rank=1 < 2; Diamonds rank=0 < 2 → NOT safe.
+	state.Tableau[0].Cards = []engine.Card{
+		{Suit: engine.Spades, Rank: engine.Three, FaceUp: true},
+	}
+
+	eng := &testEngine{state: state}
+	rend := renderer.New(theme.Classic)
+	rend.SetSize(80, 30)
+	cfg := config.DefaultConfig()
+	cfg.AutoMoveEnabled = true
+	board := NewBoardModel(eng, rend, cfg)
+
+	board = sendKey(board, tea.KeyLeft) // trigger auto-move check
+
+	if eng.State().Tableau[0].IsEmpty() {
+		t.Error("3♠ must not be auto-moved: Diamonds foundation is empty (rank 0 < 2)")
+	}
+}

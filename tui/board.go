@@ -174,6 +174,7 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		m.cursor.DragCardCount = 0
 		_ = m.eng.Undo()
 		m.clampCursor()
+		return m, m.winCmd() // skip auto-move: undo must not be immediately reversed
 
 	case ActionRedo:
 		m.cursor.Dragging = false
@@ -181,6 +182,7 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		m.cursor.DragCardCount = 0
 		_ = m.eng.Redo()
 		m.clampCursor()
+		return m, m.winCmd() // skip auto-move: keep redo result stable
 
 	case ActionHint:
 		m.toggleHint(state)
@@ -516,8 +518,8 @@ func (m *BoardModel) autoMoveOneCard() bool {
 }
 
 // isSafeToAutoMove reports whether card can be safely auto-moved to its foundation.
-// "Safe" means all opposite-colored foundation piles have rank >= card.Rank-1,
-// ensuring nothing on the tableau can still need those cards as alternating targets.
+// "Safe" means BOTH opposite-colored foundation piles have rank >= card.Rank-1.
+// Unstarted (nil-suit) foundations count as rank 0 and will fail the check.
 // Aces and 2s are unconditionally safe.
 func isSafeToAutoMove(card engine.Card, state *engine.GameState) bool {
 	if card.Rank <= 2 {
@@ -527,23 +529,21 @@ func isSafeToAutoMove(card engine.Card, state *engine.GameState) bool {
 	if card.Color() == engine.Black {
 		oppositeColor = engine.Red
 	}
-	found := false
+	// There are exactly 2 foundations of each color. Both must satisfy rank >= card.Rank-1.
+	// Unstarted foundations (nil Suit) are skipped — they can never contribute to safeCount,
+	// so requiring safeCount >= 2 correctly treats them as rank 0.
+	safeCount := 0
 	for _, f := range state.Foundations {
 		s := f.Suit()
 		if s == nil || s.Color() != oppositeColor {
 			continue
 		}
-		found = true
 		top := f.TopCard()
-		oppRank := engine.Rank(0) // 0 = empty foundation (below Ace)
-		if top != nil {
-			oppRank = top.Rank
-		}
-		if oppRank < card.Rank-1 {
-			return false
+		if top != nil && top.Rank >= card.Rank-1 {
+			safeCount++
 		}
 	}
-	return found // false if no opposite-color foundation has been started yet
+	return safeCount >= 2
 }
 
 // tickCmd returns a tea.Cmd that fires a TickMsg after one second.
