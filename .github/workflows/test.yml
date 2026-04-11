@@ -23,6 +23,11 @@ jobs:
         run: go build -o klondike .
 
       # Layer 2: VHS visual regression
+      # ffmpeg must be installed before vhs-action@v2 on ubuntu-latest;
+      # the action's own installer fails when apt package lists are stale.
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
       - name: Run VHS visual regression
         uses: charmbracelet/vhs-action@v2
         with:
