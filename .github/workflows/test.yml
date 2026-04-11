@@ -24,50 +24,23 @@ jobs:
         run: go test ./...
 
       # Build binary for VHS tapes (module produces 'solituire'; tapes expect 'klondike').
+      # CGO_ENABLED=0 produces a static binary that works inside the VHS Docker container.
       - name: Build binary
         run: CGO_ENABLED=0 go build -o klondike .
 
-      # Layer 2: VHS visual regression.
-      # - ffmpeg: from Ubuntu apt (stable, always present).
-      # - ttyd:   direct binary from GitHub releases; VHS requires >= 1.7.2 and Ubuntu
-      #           apt ships an older version.
-      # - vhs:    go install ensures we get the latest release without relying on the
-      #           charm apt repo, which has proven flaky in CI.
-      # Chrome (google-chrome-stable) is pre-installed on ubuntu-latest and is found
-      # automatically by VHS's chromedp dependency.
-      - name: Install VHS and dependencies
-        run: |
-          sudo apt-get install -y ffmpeg
-          # ttyd >= 1.7.2 required; ubuntu apt ships an older version.
-          sudo curl -fsSL \
-            "https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64" \
-            -o /usr/local/bin/ttyd
-          sudo chmod +x /usr/local/bin/ttyd
-          # Build VHS as the runner user (so go can use its normal module cache),
-          # then copy the binary to /usr/local/bin with sudo.
-          go install github.com/charmbracelet/vhs@latest
-          sudo cp "$(go env GOPATH)/bin/vhs" /usr/local/bin/vhs
-          # Wrap every Chrome binary name that chromedp searches for so they all
-          # include --no-sandbox and --disable-dev-shm-usage. /usr/local/bin comes
-          # before /usr/bin in the default PATH, so these wrappers take precedence.
-          REAL_CHROME=$(ls /usr/bin/google-chrome-stable /usr/bin/google-chrome \
-            /usr/bin/chromium-browser /usr/bin/chromium 2>/dev/null | head -1)
-          echo "Using Chrome binary: $REAL_CHROME"
-          for NAME in google-chrome-stable google-chrome chromium-browser chromium; do
-            printf '#!/bin/sh\nexec %s --no-sandbox --disable-dev-shm-usage "$@"\n' \
-              "$REAL_CHROME" | sudo tee /usr/local/bin/$NAME > /dev/null
-            sudo chmod +x /usr/local/bin/$NAME
-          done
-          # Fail fast if anything is missing.
-          vhs --version
-          ttyd --version
-          google-chrome --version
-
+      # Layer 2: VHS visual regression via the official ghcr.io/charmbracelet/vhs Docker
+      # image, which bundles VHS, ttyd, Chromium, and ffmpeg with all CI flags pre-set.
+      # --shm-size=512m prevents Chromium from crashing on the default 64 MB /dev/shm
+      # allocation Docker gives containers.
       - name: Run VHS visual regression
         run: |
           mkdir -p testdata/vhs
           for tape in tapes/*.tape; do
-            vhs "$tape"
+            docker run --rm \
+              --shm-size=512m \
+              -v "$GITHUB_WORKSPACE:/vhs" \
+              -w /vhs \
+              ghcr.io/charmbracelet/vhs "$tape"
           done
 
       # Regression gate + first-run bootstrap.
@@ -100,14 +73,16 @@ jobs:
           git add $UNTRACKED
           git commit -m "ci: add initial VHS text baselines [skip ci]"
           # Skip the push on forked PRs — the token is read-only there and origin
-          # points to the upstream repo, not the fork. Print a message instead.
+          # points to the upstream repo, not the fork.
+          # Exit 1 (not 0) so the job is marked failed and the artifact upload step
+          # runs, giving maintainers the generated .txt files to commit manually.
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
             HEAD_REPO=$(jq -r '.pull_request.head.repo.full_name // empty' \
               "$GITHUB_EVENT_PATH" 2>/dev/null || true)
             if [ -n "$HEAD_REPO" ] && [ "$HEAD_REPO" != "$GITHUB_REPOSITORY" ]; then
               echo "Fork PR: cannot push baselines (read-only token)."
-              echo "A maintainer must download the 'vhs-screenshots' artifact and commit the .txt files."
-              exit 0
+              echo "Download the 'vhs-outputs' artifact and commit the .txt files."
+              exit 1
             fi
           fi
           # GITHUB_HEAD_REF is set on pull_request events (the PR source branch).

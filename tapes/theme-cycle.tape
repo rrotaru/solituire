@@ -21,4 +21,12 @@ Screenshot testdata/vhs/theme-dracula.png
 
 Type "t"
 Sleep 500ms
-Screenshot testdata/vhs/theme-solarized.png
+Screenshot testdata/vhs/theme-solarized-dark.png
+
+Type "t"
+Sleep 500ms
+Screenshot testdata/vhs/theme-solarized-light.png
+
+Type "t"
+Sleep 500ms
+Screenshot testdata/vhs/theme-nord.png
