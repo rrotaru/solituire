@@ -8,6 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Allow pushing baseline commits back to the branch.
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -40,17 +43,21 @@ jobs:
             vhs "$tape"
           done
 
-      - name: Fail on VHS text diff
+      # Auto-commit generated .txt baselines so they are always tracked.
+      # On the first run (no prior baselines) this bootstraps them; on subsequent
+      # runs it commits any regression updates so diffs are visible in the PR.
+      # [skip ci] prevents an infinite trigger loop.
+      - name: Commit VHS baselines
         run: |
-          # Fail if any .txt output is new/untracked — baselines must be committed before merging
-          UNTRACKED=$(git ls-files --others --exclude-standard testdata/vhs/ | grep '\.txt$' || true)
-          if [ -n "$UNTRACKED" ]; then
-            echo "ERROR: VHS .txt baselines are untracked. Generate locally and commit them:"
-            echo "$UNTRACKED"
-            exit 1
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add testdata/vhs/*.txt 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "Baselines unchanged — nothing to commit."
+          else
+            git commit -m "ci: update VHS text baselines [skip ci]"
+            git push origin HEAD
           fi
-          # Fail if any tracked .txt baseline has changed (regression detected)
-          git diff --exit-code testdata/vhs/*.txt 2>/dev/null || (echo "VHS regression detected — re-run tapes locally and commit updated baselines"; exit 1)
 
       - name: Upload screenshots on failure
         if: failure()

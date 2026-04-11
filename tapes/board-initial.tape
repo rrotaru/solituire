@@ -1,7 +1,6 @@
 # tapes/board-initial.tape
 # Validates: full board layout, card rendering, header/footer bars.
 
-Output testdata/vhs/board-initial.png
 Output testdata/vhs/board-initial.txt
 
 Set FontSize 14

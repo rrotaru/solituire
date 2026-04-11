@@ -2,7 +2,6 @@
 # Validates: cursor highlight, drag styling, card placement rendering.
 # Valid move with seed 42: 8♠ (T2, black) → 9♦ (T1, red) — alternating color, rank 8 on 9.
 
-Output testdata/vhs/card-select.png
 Output testdata/vhs/card-select.txt
 
 Set FontSize 14
