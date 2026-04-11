@@ -51,6 +51,13 @@ func NewAppModel(
 	}
 }
 
+// WithScreen returns a copy of AppModel with the initial screen overridden.
+// Used by main.go to bypass the menu when all config is supplied via CLI flags.
+func (m AppModel) WithScreen(s AppScreen) AppModel {
+	m.screen = s
+	return m
+}
+
 // Init starts the elapsed-time ticker by delegating to the board sub-model.
 func (m AppModel) Init() tea.Cmd {
 	return m.board.Init()

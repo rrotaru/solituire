@@ -1,0 +1,39 @@
+# .github/workflows/test.yml
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      # Layer 1: Engine unit tests + teatest golden tests
+      - name: Run all Go tests
+        run: go test ./...
+
+      # Build binary for VHS tapes (module produces 'solituire'; tapes expect 'klondike')
+      - name: Build binary
+        run: go build -o klondike .
+
+      # Layer 2: VHS visual regression
+      - name: Run VHS visual regression
+        uses: charmbracelet/vhs-action@v2
+        with:
+          path: "tapes/"
+
+      - name: Fail on VHS text diff
+        run: git diff --exit-code testdata/vhs/*.txt
+
+      - name: Upload screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vhs-screenshots
+          path: testdata/vhs/*.png
