@@ -28,20 +28,32 @@ jobs:
       - name: Build binary
         run: CGO_ENABLED=0 go build -o klondike .
 
-      # Layer 2: VHS visual regression via the official ghcr.io/charmbracelet/vhs Docker
-      # image, which bundles VHS, ttyd, Chromium, and ffmpeg with all CI flags pre-set.
-      # --shm-size=512m prevents Chromium from crashing on the default 64 MB /dev/shm
-      # allocation Docker gives containers.
+      # Layer 2: VHS visual regression.
+      # The Docker image bundles VHS + ttyd + Chromium + ffmpeg.
+      # --privileged gives the container full Linux capabilities so Chromium can
+      # create its renderer sandbox (clone/unshare + AppArmor bypass).
+      # --shm-size=512m prevents Chromium from crashing on the 64 MB /dev/shm default.
+
+      # Sanity-check Docker before running tapes so a pull failure shows up under a
+      # distinct step name rather than "Run VHS visual regression".
+      - name: Verify Docker and pull VHS image
+        run: |
+          docker run --rm alpine echo "Docker is functional"
+          docker pull ghcr.io/charmbracelet/vhs
+          docker run --rm ghcr.io/charmbracelet/vhs --version
+
       - name: Run VHS visual regression
         run: |
           mkdir -p testdata/vhs
           for tape in tapes/*.tape; do
+            echo "=== $tape ===" | tee -a testdata/vhs/vhs-diag.log
             docker run --rm \
+              --privileged \
               --shm-size=512m \
-              --security-opt seccomp=unconfined \
               -v "$GITHUB_WORKSPACE:/vhs" \
               -w /vhs \
-              ghcr.io/charmbracelet/vhs "$tape"
+              ghcr.io/charmbracelet/vhs "$tape" 2>&1 | tee -a testdata/vhs/vhs-diag.log \
+              || { echo "FAILED exit $?" | tee -a testdata/vhs/vhs-diag.log; exit 1; }
           done
 
       # Regression gate + first-run bootstrap.
@@ -91,6 +103,19 @@ jobs:
           BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
           git push origin "HEAD:$BRANCH"
 
+      # Always commit the diagnostic log so it's readable from the repo even when
+      # WebFetch can't render GitHub Actions log pages. Remove once VHS is stable.
+      - name: Commit VHS diagnostic log
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add testdata/vhs/vhs-diag.log 2>/dev/null || true
+          git diff --cached --quiet && exit 0
+          git commit -m "ci: [diag] VHS run log [skip ci]"
+          BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          git push origin "HEAD:$BRANCH" || true
+
       - name: Upload VHS outputs on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -99,4 +124,5 @@ jobs:
           path: |
             testdata/vhs/*.png
             testdata/vhs/*.txt
+            testdata/vhs/vhs-diag.log
           if-no-files-found: ignore
