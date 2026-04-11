@@ -6,10 +6,12 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # needed to push auto-generated baselines back to the branch
     steps:
       - uses: actions/checkout@v4
         with:
-          # Allow pushing baseline commits back to the branch.
+          # Persist credentials so the baseline-commit step can push.
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Go
@@ -43,21 +45,39 @@ jobs:
             vhs "$tape"
           done
 
-      # Auto-commit generated .txt baselines so they are always tracked.
-      # On the first run (no prior baselines) this bootstraps them; on subsequent
-      # runs it commits any regression updates so diffs are visible in the PR.
-      # [skip ci] prevents an infinite trigger loop.
-      - name: Commit VHS baselines
+      # Regression gate + first-run bootstrap.
+      #
+      # - FAIL if any tracked .txt baseline changed — that's a regression requiring human review.
+      # - AUTO-COMMIT brand-new (never-tracked) baselines so the first CI run bootstraps them
+      #   without masking future regressions.
+      # - Use explicit "HEAD:<branch>" push target to avoid "detached HEAD" failures on
+      #   pull_request events where actions/checkout does not check out a real branch ref.
+      - name: Commit new VHS baselines / fail on regressions
         run: |
+          # Detect regressions: fail if any tracked baseline has changed.
+          CHANGED=$(git diff --name-only testdata/vhs/*.txt 2>/dev/null || true)
+          if [ -n "$CHANGED" ]; then
+            echo "ERROR: VHS regression detected in the following baselines:"
+            echo "$CHANGED"
+            git diff testdata/vhs/*.txt
+            echo "Review the diff and commit intentional changes manually."
+            exit 1
+          fi
+          # Bootstrap: auto-commit brand-new baselines that have never been tracked.
+          UNTRACKED=$(git ls-files --others --exclude-standard testdata/vhs/ | grep '\.txt$' || true)
+          if [ -z "$UNTRACKED" ]; then
+            echo "All baselines are tracked and unchanged."
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add testdata/vhs/*.txt 2>/dev/null || true
-          if git diff --cached --quiet; then
-            echo "Baselines unchanged — nothing to commit."
-          else
-            git commit -m "ci: update VHS text baselines [skip ci]"
-            git push origin HEAD
-          fi
+          # shellcheck disable=SC2086
+          git add $UNTRACKED
+          git commit -m "ci: add initial VHS text baselines [skip ci]"
+          # GITHUB_HEAD_REF is set on pull_request events (the PR source branch).
+          # GITHUB_REF_NAME is the branch name on push events.
+          BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          git push origin "HEAD:$BRANCH"
 
       - name: Upload screenshots on failure
         if: failure()
