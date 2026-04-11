@@ -65,12 +65,13 @@ jobs:
       #   pull_request events where actions/checkout does not check out a real branch ref.
       - name: Commit new VHS baselines / fail on regressions
         run: |
-          # Detect regressions: fail if any tracked baseline has changed.
-          CHANGED=$(git diff --name-only testdata/vhs/*.txt 2>/dev/null || true)
+          # Detect regressions: fail if any tracked baseline has changed or was deleted.
+          # Quote the pathspec so git—not bash—expands it; bash glob skips deleted files.
+          CHANGED=$(git diff --name-only -- 'testdata/vhs/*.txt' 2>/dev/null || true)
           if [ -n "$CHANGED" ]; then
             echo "ERROR: VHS regression detected in the following baselines:"
             echo "$CHANGED"
-            git diff testdata/vhs/*.txt
+            git diff -- 'testdata/vhs/*.txt'
             echo "Review the diff and commit intentional changes manually."
             exit 1
           fi
