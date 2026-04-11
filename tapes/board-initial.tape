@@ -5,7 +5,7 @@ Output testdata/vhs/board-initial.txt
 
 Set FontSize 14
 Set Width 900
-Set Height 500
+Set Height 900
 Set Theme "Chalk"
 
 Type "./klondike --seed 42 --draw 1"
