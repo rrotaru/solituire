@@ -38,6 +38,7 @@ jobs:
           for tape in tapes/*.tape; do
             docker run --rm \
               --shm-size=512m \
+              --security-opt seccomp=unconfined \
               -v "$GITHUB_WORKSPACE:/vhs" \
               -w /vhs \
               ghcr.io/charmbracelet/vhs "$tape"
