@@ -43,13 +43,25 @@ jobs:
             "https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64" \
             -o /usr/local/bin/ttyd
           sudo chmod +x /usr/local/bin/ttyd
-          # Install vhs directly to /usr/local/bin via GOBIN to avoid relying on
-          # GITHUB_PATH propagation across steps.
-          sudo GOBIN=/usr/local/bin go install github.com/charmbracelet/vhs@latest
-          # Fail fast here if either binary is missing rather than getting an
-          # opaque exit-code-1 later in the tape-runner step.
+          # Build VHS as the runner user (so go can use its normal module cache),
+          # then copy the binary to /usr/local/bin with sudo.
+          go install github.com/charmbracelet/vhs@latest
+          sudo cp "$(go env GOPATH)/bin/vhs" /usr/local/bin/vhs
+          # Wrap every Chrome binary name that chromedp searches for so they all
+          # include --no-sandbox and --disable-dev-shm-usage. /usr/local/bin comes
+          # before /usr/bin in the default PATH, so these wrappers take precedence.
+          REAL_CHROME=$(ls /usr/bin/google-chrome-stable /usr/bin/google-chrome \
+            /usr/bin/chromium-browser /usr/bin/chromium 2>/dev/null | head -1)
+          echo "Using Chrome binary: $REAL_CHROME"
+          for NAME in google-chrome-stable google-chrome chromium-browser chromium; do
+            printf '#!/bin/sh\nexec %s --no-sandbox --disable-dev-shm-usage "$@"\n' \
+              "$REAL_CHROME" | sudo tee /usr/local/bin/$NAME > /dev/null
+            sudo chmod +x /usr/local/bin/$NAME
+          done
+          # Fail fast if anything is missing.
           vhs --version
           ttyd --version
+          google-chrome --version
 
       - name: Run VHS visual regression
         run: |
