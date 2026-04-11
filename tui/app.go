@@ -91,11 +91,17 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case CelebrationTickMsg:
-		// Always forward to celebration regardless of screen so the animation
-		// tick chain stays alive. If the user opens quit confirm from the win
-		// screen, the pending CelebrationTickMsg must still be consumed and
-		// re-queued; otherwise cancelling back to win returns to a frozen
-		// animation (same reasoning as TickMsg above).
+		// Only forward during win flow: the win screen itself, or the quit-confirm
+		// dialog opened from the win screen (prevScreen == ScreenWin) so that
+		// cancelling returns to a live animation. Any other screen (playing, menu,
+		// etc.) drops the tick without requeuing so the chain terminates cleanly.
+		// Without this guard every new game after a win accumulates an additional
+		// concurrent 80ms tick loop.
+		inWinFlow := m.screen == ScreenWin ||
+			(m.screen == ScreenQuitConfirm && m.prevScreen == ScreenWin)
+		if !inWinFlow {
+			return m, nil
+		}
 		celebUpdated, cmd := m.celebration.Update(msg)
 		m.celebration = celebUpdated.(CelebrationModel)
 		return m, cmd

@@ -316,10 +316,38 @@ func TestAppModel_WinScreen_WindowSizePropagated(t *testing.T) {
 	}
 }
 
+// TestAppModel_CelebTickDroppedAfterNewGame is a regression test for the
+// runaway-ticker bug: once the player starts a new game from the win screen,
+// any in-flight CelebrationTickMsg must be dropped (no cmd returned) so the
+// 80ms background loop terminates. Without this fix each win adds another
+// concurrent tick chain.
+func TestAppModel_CelebTickDroppedAfterNewGame(t *testing.T) {
+	// Win, then immediately start a new game.
+	result, _ := newTestApp().Update(GameWonMsg{})
+	app := result.(AppModel)
+	result, _ = app.Update(NewGameMsg{Seed: 42, DrawCount: 1})
+	app = result.(AppModel)
+	if app.screen != ScreenPlaying {
+		t.Fatalf("screen = %v after NewGameMsg, want ScreenPlaying", app.screen)
+	}
+
+	// A stale CelebrationTickMsg arrives — must be dropped without requeue.
+	frameBefore := app.celebration.frame
+	_, cmd := app.Update(CelebrationTickMsg{})
+	if cmd != nil {
+		t.Error("CelebrationTickMsg after NewGameMsg: got non-nil Cmd — runaway tick chain not stopped")
+	}
+	// Frame must not advance either.
+	if app.celebration.frame != frameBefore {
+		t.Errorf("celebration.frame changed after tick drop: got %d, want %d",
+			app.celebration.frame, frameBefore)
+	}
+}
+
 // TestAppModel_CelebTickSurvivesQuitConfirm is a regression test for the bug
 // where opening quit confirm from the win screen permanently stopped the
-// cascade animation. CelebrationTickMsg must be forwarded regardless of the
-// current screen so the tick chain stays alive while the dialog is open.
+// cascade animation. CelebrationTickMsg must be forwarded when prevScreen is
+// ScreenWin so the tick chain stays alive while the dialog is open.
 func TestAppModel_CelebTickSurvivesQuitConfirm(t *testing.T) {
 	// Transition to win screen.
 	result, _ := newTestApp().Update(GameWonMsg{})
