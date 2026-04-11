@@ -29,7 +29,16 @@ jobs:
           path: "tapes/"
 
       - name: Fail on VHS text diff
-        run: git diff --exit-code testdata/vhs/*.txt
+        run: |
+          # Fail if any .txt output is new/untracked — baselines must be committed before merging
+          UNTRACKED=$(git ls-files --others --exclude-standard testdata/vhs/ | grep '\.txt$' || true)
+          if [ -n "$UNTRACKED" ]; then
+            echo "ERROR: VHS .txt baselines are untracked. Generate locally and commit them:"
+            echo "$UNTRACKED"
+            exit 1
+          fi
+          # Fail if any tracked .txt baseline has changed (regression detected)
+          git diff --exit-code testdata/vhs/*.txt 2>/dev/null || (echo "VHS regression detected — re-run tapes locally and commit updated baselines"; exit 1)
 
       - name: Upload screenshots on failure
         if: failure()

@@ -19,7 +19,7 @@ Sleep 1s
 Screenshot testdata/vhs/game-started.png
 
 # Help overlay
-Type "F1"
+F1
 Sleep 500ms
 Screenshot testdata/vhs/help-overlay.png
 
