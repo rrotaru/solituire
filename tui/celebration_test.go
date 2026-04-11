@@ -316,6 +316,60 @@ func TestAppModel_WinScreen_WindowSizePropagated(t *testing.T) {
 	}
 }
 
+// TestAppModel_CelebTickSurvivesQuitConfirm is a regression test for the bug
+// where opening quit confirm from the win screen permanently stopped the
+// cascade animation. CelebrationTickMsg must be forwarded regardless of the
+// current screen so the tick chain stays alive while the dialog is open.
+func TestAppModel_CelebTickSurvivesQuitConfirm(t *testing.T) {
+	// Transition to win screen.
+	result, _ := newTestApp().Update(GameWonMsg{})
+	app := result.(AppModel)
+
+	// Open quit confirm from win (sets prevScreen = ScreenWin).
+	result, _ = app.Update(ChangeScreenMsg{Screen: ScreenQuitConfirm})
+	app = result.(AppModel)
+	if app.screen != ScreenQuitConfirm {
+		t.Fatalf("screen = %v, want ScreenQuitConfirm", app.screen)
+	}
+	frameBefore := app.celebration.frame
+
+	// A tick arrives while the quit dialog is open.
+	result, cmd := app.Update(CelebrationTickMsg{})
+	app = result.(AppModel)
+
+	// Frame must advance even though we're not on ScreenWin.
+	if app.celebration.frame != frameBefore+1 {
+		t.Errorf("celebration.frame = %d, want %d — tick dropped on ScreenQuitConfirm",
+			app.celebration.frame, frameBefore+1)
+	}
+	// A new tick cmd must be queued so the chain continues.
+	if cmd == nil {
+		t.Error("CelebrationTickMsg on ScreenQuitConfirm: returned nil Cmd — chain broken")
+	}
+}
+
+// TestAppModel_GameWonMsg_SeedsActualDimensions is a regression test for the
+// bug where CelebrationModel was created with the 78×24 fallback instead of
+// the user's actual terminal size, causing mis-centered animation geometry.
+func TestAppModel_GameWonMsg_SeedsActualDimensions(t *testing.T) {
+	app := newTestApp()
+	// Set a non-default terminal size before the win event.
+	result, _ := app.Update(tea.WindowSizeMsg{Width: 140, Height: 50})
+	app = result.(AppModel)
+
+	result, _ = app.Update(GameWonMsg{})
+	app = result.(AppModel)
+
+	if app.celebration.windowW != 140 {
+		t.Errorf("celebration.windowW = %d, want 140 (actual terminal width)",
+			app.celebration.windowW)
+	}
+	if app.celebration.windowH != 50 {
+		t.Errorf("celebration.windowH = %d, want 50 (actual terminal height)",
+			app.celebration.windowH)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // formatElapsed helper
 // ---------------------------------------------------------------------------

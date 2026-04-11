@@ -90,6 +90,16 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.board = updated.(BoardModel)
 		return m, cmd
 
+	case CelebrationTickMsg:
+		// Always forward to celebration regardless of screen so the animation
+		// tick chain stays alive. If the user opens quit confirm from the win
+		// screen, the pending CelebrationTickMsg must still be consumed and
+		// re-queued; otherwise cancelling back to win returns to a frozen
+		// animation (same reasoning as TickMsg above).
+		celebUpdated, cmd := m.celebration.Update(msg)
+		m.celebration = celebUpdated.(CelebrationModel)
+		return m, cmd
+
 	case NewGameMsg:
 		seed := msg.Seed
 		if seed == 0 {
@@ -127,6 +137,12 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.themes.Get(m.cfg.ThemeName),
 			m.cfg.DrawCount,
 		)
+		// Seed with actual terminal dimensions (NewCelebrationModel defaults to
+		// 78×24). No fresh WindowSizeMsg is emitted on screen transitions, so
+		// apply a synthetic resize now — same pattern as NewBoardModel handling
+		// in NewGameMsg / RestartDealMsg.
+		sizeUpdated, _ := m.celebration.Update(tea.WindowSizeMsg{Width: m.windowW, Height: m.windowH})
+		m.celebration = sizeUpdated.(CelebrationModel)
 		m.screen = ScreenWin
 		return m, m.celebration.Init()
 
