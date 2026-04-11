@@ -18,20 +18,22 @@ jobs:
       - name: Run all Go tests
         run: go test ./...
 
-      # Build binary for VHS tapes (module produces 'solituire'; tapes expect 'klondike')
+      # Build binary for VHS tapes (module produces 'solituire'; tapes expect 'klondike').
+      # CGO_ENABLED=0 produces a static binary that runs inside the VHS Docker container.
       - name: Build binary
-        run: go build -o klondike .
+        run: CGO_ENABLED=0 go build -o klondike .
 
-      # Layer 2: VHS visual regression
-      # ffmpeg must be installed before vhs-action@v2 on ubuntu-latest;
-      # the action's own installer fails when apt package lists are stale.
-      - name: Install ffmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
-
+      # Layer 2: VHS visual regression via Docker (avoids vhs-action ffmpeg install issues).
+      # ghcr.io/charmbracelet/vhs has all dependencies pre-installed.
       - name: Run VHS visual regression
-        uses: charmbracelet/vhs-action@v2
-        with:
-          path: "tapes/"
+        run: |
+          mkdir -p testdata/vhs
+          for tape in tapes/*.tape; do
+            docker run --rm \
+              -v "$GITHUB_WORKSPACE:/vhs" \
+              -w /vhs \
+              ghcr.io/charmbracelet/vhs "$tape"
+          done
 
       - name: Fail on VHS text diff
         run: |

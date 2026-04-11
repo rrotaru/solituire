@@ -13,6 +13,12 @@ Enter
 Sleep 1s
 Screenshot testdata/vhs/menu-screen.png
 
+# Navigate to Start button (menu opens on Draw Mode row; need 3 Down presses)
+Down
+Down
+Down
+Sleep 200ms
+
 # Start game
 Enter
 Sleep 1s
