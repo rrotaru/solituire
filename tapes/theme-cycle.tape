@@ -7,7 +7,7 @@ Output testdata/vhs/theme-cycle.txt
 Set FontSize 14
 Set Width 900
 Set Height 500
-Set Theme "Charm"
+Set Theme "Chalk"
 
 Type "./klondike --seed 42 --draw 1"
 Enter

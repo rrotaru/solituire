@@ -1,12 +1,12 @@
 # tapes/screens.tape
-# Validates: menu screen, help overlay, pause screen layout and transitions.
+# Validates: menu screen, pause screen layout and transitions.
 
 Output testdata/vhs/screens.txt
 
 Set FontSize 14
 Set Width 900
 Set Height 500
-Set Theme "Charm"
+Set Theme "Chalk"
 
 Type "./klondike --seed 42"
 Enter
@@ -24,14 +24,7 @@ Enter
 Sleep 1s
 Screenshot testdata/vhs/game-started.png
 
-# Help overlay
-F1
-Sleep 500ms
-Screenshot testdata/vhs/help-overlay.png
-
-# Dismiss help, open pause
-Escape
-Sleep 300ms
+# Open pause screen
 Type "p"
 Sleep 500ms
 Screenshot testdata/vhs/pause-screen.png

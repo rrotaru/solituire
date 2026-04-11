@@ -13,6 +13,9 @@ jobs:
         with:
           # Persist credentials so the baseline-commit step can push.
           token: ${{ secrets.GITHUB_TOKEN }}
+          # Check out the real branch tip (not the synthetic merge commit) so that
+          # baseline auto-commits push cleanly without injecting merge parents.
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -44,16 +47,16 @@ jobs:
 
       - name: Run VHS visual regression
         run: |
+          set -o pipefail
           mkdir -p testdata/vhs
           for tape in tapes/*.tape; do
-            echo "=== $tape ===" | tee -a testdata/vhs/vhs-diag.log
+            echo "=== $tape ==="
             docker run --rm \
               --privileged \
               --shm-size=512m \
               -v "$GITHUB_WORKSPACE:/vhs" \
               -w /vhs \
-              ghcr.io/charmbracelet/vhs "$tape" 2>&1 | tee -a testdata/vhs/vhs-diag.log \
-              || { echo "FAILED exit $?" | tee -a testdata/vhs/vhs-diag.log; exit 1; }
+              ghcr.io/charmbracelet/vhs "$tape"
           done
 
       # Regression gate + first-run bootstrap.
@@ -102,19 +105,6 @@ jobs:
           # GITHUB_REF_NAME is the branch name on push events.
           BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
           git push origin "HEAD:$BRANCH"
-
-      # Always commit the diagnostic log so it's readable from the repo even when
-      # WebFetch can't render GitHub Actions log pages. Remove once VHS is stable.
-      - name: Commit VHS diagnostic log
-        if: always()
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add testdata/vhs/vhs-diag.log 2>/dev/null || true
-          git diff --cached --quiet && exit 0
-          git commit -m "ci: [diag] VHS run log [skip ci]"
-          BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
-          git push origin "HEAD:$BRANCH" || true
 
       - name: Upload VHS outputs on failure
         if: failure()
