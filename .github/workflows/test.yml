@@ -13,9 +13,6 @@ jobs:
         with:
           # Persist credentials so the baseline-commit step can push.
           token: ${{ secrets.GITHUB_TOKEN }}
-          # Check out the real branch tip (not the synthetic merge commit) so that
-          # baseline auto-commits push cleanly without injecting merge parents.
-          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -83,28 +80,28 @@ jobs:
             echo "All baselines are tracked and unchanged."
             exit 0
           fi
+          # Auto-commit only on push events. pull_request runs would race with the
+          # concurrent push-event run and fail with a non-fast-forward rejection.
+          # For fork PRs (no write access) the artifact step below supplies the files.
+          if [ "$GITHUB_EVENT_NAME" != "push" ]; then
+            if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+              HEAD_REPO=$(jq -r '.pull_request.head.repo.full_name // empty' \
+                "$GITHUB_EVENT_PATH" 2>/dev/null || true)
+              if [ -n "$HEAD_REPO" ] && [ "$HEAD_REPO" != "$GITHUB_REPOSITORY" ]; then
+                echo "Fork PR: cannot push baselines. Download the 'vhs-outputs' artifact."
+                exit 1
+              fi
+            fi
+            echo "Non-push event: baseline bootstrap handled by the push-event run."
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           # shellcheck disable=SC2086
           git add $UNTRACKED
           git commit -m "ci: add initial VHS text baselines [skip ci]"
-          # Skip the push on forked PRs — the token is read-only there and origin
-          # points to the upstream repo, not the fork.
-          # Exit 1 (not 0) so the job is marked failed and the artifact upload step
-          # runs, giving maintainers the generated .txt files to commit manually.
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            HEAD_REPO=$(jq -r '.pull_request.head.repo.full_name // empty' \
-              "$GITHUB_EVENT_PATH" 2>/dev/null || true)
-            if [ -n "$HEAD_REPO" ] && [ "$HEAD_REPO" != "$GITHUB_REPOSITORY" ]; then
-              echo "Fork PR: cannot push baselines (read-only token)."
-              echo "Download the 'vhs-outputs' artifact and commit the .txt files."
-              exit 1
-            fi
-          fi
-          # GITHUB_HEAD_REF is set on pull_request events (the PR source branch).
           # GITHUB_REF_NAME is the branch name on push events.
-          BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
-          git push origin "HEAD:$BRANCH"
+          git push origin "HEAD:$GITHUB_REF_NAME"
 
       - name: Upload VHS outputs on failure
         if: failure()

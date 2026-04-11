@@ -1,5 +1,5 @@
 # tapes/screens.tape
-# Validates: menu screen, pause screen layout and transitions.
+# Validates: menu screen, help overlay, pause screen layout and transitions.
 
 Output testdata/vhs/screens.txt
 
@@ -24,7 +24,14 @@ Enter
 Sleep 1s
 Screenshot testdata/vhs/game-started.png
 
-# Open pause screen
+# Help overlay (H is the VHS-compatible alias for F1)
+Type "H"
+Sleep 500ms
+Screenshot testdata/vhs/help-overlay.png
+
+# Dismiss help (any key), then open pause
+Escape
+Sleep 300ms
 Type "p"
 Sleep 500ms
 Screenshot testdata/vhs/pause-screen.png

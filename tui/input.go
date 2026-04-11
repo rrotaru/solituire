@@ -34,7 +34,7 @@ const (
 	ActionNewGame        // Ctrl+N
 	ActionRestartDeal    // Ctrl+R
 	ActionPause          // 'p'
-	ActionHelp           // F1
+	ActionHelp           // F1 or 'H'
 	ActionQuit           // 'q' or Ctrl+C
 	ActionToggleAutoMove // Ctrl+A
 	ActionCycleTheme     // 't'
@@ -116,6 +116,8 @@ func translateRune(r rune) (GameAction, interface{}) {
 		return ActionMoveToFoundation, nil
 	case '?':
 		return ActionHint, nil
+	case 'H':
+		return ActionHelp, nil
 	case 'p':
 		return ActionPause, nil
 	case 't':
