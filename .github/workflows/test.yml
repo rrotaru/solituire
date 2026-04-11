@@ -27,16 +27,23 @@ jobs:
       - name: Build binary
         run: CGO_ENABLED=0 go build -o klondike .
 
-      # Layer 2: VHS visual regression. Install VHS + ffmpeg directly from Charmbracelet's
-      # apt repo to avoid vhs-action's broken ffmpeg installer and Docker overhead.
+      # Layer 2: VHS visual regression.
+      # - ffmpeg: from Ubuntu apt (stable, always present).
+      # - ttyd:   direct binary from GitHub releases; VHS requires >= 1.7.2 and Ubuntu
+      #           apt ships an older version.
+      # - vhs:    go install ensures we get the latest release without relying on the
+      #           charm apt repo, which has proven flaky in CI.
+      # Chrome (google-chrome-stable) is pre-installed on ubuntu-latest and is found
+      # automatically by VHS's chromedp dependency.
       - name: Install VHS and dependencies
         run: |
-          sudo mkdir -p /etc/apt/keyrings
-          curl -fsSL https://repo.charm.sh/apt/gpg.key | \
-            sudo gpg --dearmor -o /etc/apt/keyrings/charm.gpg
-          echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | \
-            sudo tee /etc/apt/sources.list.d/charm.list
-          sudo apt-get update && sudo apt-get install -y vhs ffmpeg
+          sudo apt-get install -y ffmpeg
+          sudo curl -fsSL \
+            "https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64" \
+            -o /usr/local/bin/ttyd
+          sudo chmod +x /usr/local/bin/ttyd
+          go install github.com/charmbracelet/vhs@latest
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
       - name: Run VHS visual regression
         run: |
