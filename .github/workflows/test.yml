@@ -38,12 +38,18 @@ jobs:
       - name: Install VHS and dependencies
         run: |
           sudo apt-get install -y ffmpeg
+          # ttyd >= 1.7.2 required; ubuntu apt ships an older version.
           sudo curl -fsSL \
             "https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64" \
             -o /usr/local/bin/ttyd
           sudo chmod +x /usr/local/bin/ttyd
-          go install github.com/charmbracelet/vhs@latest
-          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+          # Install vhs directly to /usr/local/bin via GOBIN to avoid relying on
+          # GITHUB_PATH propagation across steps.
+          sudo GOBIN=/usr/local/bin go install github.com/charmbracelet/vhs@latest
+          # Fail fast here if either binary is missing rather than getting an
+          # opaque exit-code-1 later in the tape-runner step.
+          vhs --version
+          ttyd --version
 
       - name: Run VHS visual regression
         run: |
@@ -81,14 +87,28 @@ jobs:
           # shellcheck disable=SC2086
           git add $UNTRACKED
           git commit -m "ci: add initial VHS text baselines [skip ci]"
+          # Skip the push on forked PRs — the token is read-only there and origin
+          # points to the upstream repo, not the fork. Print a message instead.
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            HEAD_REPO=$(jq -r '.pull_request.head.repo.full_name // empty' \
+              "$GITHUB_EVENT_PATH" 2>/dev/null || true)
+            if [ -n "$HEAD_REPO" ] && [ "$HEAD_REPO" != "$GITHUB_REPOSITORY" ]; then
+              echo "Fork PR: cannot push baselines (read-only token)."
+              echo "A maintainer must download the 'vhs-screenshots' artifact and commit the .txt files."
+              exit 0
+            fi
+          fi
           # GITHUB_HEAD_REF is set on pull_request events (the PR source branch).
           # GITHUB_REF_NAME is the branch name on push events.
           BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
           git push origin "HEAD:$BRANCH"
 
-      - name: Upload screenshots on failure
+      - name: Upload VHS outputs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: vhs-screenshots
-          path: testdata/vhs/*.png
+          name: vhs-outputs
+          path: |
+            testdata/vhs/*.png
+            testdata/vhs/*.txt
+          if-no-files-found: ignore
