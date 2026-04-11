@@ -100,7 +100,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           # shellcheck disable=SC2086
           git add $UNTRACKED
-          git commit -m "ci: add initial VHS text baselines [skip ci]"
+          git commit -m "ci: add initial VHS text baselines"
           # GITHUB_REF_NAME is the branch name on push events.
           git push origin "HEAD:$GITHUB_REF_NAME"
 
