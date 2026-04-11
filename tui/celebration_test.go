@@ -376,6 +376,34 @@ func TestAppModel_CelebTickSurvivesQuitConfirm(t *testing.T) {
 	}
 }
 
+// TestAppModel_WinQuitConfirm_ResizePropagated is a regression test for the
+// bug where resizing during the quit-confirm dialog (opened from win) left
+// CelebrationModel with stale dimensions. No fresh WindowSizeMsg is emitted
+// when the dialog is cancelled, so the resize must be applied while still on
+// ScreenQuitConfirm.
+func TestAppModel_WinQuitConfirm_ResizePropagated(t *testing.T) {
+	// Reach win screen.
+	result, _ := newTestApp().Update(GameWonMsg{})
+	app := result.(AppModel)
+
+	// Open quit confirm from win (prevScreen = ScreenWin).
+	result, _ = app.Update(ChangeScreenMsg{Screen: ScreenQuitConfirm})
+	app = result.(AppModel)
+
+	// Resize while the dialog is open.
+	result, _ = app.Update(tea.WindowSizeMsg{Width: 150, Height: 55})
+	app = result.(AppModel)
+
+	if app.celebration.windowW != 150 {
+		t.Errorf("celebration.windowW = %d, want 150 after resize on quit-confirm",
+			app.celebration.windowW)
+	}
+	if app.celebration.windowH != 55 {
+		t.Errorf("celebration.windowH = %d, want 55 after resize on quit-confirm",
+			app.celebration.windowH)
+	}
+}
+
 // TestAppModel_GameWonMsg_SeedsActualDimensions is a regression test for the
 // bug where CelebrationModel was created with the 78×24 fallback instead of
 // the user's actual terminal size, causing mis-centered animation geometry.

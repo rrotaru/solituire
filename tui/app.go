@@ -66,8 +66,13 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Always propagate to board so renderer dimensions stay current.
 		updated, cmd := m.board.Update(msg)
 		m.board = updated.(BoardModel)
-		// Propagate to celebration so card positions reflow on resize.
-		if m.screen == ScreenWin {
+		// Propagate to celebration during win flow so card positions reflow on
+		// resize. Includes ScreenQuitConfirm opened from ScreenWin: no new
+		// WindowSizeMsg is emitted on screen switch, so skipping the update
+		// here would leave celebration with stale dimensions when the dialog
+		// is cancelled and win is restored.
+		if m.screen == ScreenWin ||
+			(m.screen == ScreenQuitConfirm && m.prevScreen == ScreenWin) {
 			celebUpdated, _ := m.celebration.Update(msg)
 			m.celebration = celebUpdated.(CelebrationModel)
 		}
