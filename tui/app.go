@@ -93,11 +93,12 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case TickMsg:
-		// Always forward to the board regardless of screen so the tick chain
-		// stays alive. A TickMsg dropped on a non-playing screen kills the
-		// chain permanently because BoardModel only re-queues tickCmd when it
-		// processes TickMsg. On ScreenPaused the timer will still increment
-		// here; T15's pause sub-model will properly freeze it.
+		// Keep the tick chain alive on all screens. While paused, re-queue
+		// the tick without forwarding to the board so the elapsed timer
+		// freezes — resuming the game continues timing from where it stopped.
+		if m.screen == ScreenPaused {
+			return m, tickCmd()
+		}
 		updated, cmd := m.board.Update(msg)
 		m.board = updated.(BoardModel)
 		return m, cmd
