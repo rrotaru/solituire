@@ -1,4 +1,4 @@
-name: Tag
+name: Release
 
 on:
   push:
@@ -8,16 +8,29 @@ permissions:
   contents: write
 
 jobs:
-  tag:
-    name: Create release tag
+  release:
+    name: Tag and release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
       - uses: go-semantic-release/action@v1
+        id: semrel
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           allow-initial-development-versions: true
           force-bump-patch-version: false
+
+      - uses: goreleaser/goreleaser-action@v6
+        if: steps.semrel.outputs.version != ''
+        with:
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
