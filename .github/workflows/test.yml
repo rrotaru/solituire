@@ -1,0 +1,116 @@
+# .github/workflows/test.yml
+name: Test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # needed to push auto-generated baselines back to the branch
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Persist credentials so the baseline-commit step can push.
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      # Layer 1: Engine unit tests + teatest golden tests
+      - name: Run all Go tests
+        run: go test ./...
+
+      # Build binary for VHS tapes (module produces 'solituire'; tapes expect 'klondike').
+      # CGO_ENABLED=0 produces a static binary that works inside the VHS Docker container.
+      - name: Build binary
+        run: CGO_ENABLED=0 go build -o klondike .
+
+      # Layer 2: VHS visual regression.
+      # The Docker image bundles VHS + ttyd + Chromium + ffmpeg.
+      # --privileged gives the container full Linux capabilities so Chromium can
+      # create its renderer sandbox (clone/unshare + AppArmor bypass).
+      # --shm-size=512m prevents Chromium from crashing on the 64 MB /dev/shm default.
+
+      # Sanity-check Docker before running tapes so a pull failure shows up under a
+      # distinct step name rather than "Run VHS visual regression".
+      - name: Verify Docker and pull VHS image
+        run: |
+          docker run --rm alpine echo "Docker is functional"
+          docker pull ghcr.io/charmbracelet/vhs
+          docker run --rm ghcr.io/charmbracelet/vhs --version
+
+      - name: Run VHS visual regression
+        run: |
+          set -o pipefail
+          mkdir -p testdata/vhs
+          for tape in tapes/*.tape; do
+            echo "=== $tape ==="
+            docker run --rm \
+              --privileged \
+              --shm-size=512m \
+              -v "$GITHUB_WORKSPACE:/vhs" \
+              -w /vhs \
+              ghcr.io/charmbracelet/vhs "$tape"
+          done
+
+      # Regression gate + first-run bootstrap.
+      #
+      # - FAIL if any tracked .txt baseline changed — that's a regression requiring human review.
+      # - AUTO-COMMIT brand-new (never-tracked) baselines so the first CI run bootstraps them
+      #   without masking future regressions.
+      # - Use explicit "HEAD:<branch>" push target to avoid "detached HEAD" failures on
+      #   pull_request events where actions/checkout does not check out a real branch ref.
+      - name: Commit new VHS baselines / fail on regressions
+        run: |
+          # Detect regressions: fail if any tracked baseline has changed or was deleted.
+          # Quote the pathspec so git—not bash—expands it; bash glob skips deleted files.
+          CHANGED=$(git diff --name-only -- 'testdata/vhs/*.txt' 2>/dev/null || true)
+          if [ -n "$CHANGED" ]; then
+            echo "ERROR: VHS regression detected in the following baselines:"
+            echo "$CHANGED"
+            git diff -- 'testdata/vhs/*.txt'
+            echo "Review the diff and commit intentional changes manually."
+            exit 1
+          fi
+          # Bootstrap: auto-commit brand-new baselines that have never been tracked.
+          UNTRACKED=$(git ls-files --others --exclude-standard testdata/vhs/ | grep '\.txt$' || true)
+          if [ -z "$UNTRACKED" ]; then
+            echo "All baselines are tracked and unchanged."
+            exit 0
+          fi
+          # Auto-commit only on push events. pull_request runs would race with the
+          # concurrent push-event run and fail with a non-fast-forward rejection.
+          # For fork PRs (no write access) the artifact step below supplies the files.
+          if [ "$GITHUB_EVENT_NAME" != "push" ]; then
+            if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+              HEAD_REPO=$(jq -r '.pull_request.head.repo.full_name // empty' \
+                "$GITHUB_EVENT_PATH" 2>/dev/null || true)
+              if [ -n "$HEAD_REPO" ] && [ "$HEAD_REPO" != "$GITHUB_REPOSITORY" ]; then
+                echo "Fork PR: cannot push baselines. Download the 'vhs-outputs' artifact."
+                exit 1
+              fi
+            fi
+            echo "Non-push event: baseline bootstrap handled by the push-event run."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # shellcheck disable=SC2086
+          git add $UNTRACKED
+          git commit -m "ci: add initial VHS text baselines"
+          # GITHUB_REF_NAME is the branch name on push events.
+          git push origin "HEAD:$GITHUB_REF_NAME"
+
+      - name: Upload VHS outputs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vhs-outputs
+          path: |
+            testdata/vhs/*.png
+            testdata/vhs/*.txt
+            testdata/vhs/vhs-diag.log
+          if-no-files-found: ignore

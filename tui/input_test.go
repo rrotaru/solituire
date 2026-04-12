@@ -57,6 +57,7 @@ func TestTranslateInput(t *testing.T) {
 
 		// Meta
 		{"F1", tea.KeyMsg{Type: tea.KeyF1}, ActionHelp, nil},
+		{"H help", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("H")}, ActionHelp, nil},
 		{"p pause", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("p")}, ActionPause, nil},
 		{"ctrl+n", tea.KeyMsg{Type: tea.KeyCtrlN}, ActionNewGame, nil},
 		{"ctrl+r", tea.KeyMsg{Type: tea.KeyCtrlR}, ActionRestartDeal, nil},
