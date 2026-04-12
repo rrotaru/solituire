@@ -386,10 +386,12 @@ func TestAppModel_RestartDealMsg_PreservesWindowSize(t *testing.T) {
 // --- Tick chain correctness ---
 
 // TestAppModel_TickMsg_ForwardedOnNonPlayingScreens verifies that TickMsg is
-// forwarded to the board regardless of current screen so the tick chain stays
-// alive (a TickMsg dropped on a non-playing screen would kill it permanently).
+// forwarded to the board on non-playing, non-paused screens so the tick chain
+// stays alive and the timer advances (help overlay, quit confirm, win, menu).
 func TestAppModel_TickMsg_ForwardedOnNonPlayingScreens(t *testing.T) {
-	screens := []AppScreen{ScreenPaused, ScreenHelp, ScreenQuitConfirm, ScreenWin, ScreenMenu}
+	// ScreenPaused is intentionally excluded: its tick is re-queued without
+	// advancing the timer (see TestAppModel_TickMsg_PausedFreezesTimer).
+	screens := []AppScreen{ScreenHelp, ScreenQuitConfirm, ScreenWin, ScreenMenu}
 	for _, s := range screens {
 		app := newTestApp()
 		app.screen = s
@@ -399,6 +401,30 @@ func TestAppModel_TickMsg_ForwardedOnNonPlayingScreens(t *testing.T) {
 		if after <= before {
 			t.Errorf("screen %v: TickMsg not forwarded to board (ElapsedTime unchanged)", s)
 		}
+	}
+}
+
+// TestAppModel_TickMsg_PausedFreezesTimer verifies that the elapsed timer does
+// not advance while the game is paused.
+func TestAppModel_TickMsg_PausedFreezesTimer(t *testing.T) {
+	app := newTestApp()
+	app.screen = ScreenPaused
+	before := app.board.eng.State().ElapsedTime
+	app = updateApp(app, TickMsg(time.Now()))
+	after := app.board.eng.State().ElapsedTime
+	if after != before {
+		t.Errorf("ScreenPaused: ElapsedTime advanced from %v to %v; timer must be frozen while paused", before, after)
+	}
+}
+
+// TestAppModel_TickMsg_PausedKeepsChainAlive verifies that ScreenPaused still
+// returns a non-nil Cmd so the tick chain is not permanently broken.
+func TestAppModel_TickMsg_PausedKeepsChainAlive(t *testing.T) {
+	app := newTestApp()
+	app.screen = ScreenPaused
+	_, cmd := app.Update(TickMsg(time.Now()))
+	if cmd == nil {
+		t.Error("ScreenPaused: TickMsg returned nil Cmd; tick chain would be broken on resume")
 	}
 }
 

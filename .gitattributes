@@ -1,1 +1,2 @@
-testdata/*.golden  -text
+testdata/*.golden     -text
+testdata/vhs/*.txt    -text
