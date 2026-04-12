@@ -67,11 +67,18 @@ jobs:
         run: |
           # Detect regressions: fail if any tracked baseline has changed or was deleted.
           # Quote the pathspec so git—not bash—expands it; bash glob skips deleted files.
-          CHANGED=$(git diff --name-only -- 'testdata/vhs/*.txt' 2>/dev/null || true)
+          #
+          # Use -I to skip hunks whose changed lines all match the elapsed-timer pattern
+          # ("Time: MM:SS").  The timer is wall-clock based and advances non-deterministically
+          # relative to VHS's Sleep commands, so it drifts between CI runs.  Ignoring it
+          # keeps the gate meaningful (it still catches actual layout/content regressions)
+          # without producing spurious failures every time the runner is slightly faster or
+          # slower than the run that committed the baseline.
+          CHANGED=$(git diff --name-only -I 'Time: [0-9][0-9]:[0-9][0-9]' -- 'testdata/vhs/*.txt' 2>/dev/null || true)
           if [ -n "$CHANGED" ]; then
             echo "ERROR: VHS regression detected in the following baselines:"
             echo "$CHANGED"
-            git diff -- 'testdata/vhs/*.txt'
+            git diff -I 'Time: [0-9][0-9]:[0-9][0-9]' -- 'testdata/vhs/*.txt'
             echo "Review the diff and commit intentional changes manually."
             exit 1
           fi
