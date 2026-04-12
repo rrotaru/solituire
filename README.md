@@ -10,7 +10,7 @@
 - **Keyboard, mouse & vim keys** — arrows, hjkl, number shortcuts, click to select
 - **Undo / Redo** — every move is reversible with `Ctrl+Z` / `Ctrl+Y`
 - **Hint engine** — press `?` to highlight a valid move
-- **Auto-move** — `Space` or `f` sends a card to the foundation automatically
+- **Auto-move** — press `f` to send a card to the foundation automatically
 - **5 built-in themes** — Classic, Dracula, Solarized Dark, Solarized Light, Nord
 - **Seeded games** — replay any game exactly with `--seed`
 - **Score & timer** — standard Klondike point system tracked in the header
@@ -55,12 +55,9 @@ When `--draw` is supplied the menu is skipped and the game starts immediately.
 | `←` `→` / `h` `l` | Move cursor between piles |
 | `↑` `↓` / `k` `j` | Move cursor within a tableau column |
 | `1`–`7` | Jump to tableau column |
-| `8` | Jump to stock |
-| `9` | Jump to waste |
-| `0` | Jump to foundations |
 | `Tab` | Cycle to next pile |
 | `Enter` | Pick up / place selected card |
-| `Space` | Draw from stock (or auto-move to foundation when on a card) |
+| `Space` | Draw from stock |
 | `f` | Auto-move selected card to foundation |
 | `?` | Show a hint |
 | `Ctrl+Z` | Undo |
