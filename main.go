@@ -20,9 +20,19 @@ var version string
 func main() {
 	cfg := config.DefaultConfig()
 
+	versionFlag := flag.Bool("version", false, "print version and exit")
 	seedFlag := flag.Int64("seed", 0, "RNG seed (0 = random)")
 	drawFlag := flag.Int("draw", cfg.DrawCount, "cards to draw per stock flip (1 or 3)")
 	flag.Parse()
+
+	if *versionFlag {
+		if version != "" {
+			fmt.Println(version)
+		} else {
+			fmt.Println("development")
+		}
+		return
+	}
 
 	// Detect whether --draw was explicitly set on the command line.
 	// When it is, we skip the menu and go straight to the game board,
