@@ -14,6 +14,9 @@ import (
 	"solituire/tui"
 )
 
+// version is set at build time by GoReleaser via ldflags.
+var version string
+
 func main() {
 	cfg := config.DefaultConfig()
 
