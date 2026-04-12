@@ -37,3 +37,5 @@ jobs:
           hooks: goreleaser
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ github.event.workflow_run.head_sha }}
+          GITHUB_REF: refs/heads/${{ github.event.workflow_run.head_branch }}
