@@ -1,0 +1,9 @@
+# Built binary
+klondike
+
+# Go build cache / test cache
+*.test
+*.out
+
+# OS artifacts
+.DS_Store
