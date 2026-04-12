@@ -65,19 +65,21 @@ jobs:
       #   pull_request events where actions/checkout does not check out a real branch ref.
       - name: Commit new VHS baselines / fail on regressions
         run: |
-          # Detect regressions: fail if any tracked baseline has changed or was deleted.
-          # Quote the pathspec so git—not bash—expands it; bash glob skips deleted files.
+          # Detect regressions: fail if any tracked baseline has non-timer changes.
           #
-          # Use -I to skip hunks whose changed lines all match the elapsed-timer pattern
-          # ("Time: MM:SS").  The timer is wall-clock based and advances non-deterministically
-          # relative to VHS's Sleep commands, so it drifts between CI runs.  Ignoring it
-          # keeps the gate meaningful (it still catches actual layout/content regressions)
-          # without producing spurious failures every time the runner is slightly faster or
-          # slower than the run that committed the baseline.
-          CHANGED=$(git diff --name-only -I 'Time: [0-9][0-9]:[0-9][0-9]' -- 'testdata/vhs/*.txt' 2>/dev/null || true)
+          # The elapsed-timer field ("Time: MM:SS") in the board header is wall-clock
+          # based and drifts between CI runs, producing spurious diffs.  We exclude
+          # timer-only hunks with git diff -I, then look for surviving @@ hunk markers
+          # to decide whether a real regression exists.
+          #
+          # NOTE: --name-only is intentionally NOT used here.  git diff --name-only
+          # reports a file as changed whenever git sees any byte difference, regardless
+          # of whether -I suppressed all displayed hunks.  We must inspect the actual
+          # filtered patch to correctly ignore timer-only drift.
+          CHANGED=$(git diff -I 'Time: [0-9][0-9]:[0-9][0-9]' -- 'testdata/vhs/*.txt' \
+            2>/dev/null | grep '^@@' || true)
           if [ -n "$CHANGED" ]; then
-            echo "ERROR: VHS regression detected in the following baselines:"
-            echo "$CHANGED"
+            echo "ERROR: VHS regression detected in baselines (timer drift excluded):"
             git diff -I 'Time: [0-9][0-9]:[0-9][0-9]' -- 'testdata/vhs/*.txt'
             echo "Review the diff and commit intentional changes manually."
             exit 1

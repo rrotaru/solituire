@@ -109,7 +109,7 @@ docker run --rm --privileged --shm-size=512m \
   ghcr.io/charmbracelet/vhs tapes/board-initial.tape
 ```
 
-Terminal must be at least **78 × 24** characters; the game shows a warning if the window is too small.
+Terminal must be at least **78 × 25** characters; the game shows a warning if the window is too small.
 
 ## License
 
