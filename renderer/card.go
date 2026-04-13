@@ -144,12 +144,12 @@ func renderFaceUp(cc cardContent, t theme.Theme) string {
 	// line0: "K♠     " — rank+suit together at top-left (2+1+4 = 7)
 	line0 := rankStyle.Inline(true).Render(rankPad) +
 		suitStyle.Inline(true).Render(suit) +
-		strings.Repeat(" ", innerWidth-3)
+		bgStyle.Inline(true).Render(strings.Repeat(" ", innerWidth-3))
 
 	// line2: "   ♠   " — suit centered (3+1+3 = 7)
 	line2 := strings.Repeat(" ", 3) +
 		suitStyle.Inline(true).Render(suit) +
-		strings.Repeat(" ", 3)
+		bgStyle.Inline(true).Render(strings.Repeat(" ", 3))
 
 	// line4: "     ♠K" — suit+rank together at bottom-right (4+1+2 = 7)
 	line4 := strings.Repeat(" ", innerWidth-3) +
@@ -212,7 +212,7 @@ func cardPeekLines(c engine.Card, state cardVisualState, t theme.Theme) string {
 	// line0: "K♠     " — rank+suit together at top-left (2+1+4 = 7)
 	line0 := rankStyle.Inline(true).Render(rankPad) +
 		suitStyle.Inline(true).Render(suit) +
-		strings.Repeat(" ", innerWidth-3)
+		bgStyle.Inline(true).Render(strings.Repeat(" ", innerWidth-3))
 
 	top := borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
 	r0 := borderStyle.Render("│") + bgStyle.Render(line0) + borderStyle.Render("│")
