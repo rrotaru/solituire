@@ -7,6 +7,7 @@ var Classic = Theme{
 	Name: "Classic",
 
 	CardBackground: lipgloss.Color("#ffffff"),
+	CardForeground: lipgloss.Color("#1a1a1a"),
 	CardBorder:     lipgloss.Color("#cccccc"),
 	CardFaceDown:   lipgloss.Color("#1a5276"),
 	RedSuit:        lipgloss.Color("#c0392b"),
