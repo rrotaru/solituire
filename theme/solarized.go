@@ -7,6 +7,7 @@ var SolarizedDark = Theme{
 	Name: "Solarized Dark",
 
 	CardBackground: lipgloss.Color("#fdf6e3"),
+	CardForeground: lipgloss.Color("#073642"),
 	CardBorder:     lipgloss.Color("#586e75"),
 	CardFaceDown:   lipgloss.Color("#073642"),
 	RedSuit:        lipgloss.Color("#cb4b16"),
@@ -31,6 +32,7 @@ var SolarizedLight = Theme{
 	Name: "Solarized Light",
 
 	CardBackground: lipgloss.Color("#073642"),
+	CardForeground: lipgloss.Color("#eee8d5"),
 	CardBorder:     lipgloss.Color("#93a1a1"),
 	CardFaceDown:   lipgloss.Color("#eee8d5"),
 	RedSuit:        lipgloss.Color("#cb4b16"),

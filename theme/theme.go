@@ -8,6 +8,7 @@ type Theme struct {
 
 	// Card colors
 	CardBackground lipgloss.Color
+	CardForeground lipgloss.Color // rank text on face-up cards
 	CardBorder     lipgloss.Color
 	CardFaceDown   lipgloss.Color
 	RedSuit        lipgloss.Color // Hearts, Diamonds

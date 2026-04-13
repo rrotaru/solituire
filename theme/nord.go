@@ -7,6 +7,7 @@ var Nord = Theme{
 	Name: "Nord",
 
 	CardBackground: lipgloss.Color("#eceff4"),
+	CardForeground: lipgloss.Color("#2e3440"),
 	CardBorder:     lipgloss.Color("#d8dee9"),
 	CardFaceDown:   lipgloss.Color("#3b4252"),
 	RedSuit:        lipgloss.Color("#bf616a"),

@@ -131,27 +131,24 @@ func renderFaceUp(cc cardContent, t theme.Theme) string {
 	}
 
 	borderStyle := lipgloss.NewStyle().Foreground(borderColor)
-	suitStyle := lipgloss.NewStyle().Foreground(suitColor)
+	suitStyle := lipgloss.NewStyle().Foreground(suitColor).Background(t.CardBackground)
+	rankStyle := lipgloss.NewStyle().Foreground(t.CardForeground).Background(t.CardBackground)
 	bgStyle := lipgloss.NewStyle().Background(t.CardBackground)
 
 	// rank strings are 1-2 chars; pad to 2 for alignment
 	rankPad := fmt.Sprintf("%-2s", rank)  // left-padded rank (top-left)
 	rankPadR := fmt.Sprintf("%2s", rank)  // right-padded rank (bottom-right)
 
-	// Inner content lines (innerWidth = 7 chars each):
-	// line0: "K  ♠   " — rank left, suit right
-	// line1-3: blank
-	// line4: "   ♠  K" — suit left, rank right
-	line0 := rankPad + strings.Repeat(" ", innerWidth-2-1) + suitStyle.Render(suit) // 2 + spaces + 1 suit = 7 - but suit may be multi-byte
-	line4 := suitStyle.Render(suit) + strings.Repeat(" ", innerWidth-1-2) + rankPadR
 	blank := strings.Repeat(" ", innerWidth)
 
+	// Each segment carries its own Background so that ANSI resets between
+	// segments never expose the terminal-default background on the card face.
 	top := borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
-	r0 := borderStyle.Render("│") + bgStyle.Render(line0) + borderStyle.Render("│")
+	r0 := borderStyle.Render("│") + rankStyle.Render(rankPad) + bgStyle.Render(strings.Repeat(" ", innerWidth-2-1)) + suitStyle.Render(suit) + borderStyle.Render("│")
 	r1 := borderStyle.Render("│") + bgStyle.Render(blank) + borderStyle.Render("│")
 	r2 := borderStyle.Render("│") + bgStyle.Render(blank) + borderStyle.Render("│")
 	r3 := borderStyle.Render("│") + bgStyle.Render(blank) + borderStyle.Render("│")
-	r4 := borderStyle.Render("│") + bgStyle.Render(line4) + borderStyle.Render("│")
+	r4 := borderStyle.Render("│") + suitStyle.Render(suit) + bgStyle.Render(strings.Repeat(" ", innerWidth-1-2)) + rankStyle.Render(rankPadR) + borderStyle.Render("│")
 	bot := borderStyle.Render("└" + strings.Repeat("─", innerWidth) + "┘")
 
 	return strings.Join([]string{top, r0, r1, r2, r3, r4, bot}, "\n")
@@ -191,14 +188,14 @@ func cardPeekLines(c engine.Card, state cardVisualState, t theme.Theme) string {
 	}
 
 	borderStyle := lipgloss.NewStyle().Foreground(borderColor)
-	suitStyle := lipgloss.NewStyle().Foreground(suitColor)
+	suitStyle := lipgloss.NewStyle().Foreground(suitColor).Background(t.CardBackground)
+	rankStyle := lipgloss.NewStyle().Foreground(t.CardForeground).Background(t.CardBackground)
 	bgStyle := lipgloss.NewStyle().Background(t.CardBackground)
 
 	rankPad := fmt.Sprintf("%-2s", rank)
-	line0 := rankPad + strings.Repeat(" ", innerWidth-2-1) + suitStyle.Render(suit)
 
 	top := borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
-	r0 := borderStyle.Render("│") + bgStyle.Render(line0) + borderStyle.Render("│")
+	r0 := borderStyle.Render("│") + rankStyle.Render(rankPad) + bgStyle.Render(strings.Repeat(" ", innerWidth-2-1)) + suitStyle.Render(suit) + borderStyle.Render("│")
 
 	return strings.Join([]string{top, r0}, "\n")
 }
