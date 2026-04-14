@@ -95,7 +95,7 @@ func TestPileHitTestWithWidth(t *testing.T) {
 		{"gap before foundation 0", 38, 2, nil},
 		{"gap row below top piles", 4, 9, nil}, // tabRow=10; row 9 is the blank spacer
 		{"right of T6", 69, 10, nil},           // T6 occupies x=[60,68]; x=69 is outside
-		{"below T0 fu card", 4, 17, nil},        // T0 fu ends at row 16 (10+7-1)
+		{"below T0 fu card", 4, 17, nil},       // T0 fu ends at row 16 (10+7-1)
 		{"far below tableau", 4, 30, nil},
 		{"between waste and foundation", 28, 2, nil},
 	}

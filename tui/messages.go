@@ -38,7 +38,7 @@ type ChangeScreenMsg struct{ Screen AppScreen }
 
 // Ticks
 
-type TickMsg time.Time          // elapsed timer updates
+type TickMsg time.Time           // elapsed timer updates
 type CelebrationTickMsg struct{} // win animation frames
 
 // Config

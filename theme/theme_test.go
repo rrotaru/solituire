@@ -43,11 +43,11 @@ func TestRegistry_GetByName(t *testing.T) {
 
 	t.Run("lowercase names resolve (config contract)", func(t *testing.T) {
 		cases := map[string]string{
-			"classic":        "Classic",
-			"dracula":        "Dracula",
-			"solarized dark": "Solarized Dark",
+			"classic":         "Classic",
+			"dracula":         "Dracula",
+			"solarized dark":  "Solarized Dark",
 			"solarized light": "Solarized Light",
-			"nord":           "Nord",
+			"nord":            "Nord",
 		}
 		for input, want := range cases {
 			got := r.Get(input)

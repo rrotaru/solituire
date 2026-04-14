@@ -62,7 +62,7 @@ func (s Suit) String() string {
 type Rank uint8
 
 const (
-	Ace   Rank = iota + 1
+	Ace Rank = iota + 1
 	Two
 	Three
 	Four

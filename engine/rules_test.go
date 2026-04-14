@@ -729,10 +729,10 @@ func TestIsValidFaceUpSequence(t *testing.T) {
 // TestIsValidTableauPlacement tests the internal placement validator.
 func TestIsValidTableauPlacement(t *testing.T) {
 	tests := []struct {
-		name  string
-		card  Card
-		dest  *TableauPile
-		want  bool
+		name string
+		card Card
+		dest *TableauPile
+		want bool
 	}{
 		{"King to empty", faceUpCard(King, Hearts), &TableauPile{}, true},
 		{"non-King to empty rejected", faceUpCard(Queen, Spades), &TableauPile{}, false},

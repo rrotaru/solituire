@@ -136,8 +136,8 @@ func renderFaceUp(cc cardContent, t theme.Theme) string {
 	bgStyle := lipgloss.NewStyle().Background(t.CardBackground)
 
 	// rank strings are 1-2 chars; pad to 2 for alignment
-	rankPad := fmt.Sprintf("%-2s", rank)  // left-padded rank (top-left)
-	rankPadR := fmt.Sprintf("%2s", rank)  // right-padded rank (bottom-right)
+	rankPad := fmt.Sprintf("%-2s", rank) // left-padded rank (top-left)
+	rankPadR := fmt.Sprintf("%2s", rank) // right-padded rank (bottom-right)
 
 	blank := strings.Repeat(" ", innerWidth)
 

@@ -67,7 +67,10 @@ func TestAllCardsUnique(t *testing.T) {
 	if len(deck) != 52 {
 		t.Fatalf("NewDeck() returned %d cards, want 52", len(deck))
 	}
-	type key struct{ suit Suit; rank Rank }
+	type key struct {
+		suit Suit
+		rank Rank
+	}
 	seen := make(map[key]bool, 52)
 	for _, c := range deck {
 		k := key{c.Suit, c.Rank}

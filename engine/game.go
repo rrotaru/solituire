@@ -170,7 +170,7 @@ func (g *Game) IsValidMove(move Move) bool { return ValidateMove(g.state, move) 
 type PileID uint8
 
 const (
-	PileStock       PileID = iota
+	PileStock PileID = iota
 	PileWaste
 	PileFoundation0 // foundations are PileFoundation0 + index (0-3)
 	PileFoundation1
@@ -195,6 +195,6 @@ type GameState struct {
 	Score       int
 	MoveCount   int
 	ElapsedTime time.Duration
-	DrawCount   int   // 1 or 3
+	DrawCount   int // 1 or 3
 	Seed        int64
 }
