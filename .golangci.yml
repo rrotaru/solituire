@@ -17,7 +17,8 @@ linters:
     - revive        # Style linting, replaces deprecated golint
     - misspell      # Typos in comments and string literals
     - whitespace    # Trailing whitespace and unnecessary blank lines
-    - gofmt         # Formatting gate (belt-and-suspenders after pre-commit auto-fix)
+    # gofmt is a formatter in golangci-lint v2 (not a linter); formatting is
+    # enforced by the pre-commit gofmt hook instead.
 
   settings:
     revive:

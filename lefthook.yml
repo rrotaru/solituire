@@ -20,7 +20,9 @@ pre-commit:
 
     lint:
       name: golangci-lint
-      run: golangci-lint run --timeout=3m
+      # --new-from-rev HEAD reports only issues introduced by this commit,
+      # so contributors are not blocked by pre-existing issues in unchanged files.
+      run: golangci-lint run --new-from-rev HEAD --timeout=3m
 
 pre-push:
   # Heavier checks that are worth running before code reaches the remote.
