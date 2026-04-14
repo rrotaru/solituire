@@ -141,14 +141,29 @@ func renderFaceUp(cc cardContent, t theme.Theme) string {
 
 	blank := strings.Repeat(" ", innerWidth)
 
+	// line0: "K♠     " — rank+suit together at top-left (2+1+4 = 7)
+	line0 := rankStyle.Inline(true).Render(rankPad) +
+		suitStyle.Inline(true).Render(suit) +
+		bgStyle.Inline(true).Render(strings.Repeat(" ", innerWidth-3))
+
+	// line2: "   ♠   " — suit centered (3+1+3 = 7)
+	line2 := strings.Repeat(" ", 3) +
+		suitStyle.Inline(true).Render(suit) +
+		bgStyle.Inline(true).Render(strings.Repeat(" ", 3))
+
+	// line4: "     ♠K" — suit+rank together at bottom-right (4+1+2 = 7)
+	line4 := strings.Repeat(" ", innerWidth-3) +
+		suitStyle.Inline(true).Render(suit) +
+		rankStyle.Inline(true).Render(rankPadR)
+
 	// Each segment carries its own Background so that ANSI resets between
 	// segments never expose the terminal-default background on the card face.
 	top := borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
-	r0 := borderStyle.Render("│") + rankStyle.Render(rankPad) + bgStyle.Render(strings.Repeat(" ", innerWidth-2-1)) + suitStyle.Render(suit) + borderStyle.Render("│")
+	r0 := borderStyle.Render("│") + bgStyle.Render(line0) + borderStyle.Render("│")
 	r1 := borderStyle.Render("│") + bgStyle.Render(blank) + borderStyle.Render("│")
-	r2 := borderStyle.Render("│") + bgStyle.Render(blank) + borderStyle.Render("│")
+	r2 := borderStyle.Render("│") + bgStyle.Render(line2) + borderStyle.Render("│")
 	r3 := borderStyle.Render("│") + bgStyle.Render(blank) + borderStyle.Render("│")
-	r4 := borderStyle.Render("│") + suitStyle.Render(suit) + bgStyle.Render(strings.Repeat(" ", innerWidth-1-2)) + rankStyle.Render(rankPadR) + borderStyle.Render("│")
+	r4 := borderStyle.Render("│") + bgStyle.Render(line4) + borderStyle.Render("│")
 	bot := borderStyle.Render("└" + strings.Repeat("─", innerWidth) + "┘")
 
 	return strings.Join([]string{top, r0, r1, r2, r3, r4, bot}, "\n")
@@ -194,8 +209,13 @@ func cardPeekLines(c engine.Card, state cardVisualState, t theme.Theme) string {
 
 	rankPad := fmt.Sprintf("%-2s", rank)
 
+	// line0: "K♠     " — rank+suit together at top-left (2+1+4 = 7)
+	line0 := rankStyle.Inline(true).Render(rankPad) +
+		suitStyle.Inline(true).Render(suit) +
+		bgStyle.Inline(true).Render(strings.Repeat(" ", innerWidth-3))
+
 	top := borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
-	r0 := borderStyle.Render("│") + rankStyle.Render(rankPad) + bgStyle.Render(strings.Repeat(" ", innerWidth-2-1)) + suitStyle.Render(suit) + borderStyle.Render("│")
+	r0 := borderStyle.Render("│") + bgStyle.Render(line0) + borderStyle.Render("│")
 
 	return strings.Join([]string{top, r0}, "\n")
 }
