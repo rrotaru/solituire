@@ -48,9 +48,9 @@ func (e *testEngine) IsAutoCompletable() bool {
 	}
 	return true
 }
-func (e *testEngine) Score() int              { return e.state.Score }
-func (e *testEngine) MoveCount() int          { return e.state.MoveCount }
-func (e *testEngine) Seed() int64             { return e.state.Seed }
+func (e *testEngine) Score() int     { return e.state.Score }
+func (e *testEngine) MoveCount() int { return e.state.MoveCount }
+func (e *testEngine) Seed() int64    { return e.state.Seed }
 func (e *testEngine) Execute(cmd engine.Command) error {
 	scoreBefore := e.state.Score
 	if err := cmd.Execute(e.state); err != nil {
@@ -60,8 +60,8 @@ func (e *testEngine) Execute(cmd engine.Command) error {
 	e.state.MoveCount++
 	return nil
 }
-func (e *testEngine) Undo() error { return e.history.Undo(e.state) }
-func (e *testEngine) Redo() error { return e.history.Redo(e.state) }
+func (e *testEngine) Undo() error   { return e.history.Undo(e.state) }
+func (e *testEngine) Redo() error   { return e.history.Redo(e.state) }
 func (e *testEngine) CanUndo() bool { return e.history.CanUndo() }
 func (e *testEngine) CanRedo() bool { return e.history.CanRedo() }
 func (e *testEngine) ValidMoves() []engine.Move {
@@ -369,8 +369,8 @@ func TestBoardRedoClearsDrag(t *testing.T) {
 	board, eng := newBoard()
 
 	// Create an undone action to redo.
-	board = sendKey(board, tea.KeySpace)   // flip stock
-	board = sendKey(board, tea.KeyCtrlZ)   // undo
+	board = sendKey(board, tea.KeySpace) // flip stock
+	board = sendKey(board, tea.KeyCtrlZ) // undo
 
 	// Start a drag.
 	board.cursor.Pile = engine.PileTableau3
@@ -411,8 +411,8 @@ func TestBoardRedo(t *testing.T) {
 	board = sendKey(board, tea.KeySpace) // flip
 	wasteAfterFlip := len(eng.State().Waste.Cards)
 
-	board = sendKey(board, tea.KeyCtrlZ)  // undo
-	sendKey(board, tea.KeyCtrlY)  // redo
+	board = sendKey(board, tea.KeyCtrlZ) // undo
+	sendKey(board, tea.KeyCtrlY)         // redo
 
 	if len(eng.State().Waste.Cards) != wasteAfterFlip {
 		t.Errorf("after redo waste should have %d cards, got %d", wasteAfterFlip, len(eng.State().Waste.Cards))

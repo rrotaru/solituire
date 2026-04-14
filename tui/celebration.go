@@ -28,8 +28,8 @@ type CelebrationModel struct {
 	drawCount int
 	th        theme.Theme
 
-	frame   int          // incremented each tick; 0 = static (golden-testable)
-	cards   []celebCard  // current animation positions — always a fresh slice on mutation
+	frame   int         // incremented each tick; 0 = static (golden-testable)
+	cards   []celebCard // current animation positions — always a fresh slice on mutation
 	windowW int
 	windowH int
 }

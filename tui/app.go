@@ -15,18 +15,18 @@ import (
 // to the active sub-model, and delegates rendering to the appropriate view.
 // AppScreen is defined in messages.go — do not redefine it here.
 type AppModel struct {
-	screen     AppScreen
-	prevScreen AppScreen // screen to return to when ScreenQuitConfirm is canceled
-	engine     engine.GameEngine
-	cfg        *config.Config
-	themes     *theme.ThemeRegistry
-	rend       *renderer.Renderer
+	screen      AppScreen
+	prevScreen  AppScreen // screen to return to when ScreenQuitConfirm is canceled
+	engine      engine.GameEngine
+	cfg         *config.Config
+	themes      *theme.ThemeRegistry
+	rend        *renderer.Renderer
 	board       BoardModel
 	menu        MenuModel
 	celebration CelebrationModel
 	windowW     int
-	windowH    int
-	tooSmall   bool
+	windowH     int
+	tooSmall    bool
 }
 
 // NewAppModel creates a ready-to-run AppModel starting on ScreenPlaying.

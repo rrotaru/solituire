@@ -8,11 +8,11 @@ import (
 
 // Card and terminal size constants exported for Agent C's hit-testing (T16).
 const (
-	CardWidth     = 9  // total lipgloss-rendered width including borders
-	CardHeight    = 7  // max full-card height including borders
+	CardWidth     = 9 // total lipgloss-rendered width including borders
+	CardHeight    = 7 // max full-card height including borders
 	MinTermWidth  = 78
 	MinTermHeight = 25
-	ColGap        = 1  // gap between tableau columns
+	ColGap        = 1 // gap between tableau columns
 )
 
 // stockWasteX returns the x position of the stock pile.

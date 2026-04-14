@@ -26,7 +26,10 @@ func TestShufflePreservesAllCards(t *testing.T) {
 	if len(deck) != 52 {
 		t.Fatalf("shuffled deck has %d cards, want 52", len(deck))
 	}
-	type key struct{ suit Suit; rank Rank }
+	type key struct {
+		suit Suit
+		rank Rank
+	}
 	seen := make(map[key]bool, 52)
 	for _, c := range deck {
 		seen[key{c.Suit, c.Rank}] = true
@@ -92,7 +95,10 @@ func TestDealNoduplicateCards(t *testing.T) {
 	deck := Shuffle(NewDeck(), 7)
 	state := Deal(deck, 1)
 
-	type key struct{ suit Suit; rank Rank }
+	type key struct {
+		suit Suit
+		rank Rank
+	}
 	seen := make(map[key]bool, 52)
 	add := func(c Card) {
 		k := key{c.Suit, c.Rank}
