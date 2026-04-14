@@ -22,13 +22,11 @@ builds:
         goarch: arm64
 
 archives:
-  - formats:
-      - tar.gz
+  - format: tar.gz
     name_template: "klondike_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     format_overrides:
       - goos: windows
-        formats:
-          - zip
+        format: zip
 
 checksum:
   name_template: "klondike_{{ .Version }}_checksums.txt"
