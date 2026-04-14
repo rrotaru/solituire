@@ -64,7 +64,7 @@ func (c Cursor) RendererCursor() renderer.CursorState {
 
 // MoveLeft cycles one step left in navCycleOrder, wrapping at the start.
 // Foundations are not in navCycleOrder; when the cursor is on any foundation
-// the nearest left neighbour is Waste (the last top-row pile before foundations).
+// the nearest left neighbor is Waste (the last top-row pile before foundations).
 func (c *Cursor) MoveLeft(state *engine.GameState) {
 	if isFoundationPile(c.Pile) {
 		c.Pile = engine.PileWaste
@@ -76,7 +76,7 @@ func (c *Cursor) MoveLeft(state *engine.GameState) {
 
 // MoveRight cycles one step right in navCycleOrder, wrapping at the end.
 // Foundations are not in navCycleOrder; when the cursor is on any foundation
-// the nearest right neighbour is Tableau0 (the first pile after foundations).
+// the nearest right neighbor is Tableau0 (the first pile after foundations).
 func (c *Cursor) MoveRight(state *engine.GameState) {
 	if isFoundationPile(c.Pile) {
 		c.Pile = engine.PileTableau0

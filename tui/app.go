@@ -16,7 +16,7 @@ import (
 // AppScreen is defined in messages.go — do not redefine it here.
 type AppModel struct {
 	screen     AppScreen
-	prevScreen AppScreen // screen to return to when ScreenQuitConfirm is cancelled
+	prevScreen AppScreen // screen to return to when ScreenQuitConfirm is canceled
 	engine     engine.GameEngine
 	cfg        *config.Config
 	themes     *theme.ThemeRegistry
@@ -77,7 +77,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// resize. Includes ScreenQuitConfirm opened from ScreenWin: no new
 		// WindowSizeMsg is emitted on screen switch, so skipping the update
 		// here would leave celebration with stale dimensions when the dialog
-		// is cancelled and win is restored.
+		// is canceled and win is restored.
 		if m.screen == ScreenWin ||
 			(m.screen == ScreenQuitConfirm && m.prevScreen == ScreenWin) {
 			celebUpdated, _ := m.celebration.Update(msg)
@@ -106,7 +106,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case CelebrationTickMsg:
 		// Only forward during win flow: the win screen itself, or the quit-confirm
 		// dialog opened from the win screen (prevScreen == ScreenWin) so that
-		// cancelling returns to a live animation. Any other screen (playing, menu,
+		// canceling returns to a live animation. Any other screen (playing, menu,
 		// etc.) drops the tick without requeuing so the chain terminates cleanly.
 		// Without this guard every new game after a win accumulates an additional
 		// concurrent 80ms tick loop.

@@ -137,7 +137,7 @@ func pileHitTestWithWidth(x, y int, state *engine.GameState, termWidth int) (eng
 			row++
 		}
 		// Face-up fanned cards: all but last occupy 2 rows, last occupies full CardHeight
-		for fi, _ := range fuCards {
+		for fi := range fuCards {
 			cardIdx := fdCount + fi
 			height := 2
 			if fi == len(fuCards)-1 {

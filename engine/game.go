@@ -154,7 +154,7 @@ func (g *Game) scoreForCmd(cmd Command) int {
 }
 
 // Undo reverses the most recent move, restoring the pre-move score.
-// MoveCount is not decremented (standard Klondike behaviour).
+// MoveCount is not decremented (standard Klondike behavior).
 func (g *Game) Undo() error { return g.history.Undo(g.state) }
 
 // Redo re-applies the most recently undone move, restoring its recorded post-move score.
@@ -197,43 +197,4 @@ type GameState struct {
 	ElapsedTime time.Duration
 	DrawCount   int   // 1 or 3
 	Seed        int64
-}
-
-// deepCopyState returns a fully independent copy of s.
-// Every pile is a new allocation with its own backing slice so mutations
-// to the copy do not affect the original, and vice-versa.
-func deepCopyState(s *GameState) *GameState {
-	cp := &GameState{
-		Score:       s.Score,
-		MoveCount:   s.MoveCount,
-		ElapsedTime: s.ElapsedTime,
-		DrawCount:   s.DrawCount,
-		Seed:        s.Seed,
-	}
-
-	// Tableau
-	for i, t := range s.Tableau {
-		cards := make([]Card, len(t.Cards))
-		copy(cards, t.Cards)
-		cp.Tableau[i] = &TableauPile{Cards: cards}
-	}
-
-	// Foundations
-	for i, f := range s.Foundations {
-		cards := make([]Card, len(f.Cards))
-		copy(cards, f.Cards)
-		cp.Foundations[i] = &FoundationPile{Cards: cards}
-	}
-
-	// Stock
-	stockCards := make([]Card, len(s.Stock.Cards))
-	copy(stockCards, s.Stock.Cards)
-	cp.Stock = &StockPile{Cards: stockCards}
-
-	// Waste
-	wasteCards := make([]Card, len(s.Waste.Cards))
-	copy(wasteCards, s.Waste.Cards)
-	cp.Waste = &WastePile{Cards: wasteCards, DrawCount: s.Waste.DrawCount}
-
-	return cp
 }
