@@ -336,7 +336,7 @@ func TestBoardFlipStock(t *testing.T) {
 	board, eng := newBoard()
 	wasteBefore := len(eng.State().Waste.Cards)
 
-	board = sendKey(board, tea.KeySpace)
+	sendKey(board, tea.KeySpace)
 
 	if len(eng.State().Waste.Cards) <= wasteBefore {
 		t.Error("Space must flip a card from stock to waste")
@@ -399,7 +399,7 @@ func TestBoardUndo(t *testing.T) {
 		t.Fatal("flip produced no waste cards")
 	}
 
-	board = sendKey(board, tea.KeyCtrlZ)
+	sendKey(board, tea.KeyCtrlZ)
 	if len(eng.State().Waste.Cards) != 0 {
 		t.Errorf("after undo waste should be empty, got %d cards", len(eng.State().Waste.Cards))
 	}
@@ -412,7 +412,7 @@ func TestBoardRedo(t *testing.T) {
 	wasteAfterFlip := len(eng.State().Waste.Cards)
 
 	board = sendKey(board, tea.KeyCtrlZ)  // undo
-	board = sendKey(board, tea.KeyCtrlY)  // redo
+	sendKey(board, tea.KeyCtrlY)  // redo
 
 	if len(eng.State().Waste.Cards) != wasteAfterFlip {
 		t.Errorf("after redo waste should have %d cards, got %d", wasteAfterFlip, len(eng.State().Waste.Cards))
@@ -599,7 +599,7 @@ func TestBoardTickUpdatesElapsed(t *testing.T) {
 	before := eng.State().ElapsedTime
 
 	updated, _ := board.Update(TickMsg(time.Now()))
-	board = updated.(BoardModel)
+	_ = updated.(BoardModel)
 
 	after := eng.State().ElapsedTime
 	if after != before+time.Second {
@@ -1295,7 +1295,7 @@ func TestBoardAutoMove_MovesCardAfterAction(t *testing.T) {
 	}
 
 	// Any player action triggers auto-move at end of handleAction.
-	board = sendKey(board, tea.KeyLeft)
+	sendKey(board, tea.KeyLeft)
 
 	after := 0
 	for _, f := range eng.State().Foundations {
@@ -1342,7 +1342,7 @@ func TestBoardAutoMove_DisabledDoesNotMove(t *testing.T) {
 
 	before := len(eng.State().Foundations[0].Cards) // Spades foundation: 1 card
 
-	board = sendKey(board, tea.KeyLeft)
+	sendKey(board, tea.KeyLeft)
 
 	after := len(eng.State().Foundations[0].Cards)
 	if after != before {
@@ -1442,7 +1442,7 @@ func TestBoardAutoMove_SkipOneEmptyOppositeFoundation(t *testing.T) {
 	cfg.AutoMoveEnabled = true
 	board := NewBoardModel(eng, rend, cfg)
 
-	board = sendKey(board, tea.KeyLeft) // trigger auto-move check
+	sendKey(board, tea.KeyLeft) // trigger auto-move check
 
 	if eng.State().Tableau[0].IsEmpty() {
 		t.Error("3♠ must not be auto-moved: Diamonds foundation is empty (rank 0 < 2)")

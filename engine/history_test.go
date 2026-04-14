@@ -31,9 +31,6 @@ func TestHistory_PushAndUndo(t *testing.T) {
 	if err := h.Undo(state); err != nil {
 		t.Fatalf("Undo: %v", err)
 	}
-	if !state.Tableau[0].Cards[0].FaceUp == false {
-		// card should be face-down again
-	}
 	if state.Tableau[0].Cards[0].FaceUp {
 		t.Error("card should be face-down after undo")
 	}

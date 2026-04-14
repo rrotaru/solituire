@@ -1,0 +1,65 @@
+# lefthook.yml — git hook configuration for solituire
+# Install: lefthook install  (or: make hooks)
+# Bypass in emergencies: LEFTHOOK=0 git commit ...
+# Docs: https://github.com/evilmartians/lefthook
+
+pre-commit:
+  # Format + static analysis must all pass before a commit lands.
+  # gofmt runs first (sequentially) because it mutates staged files;
+  # vet and lint are independent and run in parallel after.
+  commands:
+    fmt:
+      name: gofmt (auto-fix)
+      glob: "**/*.go"
+      run: gofmt -w {staged_files}
+      stage_fixed: true
+
+    vet:
+      name: go vet
+      run: go vet ./...
+
+    lint:
+      name: golangci-lint
+      # --new-from-rev HEAD reports only issues introduced by this commit,
+      # so contributors are not blocked by pre-existing issues in unchanged files.
+      run: golangci-lint run --new-from-rev HEAD --timeout=3m
+
+pre-push:
+  # Heavier checks that are worth running before code reaches the remote.
+  # Runs sequentially: tidy first (cheap), then tests, then build.
+  commands:
+    tidy:
+      name: go mod tidy
+      run: go mod tidy && git diff --exit-code -- go.mod go.sum
+
+    test:
+      name: go test
+      run: go test ./...
+
+    build:
+      name: go build
+      run: go build ./...
+
+commit-msg:
+  # Enforce Conventional Commits — required by go-semantic-release in CI.
+  # Format: <type>[optional scope][optional !]: <description>
+  # Types: feat fix docs style refactor test chore perf ci build revert
+  commands:
+    conventional-commit:
+      run: |
+        subject=$(head -1 {1})
+        if ! printf '%s' "$subject" | grep -qE '^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?!?: .+'; then
+          echo ""
+          echo "ERROR: commit message does not follow Conventional Commits."
+          echo ""
+          echo "  Expected:  <type>[scope]: <description>"
+          echo "  Examples:  feat: add nord theme"
+          echo "             fix(renderer): correct card overlap in draw-3 mode"
+          echo "             feat!: change config file format (breaking change)"
+          echo ""
+          echo "  Types: feat fix docs style refactor test chore perf ci build revert"
+          echo ""
+          echo "  Received:  $subject"
+          echo ""
+          exit 1
+        fi

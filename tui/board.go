@@ -453,7 +453,7 @@ func (m BoardModel) handleAutoCompleteStep() (tea.Model, tea.Cmd) {
 func (m *BoardModel) doAutoCompleteStep() bool {
 	state := m.eng.State()
 
-	var bestRank engine.Rank = engine.King + 1 // sentinel: no candidate yet
+	var bestRank = engine.King + 1 // sentinel: no candidate yet
 	var bestSrc engine.PileID
 	bestFI := -1
 

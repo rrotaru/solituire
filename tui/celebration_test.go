@@ -379,7 +379,7 @@ func TestAppModel_CelebTickSurvivesQuitConfirm(t *testing.T) {
 // TestAppModel_WinQuitConfirm_ResizePropagated is a regression test for the
 // bug where resizing during the quit-confirm dialog (opened from win) left
 // CelebrationModel with stale dimensions. No fresh WindowSizeMsg is emitted
-// when the dialog is cancelled, so the resize must be applied while still on
+// when the dialog is canceled, so the resize must be applied while still on
 // ScreenQuitConfirm.
 func TestAppModel_WinQuitConfirm_ResizePropagated(t *testing.T) {
 	// Reach win screen.
