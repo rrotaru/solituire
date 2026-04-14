@@ -173,8 +173,7 @@ func renderFaceUp(cc cardContent, t theme.Theme) string {
 // Used for fanned face-down cards in tableau columns.
 func cardStubTop(t theme.Theme) string {
 	borderStyle := lipgloss.NewStyle().Foreground(t.CardBorder)
-	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown)
-	return borderStyle.Render("┌") + fillStyle.Render(strings.Repeat("░", innerWidth)) + borderStyle.Render("┐")
+	return borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
 }
 
 // cardPeekLines renders the top 2 lines of a face-up card (border + rank/suit line).
