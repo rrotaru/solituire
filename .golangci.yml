@@ -1,0 +1,45 @@
+# .golangci.yml — golangci-lint configuration for solituire
+# Docs: https://golangci-lint.run/usage/configuration/
+# Run: golangci-lint run  (or: make lint)
+
+version: "2"
+
+run:
+  timeout: 3m
+
+linters:
+  # Start from the default set and extend it.
+  default: standard
+  enable:
+    - errcheck      # Unchecked errors (e.g. ignored io.Closer.Close errors)
+    - govet         # go vet checks (shadow, printf, etc.)
+    - staticcheck   # SA/S/QF class checks — the most valuable static analyser for Go
+    - revive        # Style linting, replaces deprecated golint
+    - misspell      # Typos in comments and string literals
+    - whitespace    # Trailing whitespace and unnecessary blank lines
+    - gofmt         # Formatting gate (belt-and-suspenders after pre-commit auto-fix)
+
+  settings:
+    revive:
+      rules:
+        # Don't require doc comments on every exported symbol in a game project.
+        - name: exported
+          disabled: true
+        # Cognitive complexity can be high in TUI event-handling switch statements.
+        - name: cognitive-complexity
+          disabled: true
+
+    misspell:
+      locale: US
+
+  exclusions:
+    # Test files get a pass on some style rules.
+    rules:
+      - path: "_test\\.go"
+        linters:
+          - errcheck
+
+issues:
+  # Show all issues, not just the first 3 per linter.
+  max-issues-per-linter: 0
+  max-same-issues: 0
