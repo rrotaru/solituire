@@ -57,7 +57,7 @@ vuln:
 # Regenerate all golden files after renderer or TUI layout changes.
 # Review the diff carefully before committing — these are your visual baselines.
 golden-update:
-	$(GO) test ./... -update
+	$(GO) test ./renderer/... ./tui/... -update
 
 ## ── VHS documentation assets ─────────────────────────────────────────────────
 
