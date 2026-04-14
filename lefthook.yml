@@ -47,8 +47,8 @@ commit-msg:
   commands:
     conventional-commit:
       run: |
-        msg=$(cat {1})
-        if ! printf '%s' "$msg" | grep -qE '^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?!?: .+'; then
+        subject=$(head -1 {1})
+        if ! printf '%s' "$subject" | grep -qE '^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?!?: .+'; then
           echo ""
           echo "ERROR: commit message does not follow Conventional Commits."
           echo ""
@@ -59,7 +59,7 @@ commit-msg:
           echo ""
           echo "  Types: feat fix docs style refactor test chore perf ci build revert"
           echo ""
-          echo "  Received:  $msg"
+          echo "  Received:  $subject"
           echo ""
           exit 1
         fi
