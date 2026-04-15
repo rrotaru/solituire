@@ -95,7 +95,7 @@ func (r *Renderer) renderTopRow(state *engine.GameState, cursor CursorState) str
 
 	leftSection := lipgloss.JoinHorizontal(lipgloss.Top,
 		stock,
-		strings.Repeat(" ", ColGap),
+		r.boardGap(ColGap),
 		waste,
 	)
 
@@ -107,14 +107,14 @@ func (r *Renderer) renderTopRow(state *engine.GameState, cursor CursorState) str
 	if gapWidth < 1 {
 		gapWidth = 1
 	}
-	gap := strings.Repeat(" ", gapWidth)
+	gap := r.boardGap(gapWidth)
 	rightSection := lipgloss.JoinHorizontal(lipgloss.Top,
 		f0,
-		strings.Repeat(" ", ColGap),
+		r.boardGap(ColGap),
 		f1,
-		strings.Repeat(" ", ColGap),
+		r.boardGap(ColGap),
 		f2,
-		strings.Repeat(" ", ColGap),
+		r.boardGap(ColGap),
 		f3,
 	)
 
@@ -133,10 +133,17 @@ func (r *Renderer) renderTableau(state *engine.GameState, cursor CursorState) st
 	for i, col := range cols {
 		parts = append(parts, col)
 		if i < 6 {
-			parts = append(parts, strings.Repeat(" ", ColGap))
+			parts = append(parts, r.boardGap(ColGap))
 		}
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Top, parts...)
+}
+
+// boardGap returns n spaces explicitly styled with the board background color.
+// Use this instead of plain strings.Repeat(" ", n) for all gap/padding between
+// rendered card cells so the board background shows through after ANSI resets.
+func (r *Renderer) boardGap(n int) string {
+	return lipgloss.NewStyle().Background(r.theme.BoardBackground).Render(strings.Repeat(" ", n))
 }
 
 // centerString centers s within width w using spaces.
