@@ -99,11 +99,11 @@ func (r *Renderer) renderTopRow(state *engine.GameState, cursor CursorState) str
 		waste,
 	)
 
-	// Gap between stock/waste and foundations: fill remaining space.
-	// Use the actual rendered width of leftSection so draw-3 waste (2–3 full
-	// card widths) is accounted for rather than assuming a fixed 2-card width.
-	foundationsWidth := 4*CardWidth + 3*ColGap
-	gapWidth := r.width - lipgloss.Width(leftSection) - foundationsWidth
+	// Position foundations at the x-offset computed from the waste visible
+	// count, matching the hit-testing geometry in pileOrigins exactly.
+	// computeFoundationStartX guarantees gapWidth >= 1.
+	wasteVisCount := len(state.Waste.VisibleCards())
+	gapWidth := computeFoundationStartX(wasteVisCount) - lipgloss.Width(leftSection)
 	if gapWidth < 1 {
 		gapWidth = 1
 	}

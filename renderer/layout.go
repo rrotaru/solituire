@@ -18,12 +18,23 @@ const (
 // stockWasteX returns the x position of the stock pile.
 func stockWasteX() int { return 0 }
 
-// foundationStartX returns the x position of the first foundation pile
-// given the total board width.
-func foundationStartX(termWidth int) int {
-	// 4 foundations + 3 gaps, right-justified
-	foundations := 4*CardWidth + 3*ColGap
-	return termWidth - foundations
+// computeFoundationStartX returns the x offset of Foundation0 in the rendered
+// top row given the number of visible waste cards. It mirrors the gap
+// calculation in renderTopRow so that hit-testing and rendering are always
+// consistent — including in draw-3 mode where the waste pile can be 2–3 cards
+// wide and the gap shrinks (or clamps to 1) accordingly.
+func computeFoundationStartX(wasteVisCount int) int {
+	if wasteVisCount < 1 {
+		wasteVisCount = 1
+	}
+	tableauWidth := 7*CardWidth + 6*ColGap     // = 69
+	foundationsWidth := 4*CardWidth + 3*ColGap // = 39
+	leftWidth := CardWidth + ColGap + wasteVisCount*CardWidth
+	gap := tableauWidth - leftWidth - foundationsWidth
+	if gap < 1 {
+		gap = 1
+	}
+	return leftWidth + gap
 }
 
 // tableauX returns the x position of tableau column idx.
@@ -33,7 +44,9 @@ func tableauX(idx int) int {
 
 // pileOrigins returns the top-left terminal coordinate of each pile's
 // render region. Row 0 = header, row 1 = stock/waste/foundation row.
-func pileOrigins(termWidth int) map[engine.PileID]image.Point {
+// wasteVisCount is the number of visible waste cards (affects foundation x in
+// draw-3 mode); pass 1 when the waste state is not known.
+func pileOrigins(wasteVisCount int) map[engine.PileID]image.Point {
 	// Render() join order: header (row 0), "" spacer (row 1), top-row piles
 	// (rows 2..2+CardHeight-1), "" spacer, tableau.
 	topRow := 2
@@ -45,7 +58,7 @@ func pileOrigins(termWidth int) map[engine.PileID]image.Point {
 		engine.PileWaste: {X: stockWasteX() + CardWidth + ColGap, Y: topRow},
 	}
 
-	fStartX := foundationStartX(termWidth)
+	fStartX := computeFoundationStartX(wasteVisCount)
 	for i := 0; i < 4; i++ {
 		pid := engine.PileID(engine.PileFoundation0 + engine.PileID(i))
 		origins[pid] = image.Point{X: fStartX + i*(CardWidth+ColGap), Y: topRow}
@@ -59,25 +72,30 @@ func pileOrigins(termWidth int) map[engine.PileID]image.Point {
 	return origins
 }
 
-// PileHitTest maps terminal coordinates (x, y) to a pile and card index using
-// MinTermWidth as a fallback terminal width. Prefer PileHitTestWithWidth when
-// the actual terminal width is available so that right-justified foundations
-// are positioned correctly. Returns (pileID, cardIndex, true) on hit, or
-// (0, 0, false) on miss. cardIndex is 0-based from the top of the pile's
-// visible cards.
+// PileHitTest maps terminal coordinates (x, y) to a pile and card index.
+// Foundation positions are derived from the game state (waste visible count)
+// so draw-3 mode is handled correctly. Returns (pileID, cardIndex, true) on
+// hit, or (0, 0, false) on miss. cardIndex is 0-based from the top of the
+// pile's visible cards.
 func PileHitTest(x, y int, state *engine.GameState) (engine.PileID, int, bool) {
-	return pileHitTestWithWidth(x, y, state, MinTermWidth)
+	return pileHitTestWithWidth(x, y, state, 0)
 }
 
-// PileHitTestWithWidth is the width-aware version of PileHitTest. termWidth
-// must be the actual terminal width so that right-justified foundations are
-// positioned correctly.
+// PileHitTestWithWidth is equivalent to PileHitTest. The termWidth parameter
+// is accepted for API compatibility but is no longer used; foundation
+// positions are computed from the game state instead.
 func PileHitTestWithWidth(x, y int, state *engine.GameState, termWidth int) (engine.PileID, int, bool) {
 	return pileHitTestWithWidth(x, y, state, termWidth)
 }
 
-func pileHitTestWithWidth(x, y int, state *engine.GameState, termWidth int) (engine.PileID, int, bool) {
-	origins := pileOrigins(termWidth)
+func pileHitTestWithWidth(x, y int, state *engine.GameState, _ int) (engine.PileID, int, bool) {
+	// Derive waste visible count from state so foundation x-positions match
+	// the rendered layout in all draw modes (draw-1 and draw-3).
+	wasteVisCount := len(state.Waste.VisibleCards())
+	if wasteVisCount < 1 {
+		wasteVisCount = 1
+	}
+	origins := pileOrigins(wasteVisCount)
 
 	// Check stock
 	if hitCard(x, y, origins[engine.PileStock]) {
@@ -89,10 +107,6 @@ func pileHitTestWithWidth(x, y int, state *engine.GameState, termWidth int) (eng
 	// the playable top card is the rightmost one. Expand the hit region to
 	// cover all visible cards so clicks on the rightmost card are not missed.
 	wasteOrigin := origins[engine.PileWaste]
-	wasteVisCount := len(state.Waste.VisibleCards())
-	if wasteVisCount < 1 {
-		wasteVisCount = 1
-	}
 	wasteHitWidth := wasteVisCount * CardWidth
 	if x >= wasteOrigin.X && x < wasteOrigin.X+wasteHitWidth &&
 		y >= wasteOrigin.Y && y < wasteOrigin.Y+CardHeight {
