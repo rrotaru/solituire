@@ -19,20 +19,20 @@ func newSeed42DrawState() *engine.GameState {
 // TestPileHitTestWithWidth exercises pileHitTestWithWidth with known terminal
 // coordinates derived from the seed-42 draw-1 deal at termWidth=MinTermWidth.
 //
-// Layout geometry at termWidth=78:
+// Layout geometry (fixed, independent of termWidth after B6 fix):
 //
 //	topRow = 2   (header row 0 + blank spacer row 1)
 //	tabRow = 10  (topRow + CardHeight(7) + blank spacer(1))
 //
-//	foundationStartX(78) = 78 - (4×9 + 3×1) = 78 - 39 = 39
+//	foundationStartX(_) = 7×9 + 6×1 - (4×9 + 3×1) = 69 - 39 = 30
 //
 //	Pile         X    Y-start
 //	Stock        0    2
 //	Waste        10   2
-//	Foundation0  39   2
-//	Foundation1  49   2
-//	Foundation2  59   2
-//	Foundation3  69   2
+//	Foundation0  30   2
+//	Foundation1  40   2
+//	Foundation2  50   2
+//	Foundation3  60   2
 //	Tableau0     0    10
 //	Tableau1     10   10   (1 fd stub at row 10, 1 fu at rows 11..17)
 //	Tableau6     60   10   (6 fd stubs rows 10..15, 1 fu at rows 16..22)
@@ -60,10 +60,10 @@ func TestPileHitTestWithWidth(t *testing.T) {
 		{"waste right edge", 18, 8, &wantHit{engine.PileWaste, 0}},
 
 		// ── Foundations ──────────────────────────────────────────────────────
-		{"foundation 0", 39, 2, &wantHit{engine.PileFoundation0, 0}},
-		{"foundation 1", 49, 4, &wantHit{engine.PileFoundation1, 0}},
-		{"foundation 2", 59, 6, &wantHit{engine.PileFoundation2, 0}},
-		{"foundation 3", 69, 2, &wantHit{engine.PileFoundation3, 0}},
+		{"foundation 0", 30, 2, &wantHit{engine.PileFoundation0, 0}},
+		{"foundation 1", 40, 4, &wantHit{engine.PileFoundation1, 0}},
+		{"foundation 2", 50, 6, &wantHit{engine.PileFoundation2, 0}},
+		{"foundation 3", 60, 2, &wantHit{engine.PileFoundation3, 0}},
 
 		// ── Tableau T0 (0 fd, 1 fu occupying rows 10..16) ────────────────────
 		{"T0 fu top row", 4, 10, &wantHit{engine.PileTableau0, 0}},
@@ -92,7 +92,7 @@ func TestPileHitTestWithWidth(t *testing.T) {
 		// ── Misses ───────────────────────────────────────────────────────────
 		{"above top row", 4, 1, nil},
 		{"stock-waste gap", 9, 2, nil},
-		{"gap before foundation 0", 38, 2, nil},
+		{"gap before foundation 0", 29, 2, nil},
 		{"gap row below top piles", 4, 9, nil}, // tabRow=10; row 9 is the blank spacer
 		{"right of T6", 69, 10, nil},           // T6 occupies x=[60,68]; x=69 is outside
 		{"below T0 fu card", 4, 17, nil},       // T0 fu ends at row 16 (10+7-1)
@@ -174,24 +174,23 @@ func TestPileHitTestWaste_Draw3Expansion(t *testing.T) {
 }
 
 // TestPileHitTestWithWidth_WiderTerminal verifies that foundation positions
-// shift right when a wider terminal is used, keeping the gap between waste
-// and foundations free.
+// do NOT shift when a wider terminal is used — they are fixed relative to the
+// tableau width (foundationStartX = 30) regardless of termWidth.
 func TestPileHitTestWithWidth_WiderTerminal(t *testing.T) {
 	state := newSeed42DrawState()
 	const wide = 120
 
-	// With termWidth=120: foundationStartX = 120 - 39 = 81.
-	// F0 occupies x=[81,89].  A click at (39, 2) — which is F0 at termWidth=78 —
-	// must be a miss at termWidth=120.
-	_, _, ok := PileHitTestWithWidth(39, 2, state, wide)
-	if ok {
-		t.Errorf("x=39 should miss all piles at termWidth=120 (F0 starts at x=81)")
+	// After the B6 fix, foundationStartX always returns 30, independent of
+	// termWidth.  F0 occupies x=[30,38] at termWidth=120 just as at termWidth=78.
+	pile, _, ok := PileHitTestWithWidth(30, 2, state, wide)
+	if !ok || pile != engine.PileFoundation0 {
+		t.Errorf("x=30 at termWidth=120: got pile=%v ok=%v, want Foundation0 ok=true",
+			pile, ok)
 	}
 
-	// F0 at x=81 must be a hit.
-	pile, _, ok := PileHitTestWithWidth(81, 2, state, wide)
-	if !ok || pile != engine.PileFoundation0 {
-		t.Errorf("x=81 at termWidth=120: got pile=%v ok=%v, want Foundation0 ok=true",
-			pile, ok)
+	// A click well to the right of the fixed layout must miss all piles.
+	_, _, ok = PileHitTestWithWidth(81, 2, state, wide)
+	if ok {
+		t.Errorf("x=81 at termWidth=120 should miss all piles (foundations fixed at x=[30,68])")
 	}
 }

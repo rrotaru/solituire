@@ -18,12 +18,14 @@ const (
 // stockWasteX returns the x position of the stock pile.
 func stockWasteX() int { return 0 }
 
-// foundationStartX returns the x position of the first foundation pile
-// given the total board width.
-func foundationStartX(termWidth int) int {
-	// 4 foundations + 3 gaps, right-justified
-	foundations := 4*CardWidth + 3*ColGap
-	return termWidth - foundations
+// foundationStartX returns the x position of the first foundation pile.
+// Foundations are positioned relative to the fixed tableau width, matching
+// the rendered layout in renderTopRow. termWidth is unused but kept for
+// signature compatibility with pileOrigins.
+func foundationStartX(_ int) int {
+	tableauWidth := 7*CardWidth + 6*ColGap // = 69, matches rendered layout
+	foundations := 4*CardWidth + 3*ColGap  // = 39
+	return tableauWidth - foundations      // = 30
 }
 
 // tableauX returns the x position of tableau column idx.
