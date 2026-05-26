@@ -978,23 +978,20 @@ func tableauCardY(state *engine.GameState, col, cardIdx, tabRow int) int {
 	return tabRow // fallback: top of column
 }
 
-// clickPile delivers a left-press mouse click aimed at a specific card within
-// pileID and returns the updated BoardModel. Coordinates are derived from the
-// renderer layout constants so the hit-test inside BoardModel.Update resolves
-// to the intended pile and card index.
+// pileCoords returns the terminal (x, y) cell coordinates for the center of a
+// specific card within pileID. Used by clickPile and releasePile.
 //
 // Layout reference (mirrors renderer.pileOrigins):
 //
 //	topRow = 2
 //	tabRow = topRow + renderer.CardHeight + 1 = 10
-func clickPile(board BoardModel, pileID engine.PileID, cardIdx int) BoardModel {
+func pileCoords(board BoardModel, pileID engine.PileID, cardIdx int) (x, y int) {
 	const (
 		topRow = 2
 		tabRow = topRow + renderer.CardHeight + 1 // 10
 	)
 
 	state := board.eng.State()
-	var x, y int
 
 	switch {
 	case pileID == engine.PileStock:
@@ -1017,8 +1014,28 @@ func clickPile(board BoardModel, pileID engine.PileID, cardIdx int) BoardModel {
 		y = tableauCardY(state, col, cardIdx, tabRow)
 	}
 
+	return x, y
+}
+
+// clickPile delivers a left-press mouse event (ActionDragStart) aimed at a
+// specific card within pileID and returns the updated BoardModel.
+func clickPile(board BoardModel, pileID engine.PileID, cardIdx int) BoardModel {
+	x, y := pileCoords(board, pileID, cardIdx)
 	updated, _ := board.Update(tea.MouseMsg{
 		Action: tea.MouseActionPress,
+		Button: tea.MouseButtonLeft,
+		X:      x,
+		Y:      y,
+	})
+	return updated.(BoardModel)
+}
+
+// releasePile delivers a left-release mouse event (ActionDragDrop) aimed at a
+// specific card within pileID and returns the updated BoardModel.
+func releasePile(board BoardModel, pileID engine.PileID, cardIdx int) BoardModel {
+	x, y := pileCoords(board, pileID, cardIdx)
+	updated, _ := board.Update(tea.MouseMsg{
+		Action: tea.MouseActionRelease,
 		Button: tea.MouseButtonLeft,
 		X:      x,
 		Y:      y,
@@ -1050,9 +1067,8 @@ func TestBoardMousePickUp(t *testing.T) {
 	}
 }
 
-// TestBoardMouseDragPlace_Valid verifies that two sequential mouse clicks
-// (pick up then place) execute a valid tableau-to-tableau move, mirroring
-// the keyboard-driven TestBoardDragPlace_Valid but via mouse events.
+// TestBoardMouseDragPlace_Valid verifies that a mouse press-then-release gesture
+// (drag-and-drop) executes a valid tableau-to-tableau move.
 func TestBoardMouseDragPlace_Valid(t *testing.T) {
 	board, eng := newBoard()
 
@@ -1072,18 +1088,18 @@ func TestBoardMouseDragPlace_Valid(t *testing.T) {
 	srcLen := len(eng.State().Tableau[srcCol].Cards)
 	srcCardIdx := srcLen - move.CardCount
 
-	// Click 1: pick up the source card(s).
+	// Press: lift the source card(s).
 	board = clickPile(board, move.From, srcCardIdx)
 	if !board.cursor.Dragging {
-		t.Fatal("first mouse click must pick up card (Dragging=true)")
+		t.Fatal("mouse press on face-up card must start drag (Dragging=true)")
 	}
 
-	// Click 2: place on destination.
+	// Release: drop on destination — executes the move.
 	destCardIdx := naturalCardIndex(move.To, eng.State())
-	board = clickPile(board, move.To, destCardIdx)
+	board = releasePile(board, move.To, destCardIdx)
 
 	if board.cursor.Dragging {
-		t.Error("second mouse click must clear Dragging")
+		t.Error("mouse release must clear Dragging")
 	}
 	afterLen := len(eng.State().Tableau[srcCol].Cards)
 	if afterLen >= srcLen {
@@ -1116,6 +1132,131 @@ func TestBoardMouseDragPlace_FaceDownCard(t *testing.T) {
 	}
 	if board.cursor.DragCardCount != 0 {
 		t.Errorf("DragCardCount must be 0 after no-op, got %d", board.cursor.DragCardCount)
+	}
+}
+
+// TestBoardMouseDragMove verifies that a motion event while dragging updates
+// the ghost card position (MouseX/Y) but does not change engine state.
+func TestBoardMouseDragMove(t *testing.T) {
+	board, eng := newBoard()
+
+	// Find a face-up tableau card to lift.
+	if len(eng.State().Tableau[0].Cards) == 0 {
+		t.Skip("T0 empty — cannot test drag move")
+	}
+
+	// Press: lift the card.
+	board = clickPile(board, engine.PileTableau0, 0)
+	if !board.cursor.Dragging {
+		t.Fatal("press on face-up card must start drag")
+	}
+
+	moveBefore := eng.State().MoveCount
+
+	// Motion: move the mouse to a new position.
+	updated, _ := board.Update(tea.MouseMsg{
+		Action: tea.MouseActionMotion,
+		X:      25, Y: 15,
+	})
+	board = updated.(BoardModel)
+
+	if board.cursor.MouseX != 25 || board.cursor.MouseY != 15 {
+		t.Errorf("mouse motion must update MouseX/Y: got (%d,%d), want (25,15)",
+			board.cursor.MouseX, board.cursor.MouseY)
+	}
+	if !board.cursor.Dragging {
+		t.Error("mouse motion must not clear Dragging")
+	}
+	if eng.State().MoveCount != moveBefore {
+		t.Error("mouse motion must not change engine state")
+	}
+}
+
+// TestBoardMouseDragMove_NotDragging verifies that motion events without an
+// active drag are completely ignored (no cursor or engine state changes).
+func TestBoardMouseDragMove_NotDragging(t *testing.T) {
+	board, eng := newBoard()
+	moveBefore := eng.State().MoveCount
+	pileBefore := board.cursor.Pile
+
+	// Motion with no drag in progress — must be a no-op.
+	updated, _ := board.Update(tea.MouseMsg{
+		Action: tea.MouseActionMotion,
+		X:      25, Y: 15,
+	})
+	board = updated.(BoardModel)
+
+	if board.cursor.Dragging {
+		t.Error("motion without drag must not set Dragging")
+	}
+	if board.cursor.MouseX != 0 || board.cursor.MouseY != 0 {
+		t.Error("motion without drag must not update MouseX/Y")
+	}
+	if board.cursor.Pile != pileBefore {
+		t.Error("motion without drag must not change cursor pile")
+	}
+	if eng.State().MoveCount != moveBefore {
+		t.Error("motion without drag must not change engine state")
+	}
+}
+
+// TestBoardMouseDragSnapBack verifies that releasing the mouse over an invalid
+// destination leaves the engine state unchanged (snap-back).
+func TestBoardMouseDragSnapBack(t *testing.T) {
+	board, eng := newBoard()
+
+	if len(eng.State().Tableau[0].Cards) == 0 {
+		t.Skip("T0 empty — cannot test snap-back")
+	}
+
+	moveBefore := eng.State().MoveCount
+
+	// Press: lift card from T0.
+	board = clickPile(board, engine.PileTableau0, 0)
+	if !board.cursor.Dragging {
+		t.Fatal("press must start drag")
+	}
+
+	// Release far outside any pile — snap back.
+	updated, _ := board.Update(tea.MouseMsg{
+		Action: tea.MouseActionRelease,
+		Button: tea.MouseButtonLeft,
+		X:      79, Y: 29,
+	})
+	board = updated.(BoardModel)
+
+	if board.cursor.Dragging {
+		t.Error("release must clear Dragging even on miss")
+	}
+	if eng.State().MoveCount != moveBefore {
+		t.Error("snap-back must not change engine state")
+	}
+}
+
+// TestBoardMouseDragSamePile verifies that releasing over the same pile does
+// not execute a move (snaps back silently).
+func TestBoardMouseDragSamePile(t *testing.T) {
+	board, eng := newBoard()
+
+	if len(eng.State().Tableau[0].Cards) == 0 {
+		t.Skip("T0 empty — cannot test same-pile snap")
+	}
+
+	moveBefore := eng.State().MoveCount
+	srcLen := len(eng.State().Tableau[0].Cards)
+
+	// Lift and immediately drop on the same pile.
+	board = clickPile(board, engine.PileTableau0, 0)
+	board = releasePile(board, engine.PileTableau0, 0)
+
+	if board.cursor.Dragging {
+		t.Error("release must clear Dragging")
+	}
+	if eng.State().MoveCount != moveBefore {
+		t.Error("same-pile drop must not change engine state")
+	}
+	if len(eng.State().Tableau[0].Cards) != srcLen {
+		t.Error("same-pile drop must not change pile length")
 	}
 }
 

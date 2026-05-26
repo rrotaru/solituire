@@ -66,12 +66,12 @@ func TestTranslateInput(t *testing.T) {
 		{"q quit", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("q")}, ActionQuit, nil},
 		{"ctrl+c", tea.KeyMsg{Type: tea.KeyCtrlC}, ActionQuit, nil},
 
-		// Mouse — left click → ActionSelect (payload checked in dedicated test)
+		// Mouse — left press → ActionDragStart (payload checked in dedicated test)
 		{"mouse left click", tea.MouseMsg{
 			Action: tea.MouseActionPress,
 			Button: tea.MouseButtonLeft,
 			X:      15, Y: 10,
-		}, ActionSelect, nil},
+		}, ActionDragStart, nil},
 
 		// Unmapped keys → ActionNone
 		{"unmapped rune a", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("a")}, ActionNone, nil},
@@ -162,11 +162,20 @@ func TestTranslateInput_MultiRuneIgnored(t *testing.T) {
 	}
 }
 
-// TestTranslateInput_MouseRelease verifies non-press mouse events are ignored.
+// TestTranslateInput_MouseRelease verifies that a left-button release maps to
+// ActionDragDrop and that non-left releases produce ActionNone.
 func TestTranslateInput_MouseRelease(t *testing.T) {
+	// Left release → ActionDragDrop (drop attempt).
 	m := tea.MouseMsg{Action: tea.MouseActionRelease, Button: tea.MouseButtonLeft, X: 10, Y: 5}
 	got, _ := TranslateInput(m)
-	if got != ActionNone {
-		t.Errorf("mouse release: got %v, want ActionNone", got)
+	if got != ActionDragDrop {
+		t.Errorf("left mouse release: got %v, want ActionDragDrop", got)
+	}
+
+	// Non-left release (right button) → ActionNone.
+	mRight := tea.MouseMsg{Action: tea.MouseActionRelease, Button: tea.MouseButtonRight, X: 10, Y: 5}
+	gotRight, _ := TranslateInput(mRight)
+	if gotRight != ActionNone {
+		t.Errorf("right mouse release: got %v, want ActionNone", gotRight)
 	}
 }

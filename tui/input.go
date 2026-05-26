@@ -18,9 +18,14 @@ const (
 	ActionTabNext // Tab
 	ActionTabPrev // Shift-Tab
 
-	// Selection
-	ActionSelect // Enter or click — pick up or place card(s)
+	// Selection — keyboard two-click flow
+	ActionSelect // Enter — pick up or place card(s) (keyboard only)
 	ActionCancel // Esc — deselect current selection
+
+	// Mouse drag-and-drop — press → move → release flow
+	ActionDragStart // left mouse button pressed — begin drag
+	ActionDragMove  // mouse motion while button held — update ghost position
+	ActionDragDrop  // left mouse button released — attempt placement
 
 	// Shortcuts
 	ActionFlipStock        // Spacebar
@@ -131,8 +136,13 @@ func translateRune(r rune) (GameAction, interface{}) {
 }
 
 func translateMouse(m tea.MouseMsg) (GameAction, interface{}) {
-	if m.Action == tea.MouseActionPress && m.Button == tea.MouseButtonLeft {
-		return ActionSelect, m
+	switch {
+	case m.Action == tea.MouseActionPress && m.Button == tea.MouseButtonLeft:
+		return ActionDragStart, m
+	case m.Action == tea.MouseActionMotion:
+		return ActionDragMove, m
+	case m.Action == tea.MouseActionRelease && m.Button == tea.MouseButtonLeft:
+		return ActionDragDrop, m
 	}
 	return ActionNone, nil
 }

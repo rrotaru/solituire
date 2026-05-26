@@ -88,21 +88,31 @@ func RenderStockPile(p *engine.StockPile, cursor CursorState, t theme.Theme) str
 // RenderWastePile renders the waste pile.
 // Draw-1: shows only the top card.
 // Draw-3: shows up to 3 cards fanned (only the top is fully playable).
+// During a drag from waste, the top card is omitted so the pile looks depleted.
 func RenderWastePile(p *engine.WastePile, cursor CursorState, t theme.Theme) string {
-	if p.IsEmpty() {
+	draggingFromHere := cursor.Dragging && cursor.DragSource == engine.PileWaste
+
+	if p.IsEmpty() || (draggingFromHere && len(p.Cards) == 1) {
 		state := cardVisualStateForCursor(engine.PileWaste, 0, cursor)
 		return renderEmptyWithState(state, t)
 	}
 
 	visible := p.VisibleCards()
+	if draggingFromHere {
+		// Drop the top visible card — it is shown as the ghost.
+		visible = visible[:len(visible)-1]
+	}
+
+	if len(visible) == 0 {
+		state := cardVisualStateForCursor(engine.PileWaste, 0, cursor)
+		return renderEmptyWithState(state, t)
+	}
 	if len(visible) == 1 {
 		state := cardVisualStateForCursor(engine.PileWaste, 0, cursor)
 		return renderCard(cardContent{card: visible[0], state: resolveStateForFaceUp(state)}, t)
 	}
 
 	// Draw-3: fan the cards horizontally with overlap.
-	// Render each card and join them with overlap using lipgloss.JoinHorizontal.
-	// For simplicity, render each as a full card side by side (Agent C can refine).
 	parts := make([]string, len(visible))
 	for i, c := range visible {
 		var state cardVisualState
@@ -116,16 +126,28 @@ func RenderWastePile(p *engine.WastePile, cursor CursorState, t theme.Theme) str
 }
 
 // RenderFoundationPile renders a foundation pile.
+// During a drag from this foundation the top card is omitted so the pile looks depleted.
 func RenderFoundationPile(p *engine.FoundationPile, idx int, cursor CursorState, t theme.Theme) string {
 	pid := engine.PileID(engine.PileFoundation0 + engine.PileID(idx))
-	if p.TopCard() == nil {
+	draggingFromHere := cursor.Dragging && cursor.DragSource == pid
+
+	sym := suitSymbolForIndex(idx)
+
+	// Determine how many cards we logically have (minus any being dragged).
+	cardCount := len(p.Cards)
+	if draggingFromHere {
+		cardCount--
+	}
+
+	if cardCount <= 0 {
 		state := cardVisualStateForCursor(pid, 0, cursor)
-		sym := suitSymbolForIndex(idx)
 		return renderEmptyWithSuit(sym, state, t)
 	}
-	top := p.TopCard()
+
+	// Show the card at cardCount-1 (i.e. the new top after the drag lift).
+	top := p.Cards[cardCount-1]
 	state := cardVisualStateForCursor(pid, 0, cursor)
-	return renderCard(cardContent{card: *top, state: resolveStateForFaceUp(state)}, t)
+	return renderCard(cardContent{card: top, state: resolveStateForFaceUp(state)}, t)
 }
 
 // renderEmptyWithSuit renders an empty foundation slot with a suit symbol hint,
@@ -160,18 +182,25 @@ func renderEmptyWithSuit(suit string, state cardVisualState, t theme.Theme) stri
 // RenderTableauPile renders a tableau column as a vertical stack.
 // Face-down cards show as single-line stubs; face-up cards fan with 2-line peeks
 // except the bottom card which is fully rendered.
+// During a drag from this column the lifted cards are omitted so the pile looks depleted.
 func RenderTableauPile(p *engine.TableauPile, colIdx int, cursor CursorState, t theme.Theme) string {
 	pid := engine.PileID(engine.PileTableau0 + engine.PileID(colIdx))
 
-	if p.IsEmpty() {
+	// When dragging from this column, hide the lifted cards.
+	draggingFromHere := cursor.Dragging && cursor.DragSource == pid
+
+	fdCount := p.FaceDownCount()
+	fuCards := p.FaceUpCards()
+	if draggingFromHere && cursor.DragCardCount > 0 && cursor.DragCardCount <= len(fuCards) {
+		fuCards = fuCards[:len(fuCards)-cursor.DragCardCount]
+	}
+
+	if fdCount == 0 && len(fuCards) == 0 {
 		state := cardVisualStateForCursor(pid, 0, cursor)
 		return renderEmptyWithState(state, t)
 	}
 
 	var rows []string
-
-	fdCount := p.FaceDownCount()
-	fuCards := p.FaceUpCards()
 
 	// Face-down stubs: each is 1 row (top border line only)
 	for i := 0; i < fdCount; i++ {

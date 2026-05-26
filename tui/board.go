@@ -129,18 +129,65 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		}
 
 	case ActionSelect:
-		// For mouse clicks, hit-test the click coordinates to move the cursor to
-		// the target pile/card before running the select logic. Clicks outside any
-		// pile are ignored.
-		if mouse, ok := payload.(tea.MouseMsg); ok {
-			pile, cardIdx, hit := renderer.PileHitTestWithWidth(mouse.X, mouse.Y, state, m.width)
-			if !hit {
-				return m, nil // miss-click: completely ignored, no automation
-			}
+		// Keyboard Enter only — mouse now uses ActionDragStart/Drop flow.
+		m = m.handleSelect(state)
+
+	case ActionDragStart:
+		// Left mouse button pressed: hit-test and begin a drag gesture.
+		mouse := payload.(tea.MouseMsg)
+		pile, cardIdx, hit := renderer.PileHitTestWithWidth(mouse.X, mouse.Y, state, m.width)
+		if !hit {
+			return m, nil // miss-click: ignore
+		}
+		m.cursor.Pile = pile
+		m.cursor.CardIndex = cardIdx
+		if pile == engine.PileStock {
+			// Stock always flips on press; it cannot be dragged.
+			m.flipStock(state)
+			return m, m.winCmd()
+		}
+		count := dragCount(state, m.cursor)
+		if count > 0 {
+			m.cursor.Dragging = true
+			m.cursor.DragSource = pile
+			m.cursor.DragCardCount = count
+			m.cursor.MouseX = mouse.X
+			m.cursor.MouseY = mouse.Y
+		}
+		return m, nil // skip auto-move — drag is in progress
+
+	case ActionDragMove:
+		// Mouse moved while button held: update ghost card position and re-render.
+		if !m.cursor.Dragging {
+			return m, nil
+		}
+		mouse := payload.(tea.MouseMsg)
+		m.cursor.MouseX = mouse.X
+		m.cursor.MouseY = mouse.Y
+		return m, nil // return early: no engine changes, no auto-move
+
+	case ActionDragDrop:
+		// Left mouse button released: attempt to place at drop target, or snap back.
+		if !m.cursor.Dragging {
+			return m, nil
+		}
+		mouse := payload.(tea.MouseMsg)
+		pile, cardIdx, hit := renderer.PileHitTestWithWidth(mouse.X, mouse.Y, state, m.width)
+		if hit && pile != m.cursor.DragSource {
 			m.cursor.Pile = pile
 			m.cursor.CardIndex = cardIdx
+			cmd := m.buildMoveCmd(state, m.cursor.DragSource, m.cursor.DragCardCount, pile)
+			if cmd != nil {
+				_ = m.eng.Execute(cmd)
+			}
+			// Invalid dest: engine rejects silently — cards snap back via clear below.
 		}
-		m = m.handleSelect(state)
+		m.cursor.Dragging = false
+		m.cursor.DragSource = 0
+		m.cursor.DragCardCount = 0
+		m.cursor.MouseX = 0
+		m.cursor.MouseY = 0
+		m.clampCursor()
 
 	case ActionCancel:
 		m.cursor.Dragging = false

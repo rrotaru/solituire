@@ -12,12 +12,16 @@ import (
 // CursorState is populated by the TUI layer and consumed by the renderer.
 // It describes what the cursor is pointing at and any active drag or hint.
 type CursorState struct {
-	Pile      engine.PileID
-	CardIndex int  // 0-based index within the pile's cards slice
-	Dragging  bool // true when a card (stack) is being dragged
-	HintFrom  engine.PileID
-	HintTo    engine.PileID
-	ShowHint  bool
+	Pile          engine.PileID
+	CardIndex     int  // 0-based index within the pile's cards slice
+	Dragging      bool // true when a card (stack) is being dragged
+	DragSource    engine.PileID
+	DragCardCount int // number of cards lifted from DragSource
+	MouseX        int // terminal column of the mouse cursor during drag
+	MouseY        int // terminal row of the mouse cursor during drag
+	HintFrom      engine.PileID
+	HintTo        engine.PileID
+	ShowHint      bool
 }
 
 // cardVisualState enumerates the rendering mode for a single card cell.
