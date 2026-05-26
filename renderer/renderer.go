@@ -51,7 +51,7 @@ func (r *Renderer) Render(state *engine.GameState, cursor CursorState, cfg *conf
 	tableau := r.renderTableau(state, cursor)
 	footer := renderFooter(r.width, r.theme)
 
-	board := lipgloss.JoinVertical(lipgloss.Left,
+	board := strings.Join([]string{
 		header,
 		"",
 		topRow,
@@ -59,12 +59,9 @@ func (r *Renderer) Render(state *engine.GameState, cursor CursorState, cfg *conf
 		tableau,
 		"",
 		footer,
-	)
+	}, "\n")
 
-	return lipgloss.NewStyle().
-		Background(r.theme.BoardBackground).
-		Width(r.width).
-		Render(board)
+	return r.padBoardRight(board)
 }
 
 // renderTooSmall returns a centered "terminal too small" message.
@@ -95,7 +92,7 @@ func (r *Renderer) renderTopRow(state *engine.GameState, cursor CursorState) str
 
 	leftSection := lipgloss.JoinHorizontal(lipgloss.Top,
 		stock,
-		r.boardGap(ColGap),
+		r.boardGapCol(ColGap, CardHeight),
 		waste,
 	)
 
@@ -107,14 +104,14 @@ func (r *Renderer) renderTopRow(state *engine.GameState, cursor CursorState) str
 	if gapWidth < 1 {
 		gapWidth = 1
 	}
-	gap := r.boardGap(gapWidth)
+	gap := r.boardGapCol(gapWidth, CardHeight)
 	rightSection := lipgloss.JoinHorizontal(lipgloss.Top,
 		f0,
-		r.boardGap(ColGap),
+		r.boardGapCol(ColGap, CardHeight),
 		f1,
-		r.boardGap(ColGap),
+		r.boardGapCol(ColGap, CardHeight),
 		f2,
-		r.boardGap(ColGap),
+		r.boardGapCol(ColGap, CardHeight),
 		f3,
 	)
 
@@ -124,26 +121,66 @@ func (r *Renderer) renderTopRow(state *engine.GameState, cursor CursorState) str
 // renderTableau renders all 7 tableau columns side by side, aligned to their tops.
 func (r *Renderer) renderTableau(state *engine.GameState, cursor CursorState) string {
 	cols := make([]string, 7)
+	maxHeight := 0
 	for i := 0; i < 7; i++ {
 		cols[i] = RenderTableauPile(state.Tableau[i], i, cursor, r.theme)
+		if h := strings.Count(cols[i], "\n") + 1; h > maxHeight {
+			maxHeight = h
+		}
 	}
 
-	// Join with gaps
+	// Pre-pad shorter columns so JoinHorizontal doesn't add unstyled spaces
 	parts := make([]string, 0, 13)
 	for i, col := range cols {
-		parts = append(parts, col)
+		parts = append(parts, r.padColumnHeight(col, maxHeight))
 		if i < 6 {
-			parts = append(parts, r.boardGap(ColGap))
+			parts = append(parts, r.boardGapCol(ColGap, maxHeight))
 		}
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Top, parts...)
 }
 
 // boardGap returns n spaces explicitly styled with the board background color.
-// Use this instead of plain strings.Repeat(" ", n) for all gap/padding between
-// rendered card cells so the board background shows through after ANSI resets.
 func (r *Renderer) boardGap(n int) string {
 	return lipgloss.NewStyle().Background(r.theme.BoardBackground).Render(strings.Repeat(" ", n))
+}
+
+// boardGapCol returns a multi-line column of styled spaces (width × height).
+// Use instead of boardGap when the gap is passed to JoinHorizontal alongside
+// multi-line card renders, so lipgloss doesn't pad with unstyled spaces.
+func (r *Renderer) boardGapCol(width, height int) string {
+	line := r.boardGap(width)
+	lines := make([]string, height)
+	for i := range lines {
+		lines[i] = line
+	}
+	return strings.Join(lines, "\n")
+}
+
+// padColumnHeight pads a rendered column to targetHeight with styled blank lines.
+func (r *Renderer) padColumnHeight(col string, targetHeight int) string {
+	lines := strings.Split(col, "\n")
+	if len(lines) >= targetHeight {
+		return col
+	}
+	w := lipgloss.Width(lines[0])
+	padLine := r.boardGap(w)
+	for len(lines) < targetHeight {
+		lines = append(lines, padLine)
+	}
+	return strings.Join(lines, "\n")
+}
+
+// padBoardRight right-pads every line of board to r.width with styled spaces.
+func (r *Renderer) padBoardRight(board string) string {
+	bgStyle := lipgloss.NewStyle().Background(r.theme.BoardBackground)
+	lines := strings.Split(board, "\n")
+	for i, line := range lines {
+		if w := lipgloss.Width(line); w < r.width {
+			lines[i] = line + bgStyle.Render(strings.Repeat(" ", r.width-w))
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 // centerString centers s within width w using spaces.

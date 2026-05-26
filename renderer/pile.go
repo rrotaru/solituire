@@ -69,8 +69,8 @@ func renderFaceDownWithState(state cardVisualState, t theme.Theme) string {
 	default:
 		borderColor = t.CardBorder
 	}
-	borderStyle := lipgloss.NewStyle().Foreground(borderColor)
-	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown)
+	borderStyle := lipgloss.NewStyle().Foreground(borderColor).Background(t.BoardBackground)
+	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.CardBackground)
 
 	top := borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
 	fill := borderStyle.Render("│") + fillStyle.Render(strings.Repeat("░", innerWidth)) + borderStyle.Render("│")
@@ -140,27 +140,21 @@ func renderEmptyWithSuit(suit string, state cardVisualState, t theme.Theme) stri
 	default:
 		borderColor = t.EmptySlotBorder
 	}
-	borderStyle := lipgloss.NewStyle().Foreground(borderColor)
-	textStyle := lipgloss.NewStyle().Foreground(t.EmptySlotText)
+	borderStyle := lipgloss.NewStyle().Foreground(borderColor).Background(t.BoardBackground)
+	textStyle := lipgloss.NewStyle().Foreground(t.EmptySlotText).Background(t.BoardBackground)
+	bgStyle := lipgloss.NewStyle().Background(t.BoardBackground)
 
 	top := borderStyle.Render("╭" + strings.Repeat("╌", innerWidth) + "╮")
-	blank := borderStyle.Render("│") + strings.Repeat(" ", innerWidth) + borderStyle.Render("│")
+	blank := borderStyle.Render("│") + bgStyle.Render(strings.Repeat(" ", innerWidth)) + borderStyle.Render("│")
 	// center the suit symbol on row 3 (middle of 5 inner rows)
-	midContent := centerInWidth(textStyle.Render(suit), innerWidth)
+	left := (innerWidth - 1) / 2
+	right := innerWidth - 1 - left
+	midContent := bgStyle.Render(strings.Repeat(" ", left)) + textStyle.Render(suit) + bgStyle.Render(strings.Repeat(" ", right))
 	mid := borderStyle.Render("│") + midContent + borderStyle.Render("│")
 	bot := borderStyle.Render("╰" + strings.Repeat("╌", innerWidth) + "╯")
 
 	lines := []string{top, blank, blank, mid, blank, blank, bot}
 	return strings.Join(lines, "\n")
-}
-
-// centerInWidth centers s within width w, padding with spaces.
-// s is assumed to be a single rune visually (suit symbol).
-func centerInWidth(s string, w int) string {
-	// suit symbol is 1 visual column wide; we have w columns total
-	left := (w - 1) / 2
-	right := w - 1 - left
-	return strings.Repeat(" ", left) + s + strings.Repeat(" ", right)
 }
 
 // RenderTableauPile renders a tableau column as a vertical stack.
