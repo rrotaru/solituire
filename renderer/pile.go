@@ -69,8 +69,8 @@ func renderFaceDownWithState(state cardVisualState, t theme.Theme) string {
 	default:
 		borderColor = t.CardBorder
 	}
-	borderStyle := lipgloss.NewStyle().Foreground(borderColor)
-	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown)
+	borderStyle := lipgloss.NewStyle().Foreground(borderColor).Background(t.BoardBackground)
+	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.CardBackground)
 
 	top := borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
 	fill := borderStyle.Render("│") + fillStyle.Render(strings.Repeat("░", innerWidth)) + borderStyle.Render("│")
@@ -140,13 +140,14 @@ func renderEmptyWithSuit(suit string, state cardVisualState, t theme.Theme) stri
 	default:
 		borderColor = t.EmptySlotBorder
 	}
-	borderStyle := lipgloss.NewStyle().Foreground(borderColor)
-	textStyle := lipgloss.NewStyle().Foreground(t.EmptySlotText)
+	borderStyle := lipgloss.NewStyle().Foreground(borderColor).Background(t.BoardBackground)
+	textStyle := lipgloss.NewStyle().Foreground(t.EmptySlotText).Background(t.BoardBackground)
+	bgStyle := lipgloss.NewStyle().Background(t.BoardBackground)
 
 	top := borderStyle.Render("╭" + strings.Repeat("╌", innerWidth) + "╮")
-	blank := borderStyle.Render("│") + strings.Repeat(" ", innerWidth) + borderStyle.Render("│")
+	blank := borderStyle.Render("│") + bgStyle.Render(strings.Repeat(" ", innerWidth)) + borderStyle.Render("│")
 	// center the suit symbol on row 3 (middle of 5 inner rows)
-	midContent := centerInWidth(textStyle.Render(suit), innerWidth)
+	midContent := bgStyle.Render(centerInWidth(textStyle.Render(suit), innerWidth))
 	mid := borderStyle.Render("│") + midContent + borderStyle.Render("│")
 	bot := borderStyle.Render("╰" + strings.Repeat("╌", innerWidth) + "╯")
 

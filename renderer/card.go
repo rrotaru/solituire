@@ -82,10 +82,11 @@ func renderEmptyWithState(state cardVisualState, t theme.Theme) string {
 		borderColor = t.EmptySlotBorder
 	}
 
-	borderStyle := lipgloss.NewStyle().Foreground(borderColor)
+	borderStyle := lipgloss.NewStyle().Foreground(borderColor).Background(t.BoardBackground)
+	bgStyle := lipgloss.NewStyle().Background(t.BoardBackground)
 
 	top := borderStyle.Render("╭" + strings.Repeat("╌", innerWidth) + "╮")
-	mid := borderStyle.Render("│") + strings.Repeat(" ", innerWidth) + borderStyle.Render("│")
+	mid := borderStyle.Render("│") + bgStyle.Render(strings.Repeat(" ", innerWidth)) + borderStyle.Render("│")
 	bot := borderStyle.Render("╰" + strings.Repeat("╌", innerWidth) + "╯")
 
 	lines := []string{top, mid, mid, mid, mid, mid, bot}
@@ -94,8 +95,8 @@ func renderEmptyWithState(state cardVisualState, t theme.Theme) string {
 
 // renderFaceDown renders a face-down card with hatched interior.
 func renderFaceDown(t theme.Theme) string {
-	borderStyle := lipgloss.NewStyle().Foreground(t.CardBorder)
-	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown)
+	borderStyle := lipgloss.NewStyle().Foreground(t.CardBorder).Background(t.BoardBackground)
+	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.CardBackground)
 
 	top := borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
 	fill := borderStyle.Render("│") + fillStyle.Render(strings.Repeat("░", innerWidth)) + borderStyle.Render("│")
@@ -130,7 +131,7 @@ func renderFaceUp(cc cardContent, t theme.Theme) string {
 		borderColor = t.CardBorder
 	}
 
-	borderStyle := lipgloss.NewStyle().Foreground(borderColor)
+	borderStyle := lipgloss.NewStyle().Foreground(borderColor).Background(t.BoardBackground)
 	suitStyle := lipgloss.NewStyle().Foreground(suitColor).Background(t.CardBackground)
 	rankStyle := lipgloss.NewStyle().Foreground(t.CardForeground).Background(t.CardBackground)
 	bgStyle := lipgloss.NewStyle().Background(t.CardBackground)
@@ -147,17 +148,15 @@ func renderFaceUp(cc cardContent, t theme.Theme) string {
 		bgStyle.Inline(true).Render(strings.Repeat(" ", innerWidth-3))
 
 	// line2: "   ♠   " — suit centered (3+1+3 = 7)
-	line2 := strings.Repeat(" ", 3) +
+	line2 := bgStyle.Inline(true).Render(strings.Repeat(" ", 3)) +
 		suitStyle.Inline(true).Render(suit) +
 		bgStyle.Inline(true).Render(strings.Repeat(" ", 3))
 
 	// line4: "     ♠K" — suit+rank together at bottom-right (4+1+2 = 7)
-	line4 := strings.Repeat(" ", innerWidth-3) +
+	line4 := bgStyle.Inline(true).Render(strings.Repeat(" ", innerWidth-3)) +
 		suitStyle.Inline(true).Render(suit) +
 		rankStyle.Inline(true).Render(rankPadR)
 
-	// Each segment carries its own Background so that ANSI resets between
-	// segments never expose the terminal-default background on the card face.
 	top := borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
 	r0 := borderStyle.Render("│") + bgStyle.Render(line0) + borderStyle.Render("│")
 	r1 := borderStyle.Render("│") + bgStyle.Render(blank) + borderStyle.Render("│")
@@ -172,7 +171,7 @@ func renderFaceUp(cc cardContent, t theme.Theme) string {
 // cardStubTop renders only the top border line of a face-down card (1 row).
 // Used for fanned face-down cards in tableau columns.
 func cardStubTop(t theme.Theme) string {
-	borderStyle := lipgloss.NewStyle().Foreground(t.CardBorder)
+	borderStyle := lipgloss.NewStyle().Foreground(t.CardBorder).Background(t.BoardBackground)
 	return borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
 }
 
@@ -201,7 +200,7 @@ func cardPeekLines(c engine.Card, state cardVisualState, t theme.Theme) string {
 		borderColor = t.CardBorder
 	}
 
-	borderStyle := lipgloss.NewStyle().Foreground(borderColor)
+	borderStyle := lipgloss.NewStyle().Foreground(borderColor).Background(t.BoardBackground)
 	suitStyle := lipgloss.NewStyle().Foreground(suitColor).Background(t.CardBackground)
 	rankStyle := lipgloss.NewStyle().Foreground(t.CardForeground).Background(t.CardBackground)
 	bgStyle := lipgloss.NewStyle().Background(t.CardBackground)
