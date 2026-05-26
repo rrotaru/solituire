@@ -51,7 +51,7 @@ func (r *Renderer) Render(state *engine.GameState, cursor CursorState, cfg *conf
 	tableau := r.renderTableau(state, cursor)
 	footer := renderFooter(r.width, r.theme)
 
-	board := lipgloss.JoinVertical(lipgloss.Left,
+	board := strings.Join([]string{
 		header,
 		"",
 		topRow,
@@ -59,13 +59,9 @@ func (r *Renderer) Render(state *engine.GameState, cursor CursorState, cfg *conf
 		tableau,
 		"",
 		footer,
-	)
+	}, "\n")
 
-	board = r.padBoardRight(board)
-
-	return lipgloss.NewStyle().
-		Background(r.theme.BoardBackground).
-		Render(board)
+	return r.padBoardRight(board)
 }
 
 // renderTooSmall returns a centered "terminal too small" message.
@@ -133,10 +129,10 @@ func (r *Renderer) renderTableau(state *engine.GameState, cursor CursorState) st
 		}
 	}
 
-	// Join with gaps
+	// Pre-pad shorter columns so JoinHorizontal doesn't add unstyled spaces
 	parts := make([]string, 0, 13)
 	for i, col := range cols {
-		parts = append(parts, col)
+		parts = append(parts, r.padColumnHeight(col, maxHeight))
 		if i < 6 {
 			parts = append(parts, r.boardGapCol(ColGap, maxHeight))
 		}
@@ -157,6 +153,20 @@ func (r *Renderer) boardGapCol(width, height int) string {
 	lines := make([]string, height)
 	for i := range lines {
 		lines[i] = line
+	}
+	return strings.Join(lines, "\n")
+}
+
+// padColumnHeight pads a rendered column to targetHeight with styled blank lines.
+func (r *Renderer) padColumnHeight(col string, targetHeight int) string {
+	lines := strings.Split(col, "\n")
+	if len(lines) >= targetHeight {
+		return col
+	}
+	w := lipgloss.Width(lines[0])
+	padLine := r.boardGap(w)
+	for len(lines) < targetHeight {
+		lines = append(lines, padLine)
 	}
 	return strings.Join(lines, "\n")
 }
