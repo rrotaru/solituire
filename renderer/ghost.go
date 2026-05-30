@@ -64,7 +64,9 @@ func (r *Renderer) renderGhostCard(state *engine.GameState, cursor CursorState) 
 	}
 
 	top := borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
-	mid := borderStyle.Render("│") + bgStyle.Render(inner) + borderStyle.Render("│")
+	// Use inner directly (already composed of inline-styled pieces) rather than
+	// wrapping in a second bgStyle.Render, which could inject block formatting.
+	mid := borderStyle.Render("│") + inner + borderStyle.Render("│")
 	bot := borderStyle.Render("└" + strings.Repeat("─", innerWidth) + "┘")
 
 	return strings.Join([]string{top, mid, bot}, "\n")
@@ -103,7 +105,7 @@ func ghostCardInfo(state *engine.GameState, cursor CursorState) (*engine.Card, i
 // applyOverlay overlays the multi-line overlay string at (startRow, startCol)
 // within base, using ANSI-aware string manipulation so existing terminal styling
 // in base is preserved outside the overlay region.
-func applyOverlay(base, overlay string, startRow, startCol, termWidth, termHeight int) string {
+func applyOverlay(base, overlay string, startRow, startCol, termWidth int) string {
 	if overlay == "" {
 		return base
 	}
@@ -125,7 +127,13 @@ func applyOverlay(base, overlay string, startRow, startCol, termWidth, termHeigh
 	if startRow < 0 {
 		startRow = 0
 	}
-	maxRow := termHeight - ghostCardHeight
+	// Clamp against the actual board line count so the ghost never tries to
+	// write past the end of the rendered board string. termHeight can exceed
+	// len(baseLines) when the board content is shorter than the terminal.
+	maxRow := len(baseLines) - ghostCardHeight
+	if maxRow < 0 {
+		maxRow = 0
+	}
 	if startRow > maxRow {
 		startRow = maxRow
 	}

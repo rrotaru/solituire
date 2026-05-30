@@ -67,7 +67,7 @@ func (r *Renderer) Render(state *engine.GameState, cursor CursorState, cfg *conf
 	// a fully composed frame and clears stale ghost pixels on subsequent frames.
 	if cursor.Dragging {
 		ghost := r.renderGhostCard(state, cursor)
-		board = applyOverlay(board, ghost, cursor.MouseY, cursor.MouseX, r.width, r.height)
+		board = applyOverlay(board, ghost, cursor.MouseY, cursor.MouseX, r.width)
 	}
 
 	return board
