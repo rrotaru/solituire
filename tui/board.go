@@ -173,14 +173,14 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		}
 		mouse := payload.(tea.MouseMsg)
 		pile, cardIdx, hit := renderer.PileHitTestWithWidth(mouse.X, mouse.Y, state, m.width)
+		moved := false
 		if hit && pile != m.cursor.DragSource {
 			m.cursor.Pile = pile
 			m.cursor.CardIndex = cardIdx
 			cmd := m.buildMoveCmd(state, m.cursor.DragSource, m.cursor.DragCardCount, pile)
-			if cmd != nil {
-				_ = m.eng.Execute(cmd)
+			if cmd != nil && m.eng.Execute(cmd) == nil {
+				moved = true
 			}
-			// Invalid dest: engine rejects silently — cards snap back via clear below.
 		}
 		m.cursor.Dragging = false
 		m.cursor.DragSource = 0
@@ -188,6 +188,9 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		m.cursor.MouseX = 0
 		m.cursor.MouseY = 0
 		m.clampCursor()
+		if !moved {
+			return m, nil // snap-back: engine unchanged, skip auto-move
+		}
 
 	case ActionCancel:
 		m.cursor.Dragging = false
