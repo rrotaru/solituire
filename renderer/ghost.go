@@ -1,7 +1,6 @@
 package renderer
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -9,67 +8,16 @@ import (
 	"solituire/engine"
 )
 
-// ghostCardHeight is the number of lines in the compact ghost card render.
-const ghostCardHeight = 3
+// ghostCardHeight is the number of lines in the ghost card render.
+const ghostCardHeight = CardHeight
 
-// renderGhostCard produces a compact 3-line card representation for the drag ghost.
-//
-// Single-card drag:
-//
-//	┌───────┐
-//	│K♠     │
-//	└───────┘
-//
-// Multi-card drag (N cards):
-//
-//	┌───────┐
-//	│K♠  (3)│
-//	└───────┘
+// renderGhostCard produces a full-height card for the drag ghost.
 func (r *Renderer) renderGhostCard(state *engine.GameState, cursor CursorState) string {
-	card, count := ghostCardInfo(state, cursor)
+	card, _ := ghostCardInfo(state, cursor)
 	if card == nil {
 		return ""
 	}
-
-	borderStyle := lipgloss.NewStyle().Foreground(r.theme.SelectedBorder).Background(r.theme.BoardBackground)
-	bgStyle := lipgloss.NewStyle().Background(r.theme.CardBackground)
-
-	var suitColor lipgloss.Color
-	if card.Color() == engine.Red {
-		suitColor = r.theme.RedSuit
-	} else {
-		suitColor = r.theme.BlackSuit
-	}
-	suitStyle := lipgloss.NewStyle().Foreground(suitColor).Background(r.theme.CardBackground)
-	rankStyle := lipgloss.NewStyle().Foreground(r.theme.CardForeground).Background(r.theme.CardBackground)
-
-	rank := card.Rank.String()
-	suit := card.Suit.Symbol()
-
-	var inner string
-	if count > 1 {
-		// e.g. "K♠  (3)" — rank+suit left, count right, padded to innerWidth
-		countStr := fmt.Sprintf("(%d)", count)
-		mid := strings.Repeat(" ", innerWidth-len(rank)-1-len(countStr))
-		inner = rankStyle.Inline(true).Render(rank) +
-			suitStyle.Inline(true).Render(suit) +
-			bgStyle.Inline(true).Render(mid) +
-			bgStyle.Inline(true).Render(countStr)
-	} else {
-		// e.g. "K♠     " — rank+suit at left, spaces to fill
-		pad := strings.Repeat(" ", innerWidth-len(rank)-1)
-		inner = rankStyle.Inline(true).Render(rank) +
-			suitStyle.Inline(true).Render(suit) +
-			bgStyle.Inline(true).Render(pad)
-	}
-
-	top := borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
-	// Use inner directly (already composed of inline-styled pieces) rather than
-	// wrapping in a second bgStyle.Render, which could inject block formatting.
-	mid := borderStyle.Render("│") + inner + borderStyle.Render("│")
-	bot := borderStyle.Render("└" + strings.Repeat("─", innerWidth) + "┘")
-
-	return strings.Join([]string{top, mid, bot}, "\n")
+	return renderCard(cardContent{card: *card, state: cardSelected}, r.theme)
 }
 
 // ghostCardInfo returns the card to display in the ghost and the total drag count.
