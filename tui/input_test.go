@@ -172,6 +172,13 @@ func TestTranslateInput_MouseRelease(t *testing.T) {
 		t.Errorf("left mouse release: got %v, want ActionDragDrop", got)
 	}
 
+	// ButtonNone release (X10 terminals) → ActionDragDrop.
+	mNone := tea.MouseMsg{Action: tea.MouseActionRelease, Button: tea.MouseButtonNone, X: 10, Y: 5}
+	gotNone, _ := TranslateInput(mNone)
+	if gotNone != ActionDragDrop {
+		t.Errorf("none-button mouse release: got %v, want ActionDragDrop", gotNone)
+	}
+
 	// Non-left release (right button) → ActionNone.
 	mRight := tea.MouseMsg{Action: tea.MouseActionRelease, Button: tea.MouseButtonRight, X: 10, Y: 5}
 	gotRight, _ := TranslateInput(mRight)

@@ -141,7 +141,7 @@ func translateMouse(m tea.MouseMsg) (GameAction, interface{}) {
 		return ActionDragStart, m
 	case m.Action == tea.MouseActionMotion:
 		return ActionDragMove, m
-	case m.Action == tea.MouseActionRelease && m.Button == tea.MouseButtonLeft:
+	case m.Action == tea.MouseActionRelease && (m.Button == tea.MouseButtonLeft || m.Button == tea.MouseButtonNone):
 		return ActionDragDrop, m
 	}
 	return ActionNone, nil
