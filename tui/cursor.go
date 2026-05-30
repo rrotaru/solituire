@@ -44,6 +44,8 @@ type Cursor struct {
 	Dragging      bool
 	DragSource    engine.PileID
 	DragCardCount int // number of cards being dragged from DragSource
+	MouseX        int // terminal column of mouse cursor during a drag
+	MouseY        int // terminal row of mouse cursor during a drag
 	ShowHint      bool
 	HintFrom      engine.PileID
 	HintTo        engine.PileID
@@ -53,12 +55,16 @@ type Cursor struct {
 // for passing into renderer.Render.
 func (c Cursor) RendererCursor() renderer.CursorState {
 	return renderer.CursorState{
-		Pile:      c.Pile,
-		CardIndex: c.CardIndex,
-		Dragging:  c.Dragging,
-		HintFrom:  c.HintFrom,
-		HintTo:    c.HintTo,
-		ShowHint:  c.ShowHint,
+		Pile:          c.Pile,
+		CardIndex:     c.CardIndex,
+		Dragging:      c.Dragging,
+		DragSource:    c.DragSource,
+		DragCardCount: c.DragCardCount,
+		MouseX:        c.MouseX,
+		MouseY:        c.MouseY,
+		HintFrom:      c.HintFrom,
+		HintTo:        c.HintTo,
+		ShowHint:      c.ShowHint,
 	}
 }
 
