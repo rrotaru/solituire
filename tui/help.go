@@ -1,6 +1,11 @@
 package tui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"strings"
+
+	"github.com/charmbracelet/lipgloss"
+	"solituire/renderer"
+)
 
 var keybinds = [][2]string{
 	{"← →", "Move between piles"},
@@ -20,8 +25,9 @@ var keybinds = [][2]string{
 	{"q", "Quit"},
 }
 
-// RenderKeybindHelp overlays a keybind popup centered over boardView.
-func RenderKeybindHelp(boardView string, w, h int) string {
+// RenderKeybindHelp overlays a keybind popup centered over the board content
+// area (within BoardWidth columns, between header and footer rows).
+func RenderKeybindHelp(boardView string, termW, termH int) string {
 	keyStyle := lipgloss.NewStyle().Width(7).Bold(true)
 	descStyle := lipgloss.NewStyle().Width(22)
 
@@ -37,7 +43,24 @@ func RenderKeybindHelp(boardView string, w, h int) string {
 		Padding(0, 1).
 		Render(content)
 
-	return lipgloss.Place(w, h, lipgloss.Center, lipgloss.Center, popup,
-		lipgloss.WithWhitespaceBackground(lipgloss.Color("0")),
-	)
+	popupW := lipgloss.Width(strings.SplitN(popup, "\n", 2)[0])
+	popupH := strings.Count(popup, "\n") + 1
+
+	// Center horizontally within the board content width (BoardWidth = 55).
+	startCol := (renderer.BoardWidth - popupW) / 2
+	if startCol < 0 {
+		startCol = 0
+	}
+
+	// Center vertically between header (rows 0-1) and footer (last 2 rows of board).
+	boardLines := strings.Count(boardView, "\n") + 1
+	const topPad = 2  // header line + blank spacer
+	const botPad = 2  // blank spacer + footer line
+	playH := boardLines - topPad - botPad
+	startRow := topPad + (playH-popupH)/2
+	if startRow < topPad {
+		startRow = topPad
+	}
+
+	return renderer.Overlay(boardView, popup, startRow, startCol, termW)
 }

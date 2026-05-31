@@ -50,10 +50,21 @@ func ghostCardInfo(state *engine.GameState, cursor CursorState) (*engine.Card, i
 	return nil, 0
 }
 
+// Overlay composites the multi-line overlay string at (startRow, startCol)
+// within base, preserving existing terminal styling in base outside the overlay
+// region. Exported for use by TUI layers that need to place panels over the board.
+func Overlay(base, overlay string, startRow, startCol, termWidth int) string {
+	return applyOverlayN(base, overlay, startRow, startCol, termWidth, 0)
+}
+
 // applyOverlay overlays the multi-line overlay string at (startRow, startCol)
 // within base, using ANSI-aware string manipulation so existing terminal styling
 // in base is preserved outside the overlay region.
 func applyOverlay(base, overlay string, startRow, startCol, termWidth int) string {
+	return applyOverlayN(base, overlay, startRow, startCol, termWidth, ghostCardHeight)
+}
+
+func applyOverlayN(base, overlay string, startRow, startCol, termWidth, clampHeight int) string {
 	if overlay == "" {
 		return base
 	}
@@ -75,10 +86,13 @@ func applyOverlay(base, overlay string, startRow, startCol, termWidth int) strin
 	if startRow < 0 {
 		startRow = 0
 	}
-	// Clamp against the actual board line count so the ghost never tries to
-	// write past the end of the rendered board string. termHeight can exceed
-	// len(baseLines) when the board content is shorter than the terminal.
-	maxRow := len(baseLines) - ghostCardHeight
+	// Clamp against the actual board line count so the overlay never tries to
+	// write past the end of the rendered board string.
+	clamp := clampHeight
+	if clamp == 0 {
+		clamp = len(overlayLines)
+	}
+	maxRow := len(baseLines) - clamp
 	if maxRow < 0 {
 		maxRow = 0
 	}
