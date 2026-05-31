@@ -99,9 +99,16 @@ func (r *Renderer) renderTopRow(state *engine.GameState, cursor CursorState) str
 	f2 := RenderFoundationPile(state.Foundations[2], 2, cursor, r.theme)
 	f3 := RenderFoundationPile(state.Foundations[3], 3, cursor, r.theme)
 
-	// Gap columns are always CardHeight+1 tall so the top-row height never
-	// shifts when an arrow appears or disappears below a pile.
+	// All top-row piles and gaps are padded to CardHeight+1 so the row height
+	// never shifts when an arrow appears, and lipgloss never fills the extra
+	// row with unstyled spaces.
 	const topRowH = CardHeight + 1
+	stock = r.padColumnHeight(stock, topRowH)
+	waste = r.padColumnHeight(waste, topRowH)
+	f0 = r.padColumnHeight(f0, topRowH)
+	f1 = r.padColumnHeight(f1, topRowH)
+	f2 = r.padColumnHeight(f2, topRowH)
+	f3 = r.padColumnHeight(f3, topRowH)
 
 	leftSection := lipgloss.JoinHorizontal(lipgloss.Top,
 		stock,
