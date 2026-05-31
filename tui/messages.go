@@ -16,7 +16,7 @@ const (
 	ScreenMenu AppScreen = iota
 	ScreenPlaying
 	ScreenPaused
-	ScreenHelp
+	ScreenKeybindHelp
 	ScreenQuitConfirm
 	ScreenWin
 )

@@ -46,10 +46,10 @@ func (r *Renderer) Render(state *engine.GameState, cursor CursorState, cfg *conf
 		return r.renderTooSmall()
 	}
 
-	header := renderHeader(state, r.width, r.theme)
+	header := renderHeader(state, BoardWidth, r.theme)
 	topRow := r.renderTopRow(state, cursor)
 	tableau := r.renderTableau(state, cursor)
-	footer := renderFooter(r.width, r.theme)
+	footer := renderFooter(BoardWidth, r.theme)
 
 	board := strings.Join([]string{
 		header,

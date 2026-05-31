@@ -9,7 +9,7 @@ var SolarizedDark = Theme{
 	CardBackground: lipgloss.Color("#fdf6e3"),
 	CardForeground: lipgloss.Color("#073642"),
 	CardBorder:     lipgloss.Color("#586e75"),
-	CardFaceDown:   lipgloss.Color("#073642"),
+	CardFaceDown:   lipgloss.Color("#005a6f"),
 	RedSuit:        lipgloss.Color("#cb4b16"),
 	BlackSuit:      lipgloss.Color("#002b36"),
 
@@ -34,7 +34,7 @@ var SolarizedLight = Theme{
 	CardBackground: lipgloss.Color("#073642"),
 	CardForeground: lipgloss.Color("#eee8d5"),
 	CardBorder:     lipgloss.Color("#93a1a1"),
-	CardFaceDown:   lipgloss.Color("#eee8d5"),
+	CardFaceDown:   lipgloss.Color("#d1cbb8"),
 	RedSuit:        lipgloss.Color("#cb4b16"),
 	BlackSuit:      lipgloss.Color("#93a1a1"), // Base1 — contrasts against Base02 card face
 

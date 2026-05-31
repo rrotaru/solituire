@@ -260,8 +260,8 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 	case ActionPause:
 		return m, func() tea.Msg { return ChangeScreenMsg{Screen: ScreenPaused} }
 
-	case ActionHelp:
-		return m, func() tea.Msg { return ChangeScreenMsg{Screen: ScreenHelp} }
+	case ActionKeybindHelp:
+		return m, func() tea.Msg { return ChangeScreenMsg{Screen: ScreenKeybindHelp} }
 
 	case ActionQuit:
 		return m, func() tea.Msg { return ChangeScreenMsg{Screen: ScreenQuitConfirm} }

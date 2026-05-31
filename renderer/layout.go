@@ -12,7 +12,8 @@ const (
 	CardHeight    = 5 // rendered height (no borders)
 	MinTermWidth  = 61
 	MinTermHeight = 23
-	ColGap        = 1 // gap between tableau columns
+	ColGap        = 1                      // gap between tableau columns
+	BoardWidth    = 7*CardWidth + 6*ColGap // = 55, matches 7 tableau columns
 )
 
 // stockWasteX returns the x position of the stock pile.

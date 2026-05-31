@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Solituire — Theme Color Reference</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: ui-monospace, "Cascadia Code", "Fira Code", monospace; background: #111; color: #ddd; padding: 2rem; }
+  h1 { font-size: 1.4rem; margin-bottom: 2rem; color: #fff; letter-spacing: 0.05em; }
+  .themes { display: flex; flex-direction: column; gap: 3rem; }
+  .theme { border: 1px solid #333; border-radius: 8px; overflow: hidden; }
+  .theme-header { padding: 0.75rem 1.2rem; font-size: 1rem; font-weight: bold; letter-spacing: 0.08em; background: #1e1e1e; border-bottom: 1px solid #333; }
+  .group-label { padding: 0.4rem 1.2rem; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.12em; color: #666; background: #161616; border-top: 1px solid #2a2a2a; }
+  table { width: 100%; border-collapse: collapse; }
+  tr:nth-child(even) { background: #181818; }
+  tr:nth-child(odd) { background: #141414; }
+  td { padding: 0.45rem 1.2rem; font-size: 0.8rem; vertical-align: middle; white-space: nowrap; }
+  td.field { color: #aaa; width: 11rem; }
+  td.role { color: #666; width: 24rem; }
+  td.swatch-cell { width: 3.5rem; }
+  .swatch { display: inline-block; width: 1.4rem; height: 1.4rem; border-radius: 3px; border: 1px solid rgba(255,255,255,0.12); vertical-align: middle; }
+  td.hex { color: #eee; }
+
+  /* Board preview */
+  .board-preview {
+    margin: 0;
+    padding: 1.2rem 1.4rem;
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .preview-label {
+    width: 100%;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #555;
+    margin-bottom: 0.4rem;
+  }
+  .mini-board {
+    padding: 0.8rem;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 280px;
+  }
+  .mini-header {
+    padding: 0.25rem 0.6rem;
+    border-radius: 3px;
+    font-size: 0.72rem;
+    display: flex;
+    justify-content: space-between;
+  }
+  .mini-row { display: flex; gap: 0.4rem; }
+  .mini-card {
+    width: 2.6rem;
+    height: 3.6rem;
+    border-radius: 3px;
+    border: 1.5px solid;
+    display: flex;
+    flex-direction: column;
+    padding: 2px 3px;
+    font-size: 0.65rem;
+    position: relative;
+  }
+  .mini-card .rank { font-weight: bold; line-height: 1; }
+  .mini-card .suit { font-size: 0.9rem; line-height: 1; }
+  .mini-card.face-down { justify-content: center; align-items: center; font-size: 1rem; }
+  .mini-card.empty { justify-content: center; align-items: center; font-size: 1.1rem; opacity: 0.5; }
+  .mini-card.cursor { box-shadow: 0 0 0 2px var(--cursor); }
+  .mini-card.selected { box-shadow: 0 0 0 2px var(--selected); }
+  .mini-card.hint { box-shadow: 0 0 0 2px var(--hint); }
+  .mini-footer {
+    padding: 0.2rem 0.6rem;
+    border-radius: 3px;
+    font-size: 0.65rem;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<h1>Solituire — Theme Color Reference</h1>
+<div class="themes">
+
+<!-- ═══════════════════════════════ CLASSIC ═══════════════════════════════ -->
+<div class="theme">
+  <div class="theme-header" style="color:#f0e6c8;background:#1e3a2a;">Classic</div>
+
+  <div class="board-preview" style="background:#2a2a2a;">
+    <div class="preview-label">Preview</div>
+    <div class="mini-board" style="background:#35654d;--cursor:#f1c40f;--selected:#e67e22;--hint:#2ecc71;">
+      <div class="mini-header" style="background:#1e3a2a;color:#f0e6c8;">
+        <span>Score: 120</span><span>Moves: 34</span>
+      </div>
+      <div class="mini-row">
+        <div class="mini-card" style="background:#ffffff;border-color:#cccccc;color:#1a1a1a;">
+          <span class="rank" style="color:#c0392b;">A</span><span class="suit" style="color:#c0392b;">♥</span>
+        </div>
+        <div class="mini-card" style="background:#ffffff;border-color:#cccccc;color:#1a1a1a;">
+          <span class="rank" style="color:#1a1a1a;">K</span><span class="suit" style="color:#1a1a1a;">♠</span>
+        </div>
+        <div class="mini-card face-down" style="background:#1a5276;border-color:#cccccc;color:#ccc;">▪</div>
+        <div class="mini-card empty cursor" style="background:transparent;border-color:#5d8a6a;color:#5d8a6a;">+</div>
+        <div class="mini-card selected" style="background:#ffffff;border-color:#cccccc;color:#1a1a1a;">
+          <span class="rank" style="color:#c0392b;">7</span><span class="suit" style="color:#c0392b;">♦</span>
+        </div>
+        <div class="mini-card hint" style="background:#ffffff;border-color:#cccccc;color:#1a1a1a;">
+          <span class="rank" style="color:#1a1a1a;">8</span><span class="suit" style="color:#1a1a1a;">♣</span>
+        </div>
+      </div>
+      <div class="mini-footer" style="background:#1e3a2a;color:#f0e6c8;">Tab: move · H: hint · T: theme</div>
+    </div>
+  </div>
+
+  <div class="group-label">Cards</div>
+  <table>
+    <tr><td class="field">CardBackground</td><td class="swatch-cell"><span class="swatch" style="background:#ffffff;"></span></td><td class="hex">#ffffff</td><td class="role">face-up card background</td></tr>
+    <tr><td class="field">CardForeground</td><td class="swatch-cell"><span class="swatch" style="background:#1a1a1a;"></span></td><td class="hex">#1a1a1a</td><td class="role">rank text on face-up cards</td></tr>
+    <tr><td class="field">CardBorder</td><td class="swatch-cell"><span class="swatch" style="background:#cccccc;"></span></td><td class="hex">#cccccc</td><td class="role">card outline</td></tr>
+    <tr><td class="field">CardFaceDown</td><td class="swatch-cell"><span class="swatch" style="background:#1a5276;"></span></td><td class="hex">#1a5276</td><td class="role">face-down card background</td></tr>
+    <tr><td class="field">RedSuit</td><td class="swatch-cell"><span class="swatch" style="background:#c0392b;"></span></td><td class="hex">#c0392b</td><td class="role">♥ ♦ glyphs</td></tr>
+    <tr><td class="field">BlackSuit</td><td class="swatch-cell"><span class="swatch" style="background:#1a1a1a;"></span></td><td class="hex">#1a1a1a</td><td class="role">♠ ♣ glyphs</td></tr>
+  </table>
+  <div class="group-label">UI Chrome</div>
+  <table>
+    <tr><td class="field">HeaderBackground</td><td class="swatch-cell"><span class="swatch" style="background:#1e3a2a;"></span></td><td class="hex">#1e3a2a</td><td class="role">top bar background</td></tr>
+    <tr><td class="field">HeaderForeground</td><td class="swatch-cell"><span class="swatch" style="background:#f0e6c8;"></span></td><td class="hex">#f0e6c8</td><td class="role">top bar text</td></tr>
+    <tr><td class="field">FooterBackground</td><td class="swatch-cell"><span class="swatch" style="background:#1e3a2a;"></span></td><td class="hex">#1e3a2a</td><td class="role">bottom bar background</td></tr>
+    <tr><td class="field">FooterForeground</td><td class="swatch-cell"><span class="swatch" style="background:#f0e6c8;"></span></td><td class="hex">#f0e6c8</td><td class="role">bottom bar text</td></tr>
+    <tr><td class="field">BoardBackground</td><td class="swatch-cell"><span class="swatch" style="background:#35654d;"></span></td><td class="hex">#35654d</td><td class="role">felt table surface</td></tr>
+  </table>
+  <div class="group-label">Interactive States</div>
+  <table>
+    <tr><td class="field">CursorBorder</td><td class="swatch-cell"><span class="swatch" style="background:#f1c40f;"></span></td><td class="hex">#f1c40f</td><td class="role">cursor highlight border</td></tr>
+    <tr><td class="field">SelectedBorder</td><td class="swatch-cell"><span class="swatch" style="background:#e67e22;"></span></td><td class="hex">#e67e22</td><td class="role">selected card/pile border</td></tr>
+    <tr><td class="field">HintBorder</td><td class="swatch-cell"><span class="swatch" style="background:#2ecc71;"></span></td><td class="hex">#2ecc71</td><td class="role">hint suggestion border</td></tr>
+  </table>
+  <div class="group-label">Empty Slot</div>
+  <table>
+    <tr><td class="field">EmptySlotBorder</td><td class="swatch-cell"><span class="swatch" style="background:#5d8a6a;"></span></td><td class="hex">#5d8a6a</td><td class="role">empty pile outline</td></tr>
+    <tr><td class="field">EmptySlotText</td><td class="swatch-cell"><span class="swatch" style="background:#5d8a6a;"></span></td><td class="hex">#5d8a6a</td><td class="role">empty pile placeholder text</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════ DRACULA ═══════════════════════════════ -->
+<div class="theme">
+  <div class="theme-header" style="color:#f8f8f2;background:#282a36;">Dracula</div>
+
+  <div class="board-preview" style="background:#2a2a2a;">
+    <div class="preview-label">Preview</div>
+    <div class="mini-board" style="background:#282a36;--cursor:#bd93f9;--selected:#ff79c6;--hint:#50fa7b;">
+      <div class="mini-header" style="background:#191a21;color:#f8f8f2;">
+        <span>Score: 120</span><span>Moves: 34</span>
+      </div>
+      <div class="mini-row">
+        <div class="mini-card" style="background:#f8f8f2;border-color:#6272a4;color:#282a36;">
+          <span class="rank" style="color:#ff79c6;">A</span><span class="suit" style="color:#ff79c6;">♥</span>
+        </div>
+        <div class="mini-card" style="background:#f8f8f2;border-color:#6272a4;color:#282a36;">
+          <span class="rank" style="color:#282a36;">K</span><span class="suit" style="color:#282a36;">♠</span>
+        </div>
+        <div class="mini-card face-down" style="background:#44475a;border-color:#6272a4;color:#888;">▪</div>
+        <div class="mini-card empty cursor" style="background:transparent;border-color:#44475a;color:#44475a;">+</div>
+        <div class="mini-card selected" style="background:#f8f8f2;border-color:#6272a4;color:#282a36;">
+          <span class="rank" style="color:#ff79c6;">7</span><span class="suit" style="color:#ff79c6;">♦</span>
+        </div>
+        <div class="mini-card hint" style="background:#f8f8f2;border-color:#6272a4;color:#282a36;">
+          <span class="rank" style="color:#282a36;">8</span><span class="suit" style="color:#282a36;">♣</span>
+        </div>
+      </div>
+      <div class="mini-footer" style="background:#191a21;color:#f8f8f2;">Tab: move · H: hint · T: theme</div>
+    </div>
+  </div>
+
+  <div class="group-label">Cards</div>
+  <table>
+    <tr><td class="field">CardBackground</td><td class="swatch-cell"><span class="swatch" style="background:#f8f8f2;"></span></td><td class="hex">#f8f8f2</td><td class="role">face-up card background</td></tr>
+    <tr><td class="field">CardForeground</td><td class="swatch-cell"><span class="swatch" style="background:#282a36;"></span></td><td class="hex">#282a36</td><td class="role">rank text on face-up cards</td></tr>
+    <tr><td class="field">CardBorder</td><td class="swatch-cell"><span class="swatch" style="background:#6272a4;"></span></td><td class="hex">#6272a4</td><td class="role">card outline</td></tr>
+    <tr><td class="field">CardFaceDown</td><td class="swatch-cell"><span class="swatch" style="background:#44475a;"></span></td><td class="hex">#44475a</td><td class="role">face-down card background</td></tr>
+    <tr><td class="field">RedSuit</td><td class="swatch-cell"><span class="swatch" style="background:#ff79c6;"></span></td><td class="hex">#ff79c6</td><td class="role">♥ ♦ glyphs</td></tr>
+    <tr><td class="field">BlackSuit</td><td class="swatch-cell"><span class="swatch" style="background:#282a36;"></span></td><td class="hex">#282a36</td><td class="role">♠ ♣ glyphs</td></tr>
+  </table>
+  <div class="group-label">UI Chrome</div>
+  <table>
+    <tr><td class="field">HeaderBackground</td><td class="swatch-cell"><span class="swatch" style="background:#191a21;"></span></td><td class="hex">#191a21</td><td class="role">top bar background</td></tr>
+    <tr><td class="field">HeaderForeground</td><td class="swatch-cell"><span class="swatch" style="background:#f8f8f2;"></span></td><td class="hex">#f8f8f2</td><td class="role">top bar text</td></tr>
+    <tr><td class="field">FooterBackground</td><td class="swatch-cell"><span class="swatch" style="background:#191a21;"></span></td><td class="hex">#191a21</td><td class="role">bottom bar background</td></tr>
+    <tr><td class="field">FooterForeground</td><td class="swatch-cell"><span class="swatch" style="background:#f8f8f2;"></span></td><td class="hex">#f8f8f2</td><td class="role">bottom bar text</td></tr>
+    <tr><td class="field">BoardBackground</td><td class="swatch-cell"><span class="swatch" style="background:#282a36;"></span></td><td class="hex">#282a36</td><td class="role">board background</td></tr>
+  </table>
+  <div class="group-label">Interactive States</div>
+  <table>
+    <tr><td class="field">CursorBorder</td><td class="swatch-cell"><span class="swatch" style="background:#bd93f9;"></span></td><td class="hex">#bd93f9</td><td class="role">cursor highlight border</td></tr>
+    <tr><td class="field">SelectedBorder</td><td class="swatch-cell"><span class="swatch" style="background:#ff79c6;"></span></td><td class="hex">#ff79c6</td><td class="role">selected card/pile border</td></tr>
+    <tr><td class="field">HintBorder</td><td class="swatch-cell"><span class="swatch" style="background:#50fa7b;"></span></td><td class="hex">#50fa7b</td><td class="role">hint suggestion border</td></tr>
+  </table>
+  <div class="group-label">Empty Slot</div>
+  <table>
+    <tr><td class="field">EmptySlotBorder</td><td class="swatch-cell"><span class="swatch" style="background:#44475a;"></span></td><td class="hex">#44475a</td><td class="role">empty pile outline</td></tr>
+    <tr><td class="field">EmptySlotText</td><td class="swatch-cell"><span class="swatch" style="background:#44475a;"></span></td><td class="hex">#44475a</td><td class="role">empty pile placeholder text</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════ SOLARIZED DARK ═══════════════════════════════ -->
+<div class="theme">
+  <div class="theme-header" style="color:#839496;background:#073642;">Solarized Dark</div>
+
+  <div class="board-preview" style="background:#2a2a2a;">
+    <div class="preview-label">Preview</div>
+    <div class="mini-board" style="background:#002b36;--cursor:#b58900;--selected:#cb4b16;--hint:#859900;">
+      <div class="mini-header" style="background:#073642;color:#839496;">
+        <span>Score: 120</span><span>Moves: 34</span>
+      </div>
+      <div class="mini-row">
+        <div class="mini-card" style="background:#fdf6e3;border-color:#586e75;color:#073642;">
+          <span class="rank" style="color:#cb4b16;">A</span><span class="suit" style="color:#cb4b16;">♥</span>
+        </div>
+        <div class="mini-card" style="background:#fdf6e3;border-color:#586e75;color:#073642;">
+          <span class="rank" style="color:#002b36;">K</span><span class="suit" style="color:#002b36;">♠</span>
+        </div>
+        <div class="mini-card face-down" style="background:#005a6f;border-color:#586e75;color:#fdf6e3;">▪</div>
+        <div class="mini-card empty cursor" style="background:transparent;border-color:#073642;color:#586e75;">+</div>
+        <div class="mini-card selected" style="background:#fdf6e3;border-color:#586e75;color:#073642;">
+          <span class="rank" style="color:#cb4b16;">7</span><span class="suit" style="color:#cb4b16;">♦</span>
+        </div>
+        <div class="mini-card hint" style="background:#fdf6e3;border-color:#586e75;color:#073642;">
+          <span class="rank" style="color:#002b36;">8</span><span class="suit" style="color:#002b36;">♣</span>
+        </div>
+      </div>
+      <div class="mini-footer" style="background:#073642;color:#839496;">Tab: move · H: hint · T: theme</div>
+    </div>
+  </div>
+
+  <div class="group-label">Cards</div>
+  <table>
+    <tr><td class="field">CardBackground</td><td class="swatch-cell"><span class="swatch" style="background:#fdf6e3;"></span></td><td class="hex">#fdf6e3</td><td class="role">face-up card background (Base3)</td></tr>
+    <tr><td class="field">CardForeground</td><td class="swatch-cell"><span class="swatch" style="background:#073642;"></span></td><td class="hex">#073642</td><td class="role">rank text (Base02)</td></tr>
+    <tr><td class="field">CardBorder</td><td class="swatch-cell"><span class="swatch" style="background:#586e75;"></span></td><td class="hex">#586e75</td><td class="role">card outline (Base01)</td></tr>
+    <tr><td class="field">CardFaceDown</td><td class="swatch-cell"><span class="swatch" style="background:#005a6f;"></span></td><td class="hex">#005a6f</td><td class="role">face-down background (deep teal — 1.92:1 vs board, below WCAG 3:1)</td></tr>
+    <tr><td class="field">RedSuit</td><td class="swatch-cell"><span class="swatch" style="background:#cb4b16;"></span></td><td class="hex">#cb4b16</td><td class="role">♥ ♦ glyphs (orange)</td></tr>
+    <tr><td class="field">BlackSuit</td><td class="swatch-cell"><span class="swatch" style="background:#002b36;"></span></td><td class="hex">#002b36</td><td class="role">♠ ♣ glyphs (Base03)</td></tr>
+  </table>
+  <div class="group-label">UI Chrome</div>
+  <table>
+    <tr><td class="field">HeaderBackground</td><td class="swatch-cell"><span class="swatch" style="background:#073642;"></span></td><td class="hex">#073642</td><td class="role">top bar background (Base02)</td></tr>
+    <tr><td class="field">HeaderForeground</td><td class="swatch-cell"><span class="swatch" style="background:#839496;"></span></td><td class="hex">#839496</td><td class="role">top bar text (Base0)</td></tr>
+    <tr><td class="field">FooterBackground</td><td class="swatch-cell"><span class="swatch" style="background:#073642;"></span></td><td class="hex">#073642</td><td class="role">bottom bar background (Base02)</td></tr>
+    <tr><td class="field">FooterForeground</td><td class="swatch-cell"><span class="swatch" style="background:#839496;"></span></td><td class="hex">#839496</td><td class="role">bottom bar text (Base0)</td></tr>
+    <tr><td class="field">BoardBackground</td><td class="swatch-cell"><span class="swatch" style="background:#002b36;"></span></td><td class="hex">#002b36</td><td class="role">board background (Base03)</td></tr>
+  </table>
+  <div class="group-label">Interactive States</div>
+  <table>
+    <tr><td class="field">CursorBorder</td><td class="swatch-cell"><span class="swatch" style="background:#b58900;"></span></td><td class="hex">#b58900</td><td class="role">cursor highlight (yellow)</td></tr>
+    <tr><td class="field">SelectedBorder</td><td class="swatch-cell"><span class="swatch" style="background:#cb4b16;"></span></td><td class="hex">#cb4b16</td><td class="role">selected border (orange)</td></tr>
+    <tr><td class="field">HintBorder</td><td class="swatch-cell"><span class="swatch" style="background:#859900;"></span></td><td class="hex">#859900</td><td class="role">hint border (green)</td></tr>
+  </table>
+  <div class="group-label">Empty Slot</div>
+  <table>
+    <tr><td class="field">EmptySlotBorder</td><td class="swatch-cell"><span class="swatch" style="background:#073642;"></span></td><td class="hex">#073642</td><td class="role">empty pile outline (Base02)</td></tr>
+    <tr><td class="field">EmptySlotText</td><td class="swatch-cell"><span class="swatch" style="background:#586e75;"></span></td><td class="hex">#586e75</td><td class="role">empty pile text (Base01)</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════ SOLARIZED LIGHT ═══════════════════════════════ -->
+<div class="theme">
+  <div class="theme-header" style="color:#657b83;background:#eee8d5;">Solarized Light</div>
+
+  <div class="board-preview" style="background:#2a2a2a;">
+    <div class="preview-label">Preview</div>
+    <div class="mini-board" style="background:#fdf6e3;--cursor:#b58900;--selected:#cb4b16;--hint:#859900;">
+      <div class="mini-header" style="background:#eee8d5;color:#657b83;">
+        <span>Score: 120</span><span>Moves: 34</span>
+      </div>
+      <div class="mini-row">
+        <div class="mini-card" style="background:#073642;border-color:#93a1a1;color:#eee8d5;">
+          <span class="rank" style="color:#cb4b16;">A</span><span class="suit" style="color:#cb4b16;">♥</span>
+        </div>
+        <div class="mini-card" style="background:#073642;border-color:#93a1a1;color:#eee8d5;">
+          <span class="rank" style="color:#93a1a1;">K</span><span class="suit" style="color:#93a1a1;">♠</span>
+        </div>
+        <div class="mini-card face-down" style="background:#d1cbb8;border-color:#93a1a1;color:#586e75;">▪</div>
+        <div class="mini-card empty cursor" style="background:transparent;border-color:#eee8d5;color:#93a1a1;">+</div>
+        <div class="mini-card selected" style="background:#073642;border-color:#93a1a1;color:#eee8d5;">
+          <span class="rank" style="color:#cb4b16;">7</span><span class="suit" style="color:#cb4b16;">♦</span>
+        </div>
+        <div class="mini-card hint" style="background:#073642;border-color:#93a1a1;color:#eee8d5;">
+          <span class="rank" style="color:#93a1a1;">8</span><span class="suit" style="color:#93a1a1;">♣</span>
+        </div>
+      </div>
+      <div class="mini-footer" style="background:#eee8d5;color:#657b83;">Tab: move · H: hint · T: theme</div>
+    </div>
+  </div>
+
+  <div class="group-label">Cards</div>
+  <table>
+    <tr><td class="field">CardBackground</td><td class="swatch-cell"><span class="swatch" style="background:#073642;"></span></td><td class="hex">#073642</td><td class="role">face-up card background (Base02 — dark)</td></tr>
+    <tr><td class="field">CardForeground</td><td class="swatch-cell"><span class="swatch" style="background:#eee8d5;"></span></td><td class="hex">#eee8d5</td><td class="role">rank text (Base2)</td></tr>
+    <tr><td class="field">CardBorder</td><td class="swatch-cell"><span class="swatch" style="background:#93a1a1;"></span></td><td class="hex">#93a1a1</td><td class="role">card outline (Base1)</td></tr>
+    <tr><td class="field">CardFaceDown</td><td class="swatch-cell"><span class="swatch" style="background:#d1cbb8;"></span></td><td class="hex">#d1cbb8</td><td class="role">face-down background (warm beige — 1.50:1 vs board, below WCAG 3:1)</td></tr>
+    <tr><td class="field">RedSuit</td><td class="swatch-cell"><span class="swatch" style="background:#cb4b16;"></span></td><td class="hex">#cb4b16</td><td class="role">♥ ♦ glyphs (orange)</td></tr>
+    <tr><td class="field">BlackSuit</td><td class="swatch-cell"><span class="swatch" style="background:#93a1a1;"></span></td><td class="hex">#93a1a1</td><td class="role">♠ ♣ glyphs (Base1, contrasts on dark face)</td></tr>
+  </table>
+  <div class="group-label">UI Chrome</div>
+  <table>
+    <tr><td class="field">HeaderBackground</td><td class="swatch-cell"><span class="swatch" style="background:#eee8d5;"></span></td><td class="hex">#eee8d5</td><td class="role">top bar background (Base2)</td></tr>
+    <tr><td class="field">HeaderForeground</td><td class="swatch-cell"><span class="swatch" style="background:#657b83;"></span></td><td class="hex">#657b83</td><td class="role">top bar text (Base00)</td></tr>
+    <tr><td class="field">FooterBackground</td><td class="swatch-cell"><span class="swatch" style="background:#eee8d5;"></span></td><td class="hex">#eee8d5</td><td class="role">bottom bar background (Base2)</td></tr>
+    <tr><td class="field">FooterForeground</td><td class="swatch-cell"><span class="swatch" style="background:#657b83;"></span></td><td class="hex">#657b83</td><td class="role">bottom bar text (Base00)</td></tr>
+    <tr><td class="field">BoardBackground</td><td class="swatch-cell"><span class="swatch" style="background:#fdf6e3;"></span></td><td class="hex">#fdf6e3</td><td class="role">board background (Base3)</td></tr>
+  </table>
+  <div class="group-label">Interactive States</div>
+  <table>
+    <tr><td class="field">CursorBorder</td><td class="swatch-cell"><span class="swatch" style="background:#b58900;"></span></td><td class="hex">#b58900</td><td class="role">cursor highlight (yellow)</td></tr>
+    <tr><td class="field">SelectedBorder</td><td class="swatch-cell"><span class="swatch" style="background:#cb4b16;"></span></td><td class="hex">#cb4b16</td><td class="role">selected border (orange)</td></tr>
+    <tr><td class="field">HintBorder</td><td class="swatch-cell"><span class="swatch" style="background:#859900;"></span></td><td class="hex">#859900</td><td class="role">hint border (green)</td></tr>
+  </table>
+  <div class="group-label">Empty Slot</div>
+  <table>
+    <tr><td class="field">EmptySlotBorder</td><td class="swatch-cell"><span class="swatch" style="background:#eee8d5;"></span></td><td class="hex">#eee8d5</td><td class="role">empty pile outline (Base2)</td></tr>
+    <tr><td class="field">EmptySlotText</td><td class="swatch-cell"><span class="swatch" style="background:#93a1a1;"></span></td><td class="hex">#93a1a1</td><td class="role">empty pile text (Base1)</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════ NORD ═══════════════════════════════ -->
+<div class="theme">
+  <div class="theme-header" style="color:#d8dee9;background:#2e3440;">Nord</div>
+
+  <div class="board-preview" style="background:#2a2a2a;">
+    <div class="preview-label">Preview</div>
+    <div class="mini-board" style="background:#2e3440;--cursor:#88c0d0;--selected:#81a1c1;--hint:#a3be8c;">
+      <div class="mini-header" style="background:#2e3440;color:#d8dee9;">
+        <span>Score: 120</span><span>Moves: 34</span>
+      </div>
+      <div class="mini-row">
+        <div class="mini-card" style="background:#eceff4;border-color:#d8dee9;color:#2e3440;">
+          <span class="rank" style="color:#bf616a;">A</span><span class="suit" style="color:#bf616a;">♥</span>
+        </div>
+        <div class="mini-card" style="background:#eceff4;border-color:#d8dee9;color:#2e3440;">
+          <span class="rank" style="color:#2e3440;">K</span><span class="suit" style="color:#2e3440;">♠</span>
+        </div>
+        <div class="mini-card face-down" style="background:#5e81ac;border-color:#d8dee9;color:#eceff4;">▪</div>
+        <div class="mini-card empty cursor" style="background:transparent;border-color:#3b4252;color:#4c566a;">+</div>
+        <div class="mini-card selected" style="background:#eceff4;border-color:#d8dee9;color:#2e3440;">
+          <span class="rank" style="color:#bf616a;">7</span><span class="suit" style="color:#bf616a;">♦</span>
+        </div>
+        <div class="mini-card hint" style="background:#eceff4;border-color:#d8dee9;color:#2e3440;">
+          <span class="rank" style="color:#2e3440;">8</span><span class="suit" style="color:#2e3440;">♣</span>
+        </div>
+      </div>
+      <div class="mini-footer" style="background:#2e3440;color:#d8dee9;">Tab: move · H: hint · T: theme</div>
+    </div>
+  </div>
+
+  <div class="group-label">Cards</div>
+  <table>
+    <tr><td class="field">CardBackground</td><td class="swatch-cell"><span class="swatch" style="background:#eceff4;"></span></td><td class="hex">#eceff4</td><td class="role">face-up card background (Snow Storm nord6)</td></tr>
+    <tr><td class="field">CardForeground</td><td class="swatch-cell"><span class="swatch" style="background:#2e3440;"></span></td><td class="hex">#2e3440</td><td class="role">rank text (Polar Night nord0)</td></tr>
+    <tr><td class="field">CardBorder</td><td class="swatch-cell"><span class="swatch" style="background:#d8dee9;"></span></td><td class="hex">#d8dee9</td><td class="role">card outline (nord4)</td></tr>
+    <tr><td class="field">CardFaceDown</td><td class="swatch-cell"><span class="swatch" style="background:#5e81ac;"></span></td><td class="hex">#5e81ac</td><td class="role">face-down background (Frost nord10 — 3.11:1 vs board)</td></tr>
+    <tr><td class="field">RedSuit</td><td class="swatch-cell"><span class="swatch" style="background:#bf616a;"></span></td><td class="hex">#bf616a</td><td class="role">♥ ♦ glyphs (Aurora red)</td></tr>
+    <tr><td class="field">BlackSuit</td><td class="swatch-cell"><span class="swatch" style="background:#2e3440;"></span></td><td class="hex">#2e3440</td><td class="role">♠ ♣ glyphs (nord0)</td></tr>
+  </table>
+  <div class="group-label">UI Chrome</div>
+  <table>
+    <tr><td class="field">HeaderBackground</td><td class="swatch-cell"><span class="swatch" style="background:#2e3440;"></span></td><td class="hex">#2e3440</td><td class="role">top bar background (nord0)</td></tr>
+    <tr><td class="field">HeaderForeground</td><td class="swatch-cell"><span class="swatch" style="background:#d8dee9;"></span></td><td class="hex">#d8dee9</td><td class="role">top bar text (nord4)</td></tr>
+    <tr><td class="field">FooterBackground</td><td class="swatch-cell"><span class="swatch" style="background:#2e3440;"></span></td><td class="hex">#2e3440</td><td class="role">bottom bar background (nord0)</td></tr>
+    <tr><td class="field">FooterForeground</td><td class="swatch-cell"><span class="swatch" style="background:#d8dee9;"></span></td><td class="hex">#d8dee9</td><td class="role">bottom bar text (nord4)</td></tr>
+    <tr><td class="field">BoardBackground</td><td class="swatch-cell"><span class="swatch" style="background:#2e3440;"></span></td><td class="hex">#2e3440</td><td class="role">board background (nord0)</td></tr>
+  </table>
+  <div class="group-label">Interactive States</div>
+  <table>
+    <tr><td class="field">CursorBorder</td><td class="swatch-cell"><span class="swatch" style="background:#88c0d0;"></span></td><td class="hex">#88c0d0</td><td class="role">cursor highlight (Frost nord8)</td></tr>
+    <tr><td class="field">SelectedBorder</td><td class="swatch-cell"><span class="swatch" style="background:#81a1c1;"></span></td><td class="hex">#81a1c1</td><td class="role">selected border (Frost nord9)</td></tr>
+    <tr><td class="field">HintBorder</td><td class="swatch-cell"><span class="swatch" style="background:#a3be8c;"></span></td><td class="hex">#a3be8c</td><td class="role">hint border (Aurora green)</td></tr>
+  </table>
+  <div class="group-label">Empty Slot</div>
+  <table>
+    <tr><td class="field">EmptySlotBorder</td><td class="swatch-cell"><span class="swatch" style="background:#3b4252;"></span></td><td class="hex">#3b4252</td><td class="role">empty pile outline (nord1)</td></tr>
+    <tr><td class="field">EmptySlotText</td><td class="swatch-cell"><span class="swatch" style="background:#4c566a;"></span></td><td class="hex">#4c566a</td><td class="role">empty pile text (nord3)</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════ CATPPUCCIN ═══════════════════════════════ -->
+<div class="theme">
+  <div class="theme-header" style="color:#cdd6f4;background:#181825;">Catppuccin <span style="opacity:0.5;font-weight:normal;font-size:0.75rem;margin-left:0.5rem;">(Mocha)</span></div>
+
+  <div class="board-preview" style="background:#2a2a2a;">
+    <div class="preview-label">Preview</div>
+    <div class="mini-board" style="background:#1e1e2e;--cursor:#f9e2af;--selected:#fab387;--hint:#a6e3a1;">
+      <div class="mini-header" style="background:#181825;color:#cdd6f4;">
+        <span>Score: 120</span><span>Moves: 34</span>
+      </div>
+      <div class="mini-row">
+        <div class="mini-card" style="background:#cdd6f4;border-color:#585b70;color:#11111b;">
+          <span class="rank" style="color:#f38ba8;">A</span><span class="suit" style="color:#f38ba8;">♥</span>
+        </div>
+        <div class="mini-card" style="background:#cdd6f4;border-color:#585b70;color:#11111b;">
+          <span class="rank" style="color:#11111b;">K</span><span class="suit" style="color:#11111b;">♠</span>
+        </div>
+        <div class="mini-card face-down" style="background:#cba6f7;border-color:#585b70;color:#1e1e2e;">▪</div>
+        <div class="mini-card empty cursor" style="background:transparent;border-color:#45475a;color:#6c7086;">+</div>
+        <div class="mini-card selected" style="background:#cdd6f4;border-color:#585b70;color:#11111b;">
+          <span class="rank" style="color:#f38ba8;">7</span><span class="suit" style="color:#f38ba8;">♦</span>
+        </div>
+        <div class="mini-card hint" style="background:#cdd6f4;border-color:#585b70;color:#11111b;">
+          <span class="rank" style="color:#11111b;">8</span><span class="suit" style="color:#11111b;">♣</span>
+        </div>
+      </div>
+      <div class="mini-footer" style="background:#181825;color:#cdd6f4;">Tab: move · H: hint · T: theme</div>
+    </div>
+  </div>
+
+  <div class="group-label">Cards</div>
+  <table>
+    <tr><td class="field">CardBackground</td><td class="swatch-cell"><span class="swatch" style="background:#cdd6f4;"></span></td><td class="hex">#cdd6f4</td><td class="role">face-up card background (Text)</td></tr>
+    <tr><td class="field">CardForeground</td><td class="swatch-cell"><span class="swatch" style="background:#11111b;"></span></td><td class="hex">#11111b</td><td class="role">rank text (Crust)</td></tr>
+    <tr><td class="field">CardBorder</td><td class="swatch-cell"><span class="swatch" style="background:#585b70;"></span></td><td class="hex">#585b70</td><td class="role">card outline (Surface2)</td></tr>
+    <tr><td class="field">CardFaceDown</td><td class="swatch-cell"><span class="swatch" style="background:#cba6f7;"></span></td><td class="hex">#cba6f7</td><td class="role">face-down background (Mauve — 8.08:1 vs board)</td></tr>
+    <tr><td class="field">RedSuit</td><td class="swatch-cell"><span class="swatch" style="background:#f38ba8;"></span></td><td class="hex">#f38ba8</td><td class="role">♥ ♦ glyphs (Red)</td></tr>
+    <tr><td class="field">BlackSuit</td><td class="swatch-cell"><span class="swatch" style="background:#11111b;"></span></td><td class="hex">#11111b</td><td class="role">♠ ♣ glyphs (Crust)</td></tr>
+  </table>
+  <div class="group-label">UI Chrome</div>
+  <table>
+    <tr><td class="field">HeaderBackground</td><td class="swatch-cell"><span class="swatch" style="background:#181825;"></span></td><td class="hex">#181825</td><td class="role">top bar background (Mantle)</td></tr>
+    <tr><td class="field">HeaderForeground</td><td class="swatch-cell"><span class="swatch" style="background:#cdd6f4;"></span></td><td class="hex">#cdd6f4</td><td class="role">top bar text (Text)</td></tr>
+    <tr><td class="field">FooterBackground</td><td class="swatch-cell"><span class="swatch" style="background:#181825;"></span></td><td class="hex">#181825</td><td class="role">bottom bar background (Mantle)</td></tr>
+    <tr><td class="field">FooterForeground</td><td class="swatch-cell"><span class="swatch" style="background:#cdd6f4;"></span></td><td class="hex">#cdd6f4</td><td class="role">bottom bar text (Text)</td></tr>
+    <tr><td class="field">BoardBackground</td><td class="swatch-cell"><span class="swatch" style="background:#1e1e2e;"></span></td><td class="hex">#1e1e2e</td><td class="role">board background (Base)</td></tr>
+  </table>
+  <div class="group-label">Interactive States</div>
+  <table>
+    <tr><td class="field">CursorBorder</td><td class="swatch-cell"><span class="swatch" style="background:#f9e2af;"></span></td><td class="hex">#f9e2af</td><td class="role">cursor highlight (Yellow)</td></tr>
+    <tr><td class="field">SelectedBorder</td><td class="swatch-cell"><span class="swatch" style="background:#fab387;"></span></td><td class="hex">#fab387</td><td class="role">selected border (Peach)</td></tr>
+    <tr><td class="field">HintBorder</td><td class="swatch-cell"><span class="swatch" style="background:#a6e3a1;"></span></td><td class="hex">#a6e3a1</td><td class="role">hint border (Green)</td></tr>
+  </table>
+  <div class="group-label">Empty Slot</div>
+  <table>
+    <tr><td class="field">EmptySlotBorder</td><td class="swatch-cell"><span class="swatch" style="background:#45475a;"></span></td><td class="hex">#45475a</td><td class="role">empty pile outline (Surface1)</td></tr>
+    <tr><td class="field">EmptySlotText</td><td class="swatch-cell"><span class="swatch" style="background:#6c7086;"></span></td><td class="hex">#6c7086</td><td class="role">empty pile text (Overlay0)</td></tr>
+  </table>
+</div>
+
+<!-- ═══════════════════════════════ TOKYO NIGHT ═══════════════════════════════ -->
+<div class="theme">
+  <div class="theme-header" style="color:#c0caf5;background:#16161e;">Tokyo Night</div>
+
+  <div class="board-preview" style="background:#2a2a2a;">
+    <div class="preview-label">Preview</div>
+    <div class="mini-board" style="background:#1a1b26;--cursor:#e0af68;--selected:#ff9e64;--hint:#9ece6a;">
+      <div class="mini-header" style="background:#16161e;color:#c0caf5;">
+        <span>Score: 120</span><span>Moves: 34</span>
+      </div>
+      <div class="mini-row">
+        <div class="mini-card" style="background:#c0caf5;border-color:#565f89;color:#1a1b26;">
+          <span class="rank" style="color:#f7768e;">A</span><span class="suit" style="color:#f7768e;">♥</span>
+        </div>
+        <div class="mini-card" style="background:#c0caf5;border-color:#565f89;color:#1a1b26;">
+          <span class="rank" style="color:#1a1b26;">K</span><span class="suit" style="color:#1a1b26;">♠</span>
+        </div>
+        <div class="mini-card face-down" style="background:#7aa2f7;border-color:#565f89;color:#1a1b26;">▪</div>
+        <div class="mini-card empty cursor" style="background:transparent;border-color:#3b4261;color:#545c7e;">+</div>
+        <div class="mini-card selected" style="background:#c0caf5;border-color:#565f89;color:#1a1b26;">
+          <span class="rank" style="color:#f7768e;">7</span><span class="suit" style="color:#f7768e;">♦</span>
+        </div>
+        <div class="mini-card hint" style="background:#c0caf5;border-color:#565f89;color:#1a1b26;">
+          <span class="rank" style="color:#1a1b26;">8</span><span class="suit" style="color:#1a1b26;">♣</span>
+        </div>
+      </div>
+      <div class="mini-footer" style="background:#16161e;color:#c0caf5;">Tab: move · H: hint · T: theme</div>
+    </div>
+  </div>
+
+  <div class="group-label">Cards</div>
+  <table>
+    <tr><td class="field">CardBackground</td><td class="swatch-cell"><span class="swatch" style="background:#c0caf5;"></span></td><td class="hex">#c0caf5</td><td class="role">face-up card background (fg)</td></tr>
+    <tr><td class="field">CardForeground</td><td class="swatch-cell"><span class="swatch" style="background:#1a1b26;"></span></td><td class="hex">#1a1b26</td><td class="role">rank text (bg)</td></tr>
+    <tr><td class="field">CardBorder</td><td class="swatch-cell"><span class="swatch" style="background:#565f89;"></span></td><td class="hex">#565f89</td><td class="role">card outline (comment)</td></tr>
+    <tr><td class="field">CardFaceDown</td><td class="swatch-cell"><span class="swatch" style="background:#7aa2f7;"></span></td><td class="hex">#7aa2f7</td><td class="role">face-down background (blue — 6.79:1 vs board)</td></tr>
+    <tr><td class="field">RedSuit</td><td class="swatch-cell"><span class="swatch" style="background:#f7768e;"></span></td><td class="hex">#f7768e</td><td class="role">♥ ♦ glyphs (red)</td></tr>
+    <tr><td class="field">BlackSuit</td><td class="swatch-cell"><span class="swatch" style="background:#1a1b26;"></span></td><td class="hex">#1a1b26</td><td class="role">♠ ♣ glyphs (bg)</td></tr>
+  </table>
+  <div class="group-label">UI Chrome</div>
+  <table>
+    <tr><td class="field">HeaderBackground</td><td class="swatch-cell"><span class="swatch" style="background:#16161e;"></span></td><td class="hex">#16161e</td><td class="role">top bar background (bg_dark)</td></tr>
+    <tr><td class="field">HeaderForeground</td><td class="swatch-cell"><span class="swatch" style="background:#c0caf5;"></span></td><td class="hex">#c0caf5</td><td class="role">top bar text (fg)</td></tr>
+    <tr><td class="field">FooterBackground</td><td class="swatch-cell"><span class="swatch" style="background:#16161e;"></span></td><td class="hex">#16161e</td><td class="role">bottom bar background (bg_dark)</td></tr>
+    <tr><td class="field">FooterForeground</td><td class="swatch-cell"><span class="swatch" style="background:#c0caf5;"></span></td><td class="hex">#c0caf5</td><td class="role">bottom bar text (fg)</td></tr>
+    <tr><td class="field">BoardBackground</td><td class="swatch-cell"><span class="swatch" style="background:#1a1b26;"></span></td><td class="hex">#1a1b26</td><td class="role">board background (bg)</td></tr>
+  </table>
+  <div class="group-label">Interactive States</div>
+  <table>
+    <tr><td class="field">CursorBorder</td><td class="swatch-cell"><span class="swatch" style="background:#e0af68;"></span></td><td class="hex">#e0af68</td><td class="role">cursor highlight (yellow)</td></tr>
+    <tr><td class="field">SelectedBorder</td><td class="swatch-cell"><span class="swatch" style="background:#ff9e64;"></span></td><td class="hex">#ff9e64</td><td class="role">selected border (orange)</td></tr>
+    <tr><td class="field">HintBorder</td><td class="swatch-cell"><span class="swatch" style="background:#9ece6a;"></span></td><td class="hex">#9ece6a</td><td class="role">hint border (green)</td></tr>
+  </table>
+  <div class="group-label">Empty Slot</div>
+  <table>
+    <tr><td class="field">EmptySlotBorder</td><td class="swatch-cell"><span class="swatch" style="background:#3b4261;"></span></td><td class="hex">#3b4261</td><td class="role">empty pile outline (fg_gutter)</td></tr>
+    <tr><td class="field">EmptySlotText</td><td class="swatch-cell"><span class="swatch" style="background:#545c7e;"></span></td><td class="hex">#545c7e</td><td class="role">empty pile text (dark3)</td></tr>
+  </table>
+</div>
+
+</div><!-- /themes -->
+</body>
+</html>

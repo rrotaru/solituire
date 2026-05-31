@@ -21,12 +21,6 @@ func TestTranslateInput(t *testing.T) {
 		{"arrow up", tea.KeyMsg{Type: tea.KeyUp}, ActionCursorUp, nil},
 		{"arrow down", tea.KeyMsg{Type: tea.KeyDown}, ActionCursorDown, nil},
 
-		// Cursor — vim keys
-		{"vim h", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("h")}, ActionCursorLeft, nil},
-		{"vim l", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("l")}, ActionCursorRight, nil},
-		{"vim k", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("k")}, ActionCursorUp, nil},
-		{"vim j", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("j")}, ActionCursorDown, nil},
-
 		// Tab cycling — uses tabCycleOrder which includes foundations
 		{"tab", tea.KeyMsg{Type: tea.KeyTab}, ActionTabNext, nil},
 		{"shift+tab", tea.KeyMsg{Type: tea.KeyShiftTab}, ActionTabPrev, nil},
@@ -49,15 +43,14 @@ func TestTranslateInput(t *testing.T) {
 		{"f foundation", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("f")}, ActionMoveToFoundation, nil},
 
 		// Undo / redo
-		{"ctrl+z", tea.KeyMsg{Type: tea.KeyCtrlZ}, ActionUndo, nil},
-		{"ctrl+y", tea.KeyMsg{Type: tea.KeyCtrlY}, ActionRedo, nil},
+		{"u undo", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("u")}, ActionUndo, nil},
+		{"r redo", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("r")}, ActionRedo, nil},
 
 		// Hint
-		{"question mark", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("?")}, ActionHint, nil},
+		{"h hint", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("h")}, ActionHint, nil},
 
 		// Meta
-		{"F1", tea.KeyMsg{Type: tea.KeyF1}, ActionHelp, nil},
-		{"H help", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("H")}, ActionHelp, nil},
+		{"? keybind help", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("?")}, ActionKeybindHelp, nil},
 		{"p pause", tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("p")}, ActionPause, nil},
 		{"ctrl+n", tea.KeyMsg{Type: tea.KeyCtrlN}, ActionNewGame, nil},
 		{"ctrl+r", tea.KeyMsg{Type: tea.KeyCtrlR}, ActionRestartDeal, nil},
@@ -124,7 +117,7 @@ func TestTranslateInput_JumpColumnPayload(t *testing.T) {
 // TestTranslateInput_PasteIgnored verifies that KeyRunes events marked as paste
 // produce ActionNone, preventing bracketed paste from triggering game commands.
 func TestTranslateInput_PasteIgnored(t *testing.T) {
-	pasteRunes := []rune{'q', 'p', '1', 'f', 't', 'j', 'k', 'h', 'l', '?'}
+	pasteRunes := []rune{'q', 'p', '1', 'f', 't', 'h', 'u', 'r'}
 	for _, r := range pasteRunes {
 		msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}, Paste: true}
 		got, _ := TranslateInput(msg)

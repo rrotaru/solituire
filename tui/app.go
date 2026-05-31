@@ -2,9 +2,11 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"solituire/config"
 	"solituire/engine"
 	"solituire/renderer"
@@ -196,7 +198,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, func() tea.Msg { return ChangeScreenMsg{Screen: ScreenPlaying} }
 		}
 
-	case ScreenHelp:
+	case ScreenKeybindHelp:
 		// Any keypress closes the overlay.
 		if _, ok := msg.(tea.KeyMsg); ok {
 			return m, func() tea.Msg { return ChangeScreenMsg{Screen: ScreenPlaying} }
@@ -243,9 +245,9 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // View renders the active screen. Placeholder strings for screens whose
 // sub-models have not yet been implemented are replaced in later phases:
 //   - ScreenMenu      → tui/menu.go (T14)
-//   - ScreenPaused    → tui/pause.go (T15)
-//   - ScreenHelp      → tui/help.go (T15)
-//   - ScreenQuitConfirm → tui/dialog.go (T15)
+//   - ScreenPaused        → tui/pause.go (T15)
+//   - ScreenKeybindHelp   → tui/help.go
+//   - ScreenQuitConfirm   → tui/dialog.go (T15)
 //   - ScreenWin       → tui/celebration.go (T18)
 func (m AppModel) View() string {
 	if m.tooSmall {
@@ -261,14 +263,34 @@ func (m AppModel) View() string {
 		return m.board.View()
 	case ScreenPaused:
 		return "Game Paused — press any key to resume."
-	case ScreenHelp:
-		return "Help — press Esc or F1 to close."
+	case ScreenKeybindHelp:
+		return RenderKeybindHelp(m.board.View(), m.windowW, m.windowH)
 	case ScreenQuitConfirm:
 		return "Quit? (y) Yes  (n) No"
 	case ScreenWin:
 		return m.celebration.View()
 	case ScreenMenu:
-		return m.menu.View()
+		boardStr := m.rend.Render(newFaceDownState(m.cfg.DrawCount), renderer.CursorState{}, m.cfg)
+		menuStr := m.menu.View()
+		menuLines := strings.Split(menuStr, "\n")
+		menuH := len(menuLines)
+		menuW := lipgloss.Width(menuLines[0])
+
+		// Center horizontally within the board content columns (tableau spans
+		// BoardWidth chars, left-aligned at x=0).
+		startCol := (renderer.BoardWidth - menuW) / 2
+		if startCol < 0 {
+			startCol = 0
+		}
+
+		// Center vertically between the header (row 0) and footer (last row).
+		boardLineCount := strings.Count(boardStr, "\n") + 1
+		startRow := 1 + (boardLineCount-2-menuH)/2
+		if startRow < 1 {
+			startRow = 1
+		}
+
+		return renderer.Overlay(boardStr, menuStr, startRow, startCol, m.windowW)
 	}
 	return ""
 }

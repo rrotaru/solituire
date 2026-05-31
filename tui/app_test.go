@@ -5,6 +5,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/x/exp/golden"
 	"solituire/config"
 	"solituire/engine"
 	"solituire/renderer"
@@ -37,9 +38,9 @@ func TestAppModel_ChangeScreen_ToPaused(t *testing.T) {
 }
 
 func TestAppModel_ChangeScreen_ToHelp(t *testing.T) {
-	m := updateApp(newTestApp(), ChangeScreenMsg{Screen: ScreenHelp})
-	if m.screen != ScreenHelp {
-		t.Errorf("screen = %v, want ScreenHelp", m.screen)
+	m := updateApp(newTestApp(), ChangeScreenMsg{Screen: ScreenKeybindHelp})
+	if m.screen != ScreenKeybindHelp {
+		t.Errorf("screen = %v, want ScreenKeybindHelp", m.screen)
 	}
 }
 
@@ -230,7 +231,7 @@ func TestAppModel_WindowSizeMsg_OneLessThanMinHeight(t *testing.T) {
 func TestAppModel_View_AllScreens(t *testing.T) {
 	screens := []AppScreen{
 		ScreenMenu, ScreenPlaying, ScreenPaused,
-		ScreenHelp, ScreenQuitConfirm, ScreenWin,
+		ScreenKeybindHelp, ScreenQuitConfirm, ScreenWin,
 	}
 	for _, s := range screens {
 		app := newTestApp()
@@ -275,15 +276,15 @@ func TestAppModel_Paused_AnyKeyResumes(t *testing.T) {
 
 func TestAppModel_Help_AnyKeyCloses(t *testing.T) {
 	app := newTestApp()
-	app.screen = ScreenHelp
+	app.screen = ScreenKeybindHelp
 	_, cmd := app.Update(tea.KeyMsg{Type: tea.KeyEsc})
 	if cmd == nil {
-		t.Fatal("ScreenHelp: Esc returned nil Cmd, expected ChangeScreenMsg")
+		t.Fatal("ScreenKeybindHelp: Esc returned nil Cmd, expected ChangeScreenMsg")
 	}
 	msg := cmd()
 	csm, ok := msg.(ChangeScreenMsg)
 	if !ok || csm.Screen != ScreenPlaying {
-		t.Errorf("ScreenHelp Esc: got %v, want ChangeScreenMsg{ScreenPlaying}", msg)
+		t.Errorf("ScreenKeybindHelp Esc: got %v, want ChangeScreenMsg{ScreenPlaying}", msg)
 	}
 }
 
@@ -391,7 +392,7 @@ func TestAppModel_RestartDealMsg_PreservesWindowSize(t *testing.T) {
 func TestAppModel_TickMsg_ForwardedOnNonPlayingScreens(t *testing.T) {
 	// ScreenPaused is intentionally excluded: its tick is re-queued without
 	// advancing the timer (see TestAppModel_TickMsg_PausedFreezesTimer).
-	screens := []AppScreen{ScreenHelp, ScreenQuitConfirm, ScreenWin, ScreenMenu}
+	screens := []AppScreen{ScreenKeybindHelp, ScreenQuitConfirm, ScreenWin, ScreenMenu}
 	for _, s := range screens {
 		app := newTestApp()
 		app.screen = s
@@ -443,4 +444,17 @@ func TestAppModel_RestartDealMsg_NoExtraTickCmd(t *testing.T) {
 	if cmd != nil {
 		t.Error("RestartDealMsg returned a non-nil Cmd; would create a duplicate tick chain")
 	}
+}
+
+// TestAppMenuScreenView is a golden test for the full composed ScreenMenu view:
+// face-down board background with the menu box overlaid in the center.
+func TestAppMenuScreenView(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.Seed = 12345
+	reg := theme.NewRegistry()
+	eng := engine.NewGame(12345, 1)
+	rend := renderer.New(reg.Get(cfg.ThemeName))
+	app := NewAppModel(eng, rend, cfg, reg)
+	// app starts at ScreenMenu; renderer uses MinTermWidth/MinTermHeight defaults
+	golden.RequireEqual(t, []byte(app.View()))
 }
