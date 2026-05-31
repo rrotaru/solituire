@@ -5,7 +5,7 @@ import (
 	"solituire/theme"
 )
 
-const footerText = " ←/→ Enter Space (u)ndo (h)int (t)heme (q)uit "
+const footerText = " ←/→:move ↵:select ␣:draw (u)ndo (h)int (t)heme (q)uit "
 
 // renderFooter builds the single-line footer bar with keybinding hints.
 // The hint text is rune-truncated to boardWidth before styling so lipgloss
