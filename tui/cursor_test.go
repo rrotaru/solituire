@@ -16,13 +16,13 @@ func newSeed42State() *engine.GameState {
 }
 
 // TestCursorMoveLeft_FromTableau0 verifies that pressing left from the first
-// tableau column moves the cursor to the waste pile.
+// tableau column moves the cursor to Foundation3 (adjacent in the cycle).
 func TestCursorMoveLeft_FromTableau0(t *testing.T) {
 	state := newSeed42State()
 	c := Cursor{Pile: engine.PileTableau0, CardIndex: 0}
 	c.MoveLeft(state)
-	if c.Pile != engine.PileWaste {
-		t.Errorf("expected PileWaste, got %v", c.Pile)
+	if c.Pile != engine.PileFoundation3 {
+		t.Errorf("expected PileFoundation3, got %v", c.Pile)
 	}
 }
 
@@ -49,13 +49,13 @@ func TestCursorMoveLeft_FromStock(t *testing.T) {
 }
 
 // TestCursorMoveRight_FromWaste verifies that pressing right from the waste pile
-// moves to the first tableau column.
+// moves to Foundation0 (the next pile in cycle order).
 func TestCursorMoveRight_FromWaste(t *testing.T) {
 	state := newSeed42State()
 	c := Cursor{Pile: engine.PileWaste, CardIndex: 0}
 	c.MoveRight(state)
-	if c.Pile != engine.PileTableau0 {
-		t.Errorf("expected PileTableau0, got %v", c.Pile)
+	if c.Pile != engine.PileFoundation0 {
+		t.Errorf("expected PileFoundation0, got %v", c.Pile)
 	}
 }
 
@@ -181,40 +181,46 @@ func TestCursorJumpToColumn(t *testing.T) {
 	}
 }
 
-// TestCursorMoveLeft_FromFoundation verifies that pressing left from any foundation
-// lands on Waste — not a random fallback from an absent navCycleOrder entry.
+// TestCursorMoveLeft_FromFoundation verifies that pressing left steps to the
+// adjacent left pile: F0→Waste, F1→F0, F2→F1, F3→F2.
 func TestCursorMoveLeft_FromFoundation(t *testing.T) {
 	state := newSeed42State()
-	foundations := []engine.PileID{
-		engine.PileFoundation0,
-		engine.PileFoundation1,
-		engine.PileFoundation2,
-		engine.PileFoundation3,
+	cases := []struct {
+		from engine.PileID
+		want engine.PileID
+	}{
+		{engine.PileFoundation0, engine.PileWaste},
+		{engine.PileFoundation1, engine.PileFoundation0},
+		{engine.PileFoundation2, engine.PileFoundation1},
+		{engine.PileFoundation3, engine.PileFoundation2},
 	}
-	for _, pile := range foundations {
-		c := Cursor{Pile: pile, CardIndex: 0}
+	for _, tc := range cases {
+		c := Cursor{Pile: tc.from, CardIndex: 0}
 		c.MoveLeft(state)
-		if c.Pile != engine.PileWaste {
-			t.Errorf("MoveLeft from %v: expected PileWaste, got %v", pile, c.Pile)
+		if c.Pile != tc.want {
+			t.Errorf("MoveLeft from %v: expected %v, got %v", tc.from, tc.want, c.Pile)
 		}
 	}
 }
 
-// TestCursorMoveRight_FromFoundation verifies that pressing right from any foundation
-// lands on Tableau0 — not a random fallback from an absent navCycleOrder entry.
+// TestCursorMoveRight_FromFoundation verifies that pressing right steps to the
+// adjacent right pile: F0→F1, F1→F2, F2→F3, F3→T0.
 func TestCursorMoveRight_FromFoundation(t *testing.T) {
 	state := newSeed42State()
-	foundations := []engine.PileID{
-		engine.PileFoundation0,
-		engine.PileFoundation1,
-		engine.PileFoundation2,
-		engine.PileFoundation3,
+	cases := []struct {
+		from engine.PileID
+		want engine.PileID
+	}{
+		{engine.PileFoundation0, engine.PileFoundation1},
+		{engine.PileFoundation1, engine.PileFoundation2},
+		{engine.PileFoundation2, engine.PileFoundation3},
+		{engine.PileFoundation3, engine.PileTableau0},
 	}
-	for _, pile := range foundations {
-		c := Cursor{Pile: pile, CardIndex: 0}
+	for _, tc := range cases {
+		c := Cursor{Pile: tc.from, CardIndex: 0}
 		c.MoveRight(state)
-		if c.Pile != engine.PileTableau0 {
-			t.Errorf("MoveRight from %v: expected PileTableau0, got %v", pile, c.Pile)
+		if c.Pile != tc.want {
+			t.Errorf("MoveRight from %v: expected %v, got %v", tc.from, tc.want, c.Pile)
 		}
 	}
 }
@@ -260,6 +266,46 @@ func TestCursorJumpToColumn_OutOfRange(t *testing.T) {
 		if c.Pile != engine.PileStock || c.CardIndex != 0 {
 			t.Errorf("JumpToColumn(%d): cursor must not change, got pile=%v cardIndex=%d",
 				col, c.Pile, c.CardIndex)
+		}
+	}
+}
+
+// TestCursorMoveRight_WasteThruFoundationsToTableau verifies that repeated
+// MoveRight from Waste visits all four foundations before reaching Tableau0.
+func TestCursorMoveRight_WasteThruFoundationsToTableau(t *testing.T) {
+	state := newSeed42State()
+	c := Cursor{Pile: engine.PileWaste}
+	want := []engine.PileID{
+		engine.PileFoundation0,
+		engine.PileFoundation1,
+		engine.PileFoundation2,
+		engine.PileFoundation3,
+		engine.PileTableau0,
+	}
+	for _, w := range want {
+		c.MoveRight(state)
+		if c.Pile != w {
+			t.Errorf("expected %v, got %v", w, c.Pile)
+		}
+	}
+}
+
+// TestCursorMoveLeft_Tableau0ThruFoundationsToWaste verifies that repeated
+// MoveLeft from Tableau0 visits all four foundations before reaching Waste.
+func TestCursorMoveLeft_Tableau0ThruFoundationsToWaste(t *testing.T) {
+	state := newSeed42State()
+	c := Cursor{Pile: engine.PileTableau0}
+	want := []engine.PileID{
+		engine.PileFoundation3,
+		engine.PileFoundation2,
+		engine.PileFoundation1,
+		engine.PileFoundation0,
+		engine.PileWaste,
+	}
+	for _, w := range want {
+		c.MoveLeft(state)
+		if c.Pile != w {
+			t.Errorf("expected %v, got %v", w, c.Pile)
 		}
 	}
 }

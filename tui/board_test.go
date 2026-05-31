@@ -654,20 +654,23 @@ func TestBoardShiftTabReachesFoundation(t *testing.T) {
 	}
 }
 
-// TestBoardArrowDoesNotReachFoundation verifies that Left/Right arrow keys skip
-// foundations (navCycleOrder) so they still reach them only via Tab.
-func TestBoardArrowDoesNotReachFoundation(t *testing.T) {
+// TestBoardArrowReachesFoundation verifies that Left/Right arrow keys can reach
+// foundation piles (foundations are now included in the navigation cycle).
+func TestBoardArrowReachesFoundation(t *testing.T) {
 	board, _ := newBoard()
 	board.cursor.Pile = engine.PileWaste
 	board.cursor.CardIndex = 0
 
-	// Right from Waste with arrow key goes to Tableau0, not Foundation0.
+	// Right from Waste with arrow key goes to Foundation0.
 	board = sendKey(board, tea.KeyRight)
-	if isFoundationPile(board.cursor.Pile) {
-		t.Errorf("Right arrow from Waste must skip foundations, got %v", board.cursor.Pile)
+	if board.cursor.Pile != engine.PileFoundation0 {
+		t.Errorf("Right arrow from Waste must land on PileFoundation0, got %v", board.cursor.Pile)
 	}
-	if board.cursor.Pile != engine.PileTableau0 {
-		t.Errorf("Right arrow from Waste must land on PileTableau0, got %v", board.cursor.Pile)
+
+	// Another Right lands on Foundation1.
+	board = sendKey(board, tea.KeyRight)
+	if board.cursor.Pile != engine.PileFoundation1 {
+		t.Errorf("Right arrow from Foundation0 must land on PileFoundation1, got %v", board.cursor.Pile)
 	}
 }
 
