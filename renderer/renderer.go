@@ -148,6 +148,9 @@ func (r *Renderer) renderTableau(state *engine.GameState, cursor CursorState) st
 			maxHeight = h
 		}
 	}
+	// Always reserve one extra row for arrow indicators so the board height
+	// is stable regardless of which column (if any) has an arrow appended.
+	maxHeight++
 
 	// Pre-pad shorter columns so JoinHorizontal doesn't add unstyled spaces
 	parts := make([]string, 0, 13)
