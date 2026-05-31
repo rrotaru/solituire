@@ -229,7 +229,7 @@ func RenderTableauPile(p *engine.TableauPile, colIdx int, cursor CursorState, t 
 
 	// When a drag has removed all face-up cards, the top face-down card is
 	// newly exposed — render it as a full card so the player can see it clearly.
-	topFDFull := draggingFromHere && len(fuCards) == 0 && fdCount > 0
+	topFDFull := len(fuCards) == 0 && fdCount > 0
 
 	var rows []string
 
