@@ -53,7 +53,7 @@ Ctrl+Z
 Sleep 600ms
 
 # --- Show hint ---
-Type "?"
+Type "h"
 Sleep 1s
 
 # Hold final state
