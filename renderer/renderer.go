@@ -99,19 +99,13 @@ func (r *Renderer) renderTopRow(state *engine.GameState, cursor CursorState) str
 	f2 := RenderFoundationPile(state.Foundations[2], 2, cursor, r.theme)
 	f3 := RenderFoundationPile(state.Foundations[3], 3, cursor, r.theme)
 
-	// When a pile has an arrow appended it is taller than CardHeight; use the
-	// actual max height so gap columns match and lipgloss doesn't pad with
-	// unstyled spaces.
-	maxH := CardHeight
-	for _, p := range []string{stock, waste, f0, f1, f2, f3} {
-		if h := strings.Count(p, "\n") + 1; h > maxH {
-			maxH = h
-		}
-	}
+	// Gap columns are always CardHeight+1 tall so the top-row height never
+	// shifts when an arrow appears or disappears below a pile.
+	const topRowH = CardHeight + 1
 
 	leftSection := lipgloss.JoinHorizontal(lipgloss.Top,
 		stock,
-		r.boardGapCol(ColGap, maxH),
+		r.boardGapCol(ColGap, topRowH),
 		waste,
 	)
 
@@ -123,14 +117,14 @@ func (r *Renderer) renderTopRow(state *engine.GameState, cursor CursorState) str
 	if gapWidth < 1 {
 		gapWidth = 1
 	}
-	gap := r.boardGapCol(gapWidth, maxH)
+	gap := r.boardGapCol(gapWidth, topRowH)
 	rightSection := lipgloss.JoinHorizontal(lipgloss.Top,
 		f0,
-		r.boardGapCol(ColGap, maxH),
+		r.boardGapCol(ColGap, topRowH),
 		f1,
-		r.boardGapCol(ColGap, maxH),
+		r.boardGapCol(ColGap, topRowH),
 		f2,
-		r.boardGapCol(ColGap, maxH),
+		r.boardGapCol(ColGap, topRowH),
 		f3,
 	)
 
