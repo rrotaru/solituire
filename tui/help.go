@@ -56,8 +56,8 @@ func RenderKeybindHelp(boardView string, termW, termH int) string {
 	// (rows 0-1) and footer (last 2 rows). Using termH rather than the board's
 	// rendered line count prevents the popup from extending past the screen when
 	// the tableau is taller than the terminal.
-	const topPad = 2  // header line + blank spacer
-	const botPad = 2  // blank spacer + footer line
+	const topPad = 2 // header line + blank spacer
+	const botPad = 2 // blank spacer + footer line
 	playH := termH - topPad - botPad
 	startRow := topPad + (playH-popupH)/2
 	if startRow < topPad {
