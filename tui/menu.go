@@ -22,16 +22,23 @@ const (
 	menuItemCount // sentinel — total number of navigable rows
 )
 
+const (
+	// menuInnerWidth is the text-content width of the menu box (excludes padding
+	// and border). Wide enough for the longest theme name "Solarized Light" with
+	// comfortable margins; intentionally a round number so the box never resizes.
+	menuInnerWidth = 40
+	menuPadH       = 3 // horizontal padding each side inside the border
+)
+
 var (
+	// Fixed outer width = inner + 2×padding. Border adds 2 more on top of that.
 	menuBoxStyle = lipgloss.NewStyle().
 			Border(lipgloss.DoubleBorder()).
-			Padding(1, 3)
+			Padding(1, menuPadH).
+			Width(menuInnerWidth + 2*menuPadH)
 
 	menuTitleStyle = lipgloss.NewStyle().Bold(true)
-
-	menuActiveStyle = lipgloss.NewStyle().Bold(true).Reverse(true)
-
-	menuRowStyle = lipgloss.NewStyle()
+	menuBoldStyle  = lipgloss.NewStyle().Bold(true)
 )
 
 // MenuModel is the Bubbletea sub-model for the settings/start screen.
@@ -186,10 +193,29 @@ func configChangedCmd(cfg *config.Config) tea.Cmd {
 
 // View implements tea.Model.
 func (m MenuModel) View() string {
-	const boxWidth = 32 // inner content width (excluding border/padding)
-
+	// center returns s centered within menuInnerWidth using space padding.
 	center := func(s string) string {
-		pad := (boxWidth - lipgloss.Width(s)) / 2
+		pad := (menuInnerWidth - lipgloss.Width(s)) / 2
+		if pad < 0 {
+			pad = 0
+		}
+		return strings.Repeat(" ", pad) + s
+	}
+
+	// sel returns the cursor triangle prefix for a given menu item.
+	// Active row gets "▶ ", all others get two spaces so text stays aligned.
+	sel := func(item menuItem) string {
+		if m.cursor == item {
+			return "▶ "
+		}
+		return "  "
+	}
+
+	// centerAfterCursor centers s in the space to the right of the cursor prefix.
+	const cursorWidth = 2
+	centerAfterCursor := func(s string) string {
+		available := menuInnerWidth - cursorWidth
+		pad := (available - lipgloss.Width(s)) / 2
 		if pad < 0 {
 			pad = 0
 		}
@@ -198,55 +224,31 @@ func (m MenuModel) View() string {
 
 	var sb strings.Builder
 
-	// Title
+	// Title — centered across the full inner width, bold.
 	sb.WriteString(center(menuTitleStyle.Render("KLONDIKE SOLITAIRE")))
 	sb.WriteByte('\n')
 	sb.WriteByte('\n')
 
-	// Draw Mode row
-	drawRow := m.renderDrawMode()
-	if m.cursor == menuItemDrawMode {
-		drawRow = menuActiveStyle.Render(drawRow)
-	} else {
-		drawRow = menuRowStyle.Render(drawRow)
-	}
-	sb.WriteString(drawRow)
+	// Option rows: cursor prefix + content.
+	sb.WriteString(sel(menuItemDrawMode) + m.renderDrawMode())
 	sb.WriteByte('\n')
-
-	// Theme row
-	themeRow := m.renderTheme()
-	if m.cursor == menuItemTheme {
-		themeRow = menuActiveStyle.Render(themeRow)
-	} else {
-		themeRow = menuRowStyle.Render(themeRow)
-	}
-	sb.WriteString(themeRow)
+	sb.WriteString(sel(menuItemTheme) + m.renderTheme())
 	sb.WriteByte('\n')
-
-	// Auto-Move row
-	autoRow := m.renderAutoMove()
-	if m.cursor == menuItemAutoMove {
-		autoRow = menuActiveStyle.Render(autoRow)
-	} else {
-		autoRow = menuRowStyle.Render(autoRow)
-	}
-	sb.WriteString(autoRow)
+	sb.WriteString(sel(menuItemAutoMove) + m.renderAutoMove())
 	sb.WriteByte('\n')
 	sb.WriteByte('\n')
 
-	// Start button
+	// Start button — centered to the right of the cursor column; bold when active.
 	startLabel := "[ Start New Game ]"
-	startRow := center(startLabel)
 	if m.cursor == menuItemStart {
-		startRow = center(menuActiveStyle.Render(startLabel))
+		startLabel = menuBoldStyle.Render(startLabel)
 	}
-	sb.WriteString(startRow)
+	sb.WriteString(sel(menuItemStart) + centerAfterCursor(startLabel))
 	sb.WriteByte('\n')
 	sb.WriteByte('\n')
 
-	// Seed display
-	seedStr := fmt.Sprintf("Seed: %d", m.cfg.Seed)
-	sb.WriteString(center(seedStr))
+	// Seed display — centered, no cursor.
+	sb.WriteString(center(fmt.Sprintf("Seed: %d", m.cfg.Seed)))
 
 	return menuBoxStyle.Render(sb.String())
 }
@@ -254,11 +256,11 @@ func (m MenuModel) View() string {
 func (m MenuModel) renderDrawMode() string {
 	var d1, d3 string
 	if m.cfg.DrawCount == 1 {
-		d1 = lipgloss.NewStyle().Bold(true).Render("[ 1 ]")
+		d1 = menuBoldStyle.Render("[ 1 ]")
 		d3 = "[ 3 ]"
 	} else {
 		d1 = "[ 1 ]"
-		d3 = lipgloss.NewStyle().Bold(true).Render("[ 3 ]")
+		d3 = menuBoldStyle.Render("[ 3 ]")
 	}
 	return fmt.Sprintf("Draw Mode:   %s %s", d1, d3)
 }
@@ -282,11 +284,11 @@ func newFaceDownState(drawCount int) *engine.GameState {
 func (m MenuModel) renderAutoMove() string {
 	var on, off string
 	if m.cfg.AutoMoveEnabled {
-		on = lipgloss.NewStyle().Bold(true).Render("[ON] ")
+		on = menuBoldStyle.Render("[ON] ")
 		off = "[OFF]"
 	} else {
 		on = "[ON] "
-		off = lipgloss.NewStyle().Bold(true).Render("[OFF]")
+		off = menuBoldStyle.Render("[OFF]")
 	}
 	return fmt.Sprintf("Auto-Move:   %s %s", on, off)
 }
