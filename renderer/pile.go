@@ -59,18 +59,46 @@ func renderStockPileFull(p *engine.StockPile, cursor CursorState, t theme.Theme)
 // visually distinguishing it from tableau face-down cards (▇ top + █ fill).
 func renderStockFaceDown(state cardVisualState, t theme.Theme) string {
 	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.BoardBackground)
-	switch state {
-	case cardCursor, cardHintFrom, cardHintTo:
-		fillStyle = fillStyle.Reverse(true)
-	}
 	row := fillStyle.Render(strings.Repeat("█", CardWidth))
 	lines := []string{row, row, row, row, row}
 	return strings.Join(lines, "\n")
 }
 
+// pileArrowColor returns (color, true) when an arrow indicator should be rendered for pid.
+func pileArrowColor(pid engine.PileID, cursor CursorState, t theme.Theme) (lipgloss.Color, bool) {
+	if cursor.ShowHint {
+		if pid == cursor.HintFrom || pid == cursor.HintTo {
+			return t.HintBorder, true
+		}
+	}
+	if cursor.Pile == pid && !cursor.Dragging {
+		return t.CursorBorder, true
+	}
+	return "", false
+}
+
+// appendArrow appends a blank row then a centered ↑ row to s.
+// The width is derived from the first rendered line of s.
+func appendArrow(s string, color lipgloss.Color, bg lipgloss.Color) string {
+	firstLine := strings.Split(s, "\n")[0]
+	w := lipgloss.Width(firstLine)
+	pad := (w - 1) / 2
+	blankStyle := lipgloss.NewStyle().Background(bg)
+	arrowStyle := lipgloss.NewStyle().Foreground(color).Background(bg)
+	blank := blankStyle.Render(strings.Repeat(" ", w))
+	arrow := blankStyle.Render(strings.Repeat(" ", pad)) +
+		arrowStyle.Render("↑") +
+		blankStyle.Render(strings.Repeat(" ", w-pad-1))
+	return s + "\n" + blank + "\n" + arrow
+}
+
 // RenderStockPile is the exported entry point for stock rendering.
 func RenderStockPile(p *engine.StockPile, cursor CursorState, t theme.Theme) string {
-	return renderStockPileFull(p, cursor, t)
+	s := renderStockPileFull(p, cursor, t)
+	if color, ok := pileArrowColor(engine.PileStock, cursor, t); ok {
+		s = appendArrow(s, color, t.BoardBackground)
+	}
+	return s
 }
 
 // RenderWastePile renders the waste pile.
@@ -80,37 +108,41 @@ func RenderStockPile(p *engine.StockPile, cursor CursorState, t theme.Theme) str
 func RenderWastePile(p *engine.WastePile, cursor CursorState, t theme.Theme) string {
 	draggingFromHere := cursor.Dragging && cursor.DragSource == engine.PileWaste
 
+	var s string
 	if p.IsEmpty() || (draggingFromHere && len(p.Cards) == 1) {
 		state := cardVisualStateForCursor(engine.PileWaste, 0, cursor)
-		return renderEmptyWithState(state, t)
-	}
-
-	visible := p.VisibleCards()
-	if draggingFromHere {
-		// Drop the top visible card — it is shown as the ghost.
-		visible = visible[:len(visible)-1]
-	}
-
-	if len(visible) == 0 {
-		state := cardVisualStateForCursor(engine.PileWaste, 0, cursor)
-		return renderEmptyWithState(state, t)
-	}
-	if len(visible) == 1 {
-		state := cardVisualStateForCursor(engine.PileWaste, 0, cursor)
-		return renderCard(cardContent{card: visible[0], state: resolveStateForFaceUp(state)}, t)
-	}
-
-	// Draw-3: fan the cards horizontally with overlap.
-	parts := make([]string, len(visible))
-	for i, c := range visible {
-		var state cardVisualState
-		if i == len(visible)-1 {
-			state = cardVisualStateForCursor(engine.PileWaste, 0, cursor)
-			state = resolveStateForFaceUp(state)
+		s = renderEmptyWithState(state, t)
+	} else {
+		visible := p.VisibleCards()
+		if draggingFromHere {
+			visible = visible[:len(visible)-1]
 		}
-		parts[i] = renderCard(cardContent{card: c, state: state}, t)
+
+		if len(visible) == 0 {
+			state := cardVisualStateForCursor(engine.PileWaste, 0, cursor)
+			s = renderEmptyWithState(state, t)
+		} else if len(visible) == 1 {
+			state := cardVisualStateForCursor(engine.PileWaste, 0, cursor)
+			s = renderCard(cardContent{card: visible[0], state: resolveStateForFaceUp(state)}, t)
+		} else {
+			// Draw-3: fan the cards horizontally with overlap.
+			parts := make([]string, len(visible))
+			for i, c := range visible {
+				var state cardVisualState
+				if i == len(visible)-1 {
+					state = cardVisualStateForCursor(engine.PileWaste, 0, cursor)
+					state = resolveStateForFaceUp(state)
+				}
+				parts[i] = renderCard(cardContent{card: c, state: state}, t)
+			}
+			s = lipgloss.JoinHorizontal(lipgloss.Top, parts...)
+		}
 	}
-	return lipgloss.JoinHorizontal(lipgloss.Top, parts...)
+
+	if color, ok := pileArrowColor(engine.PileWaste, cursor, t); ok {
+		s = appendArrow(s, color, t.BoardBackground)
+	}
+	return s
 }
 
 // RenderFoundationPile renders a foundation pile.
@@ -129,13 +161,21 @@ func RenderFoundationPile(p *engine.FoundationPile, idx int, cursor CursorState,
 
 	if cardCount <= 0 {
 		state := cardVisualStateForCursor(pid, 0, cursor)
-		return renderEmptyWithSuit(sym, state, t)
+		s := renderEmptyWithSuit(sym, state, t)
+		if color, ok := pileArrowColor(pid, cursor, t); ok {
+			s = appendArrow(s, color, t.BoardBackground)
+		}
+		return s
 	}
 
 	// Show the card at cardCount-1 (i.e. the new top after the drag lift).
 	top := p.Cards[cardCount-1]
 	state := cardVisualStateForCursor(pid, 0, cursor)
-	return renderCard(cardContent{card: top, state: resolveStateForFaceUp(state)}, t)
+	s := renderCard(cardContent{card: top, state: resolveStateForFaceUp(state)}, t)
+	if color, ok := pileArrowColor(pid, cursor, t); ok {
+		s = appendArrow(s, color, t.BoardBackground)
+	}
+	return s
 }
 
 // renderEmptyWithSuit renders an empty foundation slot with a suit symbol hint,
@@ -185,7 +225,11 @@ func RenderTableauPile(p *engine.TableauPile, colIdx int, cursor CursorState, t 
 
 	if fdCount == 0 && len(fuCards) == 0 {
 		state := cardVisualStateForCursor(pid, 0, cursor)
-		return renderEmptyWithState(state, t)
+		s := renderEmptyWithState(state, t)
+		if color, ok := pileArrowColor(pid, cursor, t); ok {
+			s = appendArrow(s, color, t.BoardBackground)
+		}
+		return s
 	}
 
 	// When a drag has removed all face-up cards, the top face-down card is
@@ -216,7 +260,11 @@ func RenderTableauPile(p *engine.TableauPile, colIdx int, cursor CursorState, t 
 		}
 	}
 
-	return strings.Join(rows, "\n")
+	s := strings.Join(rows, "\n")
+	if color, ok := pileArrowColor(pid, cursor, t); ok {
+		s = appendArrow(s, color, t.BoardBackground)
+	}
+	return s
 }
 
 // resolveStateForFaceUp maps a raw cardVisualState to one valid for a face-up card.

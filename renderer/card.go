@@ -106,8 +106,7 @@ func renderFaceDown(t theme.Theme) string {
 }
 
 // renderFaceUp renders a face-up card without borders.
-// cursor hover: rank and suit are reversed.
-// hint: entire card is reversed.
+// Hover and hint indicators are rendered as arrows below the pile, not on the card itself.
 func renderFaceUp(cc cardContent, t theme.Theme) string {
 	c := cc.card
 	rank := c.Rank.String()
@@ -123,16 +122,6 @@ func renderFaceUp(cc cardContent, t theme.Theme) string {
 	suitStyle := lipgloss.NewStyle().Foreground(suitColor).Background(t.CardBackground)
 	rankStyle := lipgloss.NewStyle().Foreground(t.CardForeground).Background(t.CardBackground)
 	bgStyle := lipgloss.NewStyle().Background(t.CardBackground)
-
-	switch cc.state {
-	case cardCursor:
-		rankStyle = rankStyle.Reverse(true)
-		suitStyle = suitStyle.Reverse(true)
-	case cardHintFrom, cardHintTo:
-		rankStyle = rankStyle.Reverse(true)
-		suitStyle = suitStyle.Reverse(true)
-		bgStyle = bgStyle.Reverse(true)
-	}
 
 	// rank strings are 1-2 chars; pad to 2 for alignment
 	rankPad := fmt.Sprintf("%-2s", rank) // left-aligned (top-left)
@@ -165,8 +154,7 @@ func cardStubTop(t theme.Theme) string {
 }
 
 // cardPeekLines renders the single peek row of a non-bottom face-up tableau card.
-// cursor hover: rank and suit are reversed.
-// hint: entire row is reversed.
+// Hover and hint indicators are rendered as arrows below the pile, not on the card itself.
 func cardPeekLines(c engine.Card, state cardVisualState, t theme.Theme) string {
 	rank := c.Rank.String()
 	suit := c.Suit.Symbol()
@@ -181,16 +169,6 @@ func cardPeekLines(c engine.Card, state cardVisualState, t theme.Theme) string {
 	suitStyle := lipgloss.NewStyle().Foreground(suitColor).Background(t.CardBackground)
 	rankStyle := lipgloss.NewStyle().Foreground(t.CardForeground).Background(t.CardBackground)
 	bgStyle := lipgloss.NewStyle().Background(t.CardBackground)
-
-	switch state {
-	case cardCursor:
-		rankStyle = rankStyle.Reverse(true)
-		suitStyle = suitStyle.Reverse(true)
-	case cardHintFrom, cardHintTo:
-		rankStyle = rankStyle.Reverse(true)
-		suitStyle = suitStyle.Reverse(true)
-		bgStyle = bgStyle.Reverse(true)
-	}
 
 	rankPad := fmt.Sprintf("%-2s", rank)
 

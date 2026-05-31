@@ -99,9 +99,19 @@ func (r *Renderer) renderTopRow(state *engine.GameState, cursor CursorState) str
 	f2 := RenderFoundationPile(state.Foundations[2], 2, cursor, r.theme)
 	f3 := RenderFoundationPile(state.Foundations[3], 3, cursor, r.theme)
 
+	// When a pile has an arrow appended it is taller than CardHeight; use the
+	// actual max height so gap columns match and lipgloss doesn't pad with
+	// unstyled spaces.
+	maxH := CardHeight
+	for _, p := range []string{stock, waste, f0, f1, f2, f3} {
+		if h := strings.Count(p, "\n") + 1; h > maxH {
+			maxH = h
+		}
+	}
+
 	leftSection := lipgloss.JoinHorizontal(lipgloss.Top,
 		stock,
-		r.boardGapCol(ColGap, CardHeight),
+		r.boardGapCol(ColGap, maxH),
 		waste,
 	)
 
@@ -113,14 +123,14 @@ func (r *Renderer) renderTopRow(state *engine.GameState, cursor CursorState) str
 	if gapWidth < 1 {
 		gapWidth = 1
 	}
-	gap := r.boardGapCol(gapWidth, CardHeight)
+	gap := r.boardGapCol(gapWidth, maxH)
 	rightSection := lipgloss.JoinHorizontal(lipgloss.Top,
 		f0,
-		r.boardGapCol(ColGap, CardHeight),
+		r.boardGapCol(ColGap, maxH),
 		f1,
-		r.boardGapCol(ColGap, CardHeight),
+		r.boardGapCol(ColGap, maxH),
 		f2,
-		r.boardGapCol(ColGap, CardHeight),
+		r.boardGapCol(ColGap, maxH),
 		f3,
 	)
 
