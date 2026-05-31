@@ -46,37 +46,25 @@ func cardVisualStateForCursor(pileID engine.PileID, cardIdx int, cursor CursorSt
 	return cardCursor
 }
 
-// renderStockPileFull renders the stock pile respecting cursor state on the border.
+// renderStockPileFull renders the stock pile respecting cursor state.
 func renderStockPileFull(p *engine.StockPile, cursor CursorState, t theme.Theme) string {
+	state := cardVisualStateForCursor(engine.PileStock, 0, cursor)
 	if p.IsEmpty() {
-		state := cardVisualStateForCursor(engine.PileStock, 0, cursor)
 		return renderEmptyWithState(state, t)
 	}
-	state := cardVisualStateForCursor(engine.PileStock, 0, cursor)
-	return renderFaceDownWithState(state, t)
+	return renderStockFaceDown(state, t)
 }
 
-// renderFaceDownWithState renders a face-down card with a state-driven border color.
-func renderFaceDownWithState(state cardVisualState, t theme.Theme) string {
-	var borderColor lipgloss.Color
+// renderStockFaceDown renders the stock pile face-down card as all ▇ rows,
+// visually distinguishing it from tableau face-down cards (▇ top + █ fill).
+func renderStockFaceDown(state cardVisualState, t theme.Theme) string {
+	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.BoardBackground)
 	switch state {
-	case cardCursor:
-		borderColor = t.CursorBorder
-	case cardSelected:
-		borderColor = t.SelectedBorder
-	case cardHintFrom, cardHintTo:
-		borderColor = t.HintBorder
-	default:
-		borderColor = t.CardBorder
+	case cardCursor, cardHintFrom, cardHintTo:
+		fillStyle = fillStyle.Blink(true)
 	}
-	borderStyle := lipgloss.NewStyle().Foreground(borderColor).Background(t.BoardBackground)
-	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.CardBackground)
-
-	top := borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
-	fill := borderStyle.Render("│") + fillStyle.Render(strings.Repeat("░", innerWidth)) + borderStyle.Render("│")
-	bot := borderStyle.Render("└" + strings.Repeat("─", innerWidth) + "┘")
-
-	lines := []string{top, fill, fill, fill, fill, fill, bot}
+	row := fillStyle.Render(strings.Repeat("█", CardWidth))
+	lines := []string{row, row, row, row, row}
 	return strings.Join(lines, "\n")
 }
 
@@ -168,14 +156,14 @@ func renderEmptyWithSuit(suit string, state cardVisualState, t theme.Theme) stri
 
 	top := borderStyle.Render("╭" + strings.Repeat("╌", innerWidth) + "╮")
 	blank := borderStyle.Render("│") + bgStyle.Render(strings.Repeat(" ", innerWidth)) + borderStyle.Render("│")
-	// center the suit symbol on row 3 (middle of 5 inner rows)
+	// center the suit symbol on the middle row
 	left := (innerWidth - 1) / 2
 	right := innerWidth - 1 - left
 	midContent := bgStyle.Render(strings.Repeat(" ", left)) + textStyle.Render(suit) + bgStyle.Render(strings.Repeat(" ", right))
 	mid := borderStyle.Render("│") + midContent + borderStyle.Render("│")
 	bot := borderStyle.Render("╰" + strings.Repeat("╌", innerWidth) + "╯")
 
-	lines := []string{top, blank, blank, mid, blank, blank, bot}
+	lines := []string{top, blank, mid, blank, bot}
 	return strings.Join(lines, "\n")
 }
 
@@ -200,14 +188,22 @@ func RenderTableauPile(p *engine.TableauPile, colIdx int, cursor CursorState, t 
 		return renderEmptyWithState(state, t)
 	}
 
+	// When a drag has removed all face-up cards, the top face-down card is
+	// newly exposed — render it as a full card so the player can see it clearly.
+	topFDFull := draggingFromHere && len(fuCards) == 0 && fdCount > 0
+
 	var rows []string
 
-	// Face-down stubs: each is 1 row (top border line only)
+	// Face-down stubs: each is 1 row except the topmost when promoted to full.
 	for i := 0; i < fdCount; i++ {
-		rows = append(rows, cardStubTop(t))
+		if topFDFull && i == fdCount-1 {
+			rows = append(rows, renderFaceDown(t))
+		} else {
+			rows = append(rows, cardStubTop(t))
+		}
 	}
 
-	// Face-up cards: all but last get 2-line peek; last gets full render
+	// Face-up cards: all but last get 1-line peek; last gets full render
 	for fi, c := range fuCards {
 		cardIdx := fdCount + fi
 		state := cardVisualStateForCursor(pid, cardIdx, cursor)

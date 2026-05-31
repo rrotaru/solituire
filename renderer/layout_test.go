@@ -22,20 +22,20 @@ func newSeed42DrawState() *engine.GameState {
 // Layout geometry (draw-1, wasteVisCount=1):
 //
 //	topRow = 2   (header row 0 + blank spacer row 1)
-//	tabRow = 10  (topRow + CardHeight(7) + blank spacer(1))
+//	tabRow = 8   (topRow + CardHeight(5) + blank spacer(1))
 //
-//	computeFoundationStartX(1): leftWidth=19, gap=11 → fStartX=30
+//	computeFoundationStartX(1): leftWidth=15, gap=9 → fStartX=24
 //
 //	Pile         X    Y-start
 //	Stock        0    2
-//	Waste        10   2
-//	Foundation0  30   2
-//	Foundation1  40   2
-//	Foundation2  50   2
-//	Foundation3  60   2
-//	Tableau0     0    10
-//	Tableau1     10   10   (1 fd stub at row 10, 1 fu at rows 11..17)
-//	Tableau6     60   10   (6 fd stubs rows 10..15, 1 fu at rows 16..22)
+//	Waste        8    2
+//	Foundation0  24   2
+//	Foundation1  32   2
+//	Foundation2  40   2
+//	Foundation3  48   2
+//	Tableau0     0    8
+//	Tableau1     8    8   (1 fd stub at row 8, 1 fu at rows 9..13)
+//	Tableau6     48   8   (6 fd stubs rows 8..13, 1 fu at rows 14..18)
 func TestPileHitTestWithWidth(t *testing.T) {
 	state := newSeed42DrawState()
 
@@ -49,55 +49,55 @@ func TestPileHitTestWithWidth(t *testing.T) {
 		x, y int
 		want *wantHit // nil = expect miss (ok=false)
 	}{
-		// ── Stock ────────────────────────────────────────────────────────────
+		// ── Stock (x=[0,6], y=[2,6]) ─────────────────────────────────────────
 		{"stock top-left corner", 0, 2, &wantHit{engine.PileStock, 0}},
-		{"stock center", 4, 5, &wantHit{engine.PileStock, 0}},
-		{"stock bottom-right corner", 8, 8, &wantHit{engine.PileStock, 0}},
+		{"stock center", 3, 4, &wantHit{engine.PileStock, 0}},
+		{"stock bottom-right corner", 6, 6, &wantHit{engine.PileStock, 0}},
 
-		// ── Waste (empty at deal time, wasteVisCount clamps to 1) ────────────
-		{"waste left edge", 10, 2, &wantHit{engine.PileWaste, 0}},
-		{"waste center", 14, 5, &wantHit{engine.PileWaste, 0}},
-		{"waste right edge", 18, 8, &wantHit{engine.PileWaste, 0}},
+		// ── Waste (x=[8,14], y=[2,6]) ────────────────────────────────────────
+		{"waste left edge", 8, 2, &wantHit{engine.PileWaste, 0}},
+		{"waste center", 11, 4, &wantHit{engine.PileWaste, 0}},
+		{"waste right edge", 14, 6, &wantHit{engine.PileWaste, 0}},
 
-		// ── Foundations ──────────────────────────────────────────────────────
-		{"foundation 0", 30, 2, &wantHit{engine.PileFoundation0, 0}},
-		{"foundation 1", 40, 4, &wantHit{engine.PileFoundation1, 0}},
-		{"foundation 2", 50, 6, &wantHit{engine.PileFoundation2, 0}},
-		{"foundation 3", 60, 2, &wantHit{engine.PileFoundation3, 0}},
+		// ── Foundations (y=[2,6]) ─────────────────────────────────────────────
+		{"foundation 0", 26, 2, &wantHit{engine.PileFoundation0, 0}},
+		{"foundation 1", 34, 4, &wantHit{engine.PileFoundation1, 0}},
+		{"foundation 2", 42, 2, &wantHit{engine.PileFoundation2, 0}},
+		{"foundation 3", 50, 2, &wantHit{engine.PileFoundation3, 0}},
 
-		// ── Tableau T0 (0 fd, 1 fu occupying rows 10..16) ────────────────────
-		{"T0 fu top row", 4, 10, &wantHit{engine.PileTableau0, 0}},
-		{"T0 fu bottom row", 4, 16, &wantHit{engine.PileTableau0, 0}},
-		{"T0 center", 4, 13, &wantHit{engine.PileTableau0, 0}},
+		// ── Tableau T0 (0 fd, 1 fu occupying rows 8..12) ─────────────────────
+		{"T0 fu top row", 4, 8, &wantHit{engine.PileTableau0, 0}},
+		{"T0 fu bottom row", 4, 12, &wantHit{engine.PileTableau0, 0}},
+		{"T0 center", 4, 10, &wantHit{engine.PileTableau0, 0}},
 
-		// ── Tableau T1 (1 fd at row 10, 1 fu at rows 11..17) ─────────────────
-		{"T1 fd stub", 14, 10, &wantHit{engine.PileTableau1, 0}},
-		{"T1 fu top row", 14, 11, &wantHit{engine.PileTableau1, 1}},
-		{"T1 fu bottom row", 14, 17, &wantHit{engine.PileTableau1, 1}},
+		// ── Tableau T1 (1 fd at row 8, 1 fu at rows 9..13) ───────────────────
+		{"T1 fd stub", 10, 8, &wantHit{engine.PileTableau1, 0}},
+		{"T1 fu top row", 10, 9, &wantHit{engine.PileTableau1, 1}},
+		{"T1 fu bottom row", 10, 13, &wantHit{engine.PileTableau1, 1}},
 
-		// ── Tableau T2 (2 fd at rows 10,11; 1 fu at rows 12..18) ─────────────
-		{"T2 fd stub 0", 24, 10, &wantHit{engine.PileTableau2, 0}},
-		{"T2 fd stub 1", 24, 11, &wantHit{engine.PileTableau2, 1}},
-		{"T2 fu card", 24, 12, &wantHit{engine.PileTableau2, 2}},
-		{"T2 fu bottom row", 24, 18, &wantHit{engine.PileTableau2, 2}},
+		// ── Tableau T2 (2 fd at rows 8,9; 1 fu at rows 10..14) ───────────────
+		{"T2 fd stub 0", 20, 8, &wantHit{engine.PileTableau2, 0}},
+		{"T2 fd stub 1", 20, 9, &wantHit{engine.PileTableau2, 1}},
+		{"T2 fu card", 20, 10, &wantHit{engine.PileTableau2, 2}},
+		{"T2 fu bottom row", 20, 14, &wantHit{engine.PileTableau2, 2}},
 
-		// ── Tableau T6 (6 fd stubs rows 10..15; 1 fu at rows 16..22) ─────────
-		{"T6 fd stub 0", 64, 10, &wantHit{engine.PileTableau6, 0}},
-		{"T6 fd stub 3", 64, 13, &wantHit{engine.PileTableau6, 3}},
-		{"T6 fd stub 5", 64, 15, &wantHit{engine.PileTableau6, 5}},
-		{"T6 fu card top row", 64, 16, &wantHit{engine.PileTableau6, 6}},
-		{"T6 fu card bottom row", 64, 22, &wantHit{engine.PileTableau6, 6}},
-		{"T6 last valid x", 68, 16, &wantHit{engine.PileTableau6, 6}},
+		// ── Tableau T6 (6 fd stubs rows 8..13; 1 fu at rows 14..18) ──────────
+		{"T6 fd stub 0", 50, 8, &wantHit{engine.PileTableau6, 0}},
+		{"T6 fd stub 3", 50, 11, &wantHit{engine.PileTableau6, 3}},
+		{"T6 fd stub 5", 50, 13, &wantHit{engine.PileTableau6, 5}},
+		{"T6 fu card top row", 50, 14, &wantHit{engine.PileTableau6, 6}},
+		{"T6 fu card bottom row", 50, 18, &wantHit{engine.PileTableau6, 6}},
+		{"T6 last valid x", 54, 14, &wantHit{engine.PileTableau6, 6}},
 
 		// ── Misses ───────────────────────────────────────────────────────────
 		{"above top row", 4, 1, nil},
-		{"stock-waste gap", 9, 2, nil},
-		{"gap before foundation 0", 29, 2, nil},
-		{"gap row below top piles", 4, 9, nil}, // tabRow=10; row 9 is the blank spacer
-		{"right of T6", 69, 10, nil},           // T6 occupies x=[60,68]; x=69 is outside
-		{"below T0 fu card", 4, 17, nil},       // T0 fu ends at row 16 (10+7-1)
+		{"stock-waste gap", 7, 2, nil},
+		{"gap before foundation 0", 20, 2, nil},
+		{"gap row below top piles", 4, 7, nil}, // tabRow=8; row 7 is the blank spacer
+		{"right of T6", 55, 10, nil},           // T6 occupies x=[48,54]; x=55 is outside
+		{"below T0 fu card", 4, 13, nil},       // T0 fu ends at row 12 (8+5-1)
 		{"far below tableau", 4, 30, nil},
-		{"between waste and foundation", 28, 2, nil},
+		{"between waste and foundation", 18, 2, nil},
 	}
 
 	termWidth := MinTermWidth // 78
@@ -160,11 +160,11 @@ func TestPileHitTestWaste_Draw3Expansion(t *testing.T) {
 		t.Skip("fewer than 2 waste cards visible — cannot test draw-3 expansion")
 	}
 
-	// wasteOriginX = CardWidth + ColGap = 9 + 1 = 10
+	// wasteOriginX = CardWidth + ColGap = 7 + 1 = 8
 	wasteOriginX := CardWidth + ColGap
 	// Click in the rightmost visible waste card.
 	rightCardX := wasteOriginX + (visCount-1)*CardWidth + 1
-	clickY := 4 // within top-row Y range [2, 2+CardHeight-1] = [2, 8]
+	clickY := 4 // within top-row Y range [2, 2+CardHeight-1] = [2, 6]
 
 	pile, _, ok := PileHitTestWithWidth(rightCardX, clickY, state, MinTermWidth)
 	if !ok || pile != engine.PileWaste {
@@ -179,17 +179,17 @@ func TestPileHitTestWithWidth_WiderTerminal(t *testing.T) {
 	state := newSeed42DrawState()
 
 	// Foundation x-positions come from computeFoundationStartX(wasteVisCount),
-	// not from termWidth. F0 is at x=30 whether termWidth is 78 or 120.
-	for _, termWidth := range []int{78, 120, 200} {
-		pile, _, ok := PileHitTestWithWidth(30, 2, state, termWidth)
+	// not from termWidth. F0 starts at x=24 (draw-1); x=28 is within F0=[24,30].
+	for _, termWidth := range []int{60, 120, 200} {
+		pile, _, ok := PileHitTestWithWidth(28, 2, state, termWidth)
 		if !ok || pile != engine.PileFoundation0 {
-			t.Errorf("termWidth=%d: x=30 got pile=%v ok=%v, want Foundation0 ok=true",
+			t.Errorf("termWidth=%d: x=28 got pile=%v ok=%v, want Foundation0 ok=true",
 				termWidth, pile, ok)
 		}
 		// A click well past the layout boundary must miss all piles.
-		_, _, ok = PileHitTestWithWidth(81, 2, state, termWidth)
+		_, _, ok = PileHitTestWithWidth(70, 2, state, termWidth)
 		if ok {
-			t.Errorf("termWidth=%d: x=81 should miss all piles", termWidth)
+			t.Errorf("termWidth=%d: x=70 should miss all piles", termWidth)
 		}
 	}
 }
@@ -197,9 +197,9 @@ func TestPileHitTestWithWidth_WiderTerminal(t *testing.T) {
 // TestFoundationHitTestDraw3 verifies that in draw-3 mode with 3 visible
 // waste cards the foundation hit regions match the rendered positions.
 //
-// With wasteVisCount=3: leftWidth=37, gap=max(1,-7)=1 → fStartX=38.
-// Foundation x-ranges: F0=[38,46], F1=[48,56], F2=[58,66], F3=[68,76].
-// Clicking x=30 (the draw-1 fStartX) must miss.
+// With wasteVisCount=3: leftWidth=29, gap=max(1,-5)=1 → fStartX=30.
+// Foundation x-ranges: F0=[30,36], F1=[38,44], F2=[46,52], F3=[54,60].
+// Clicking x=20 is inside the expanded waste hit region (x=[8,28]).
 func TestFoundationHitTestDraw3(t *testing.T) {
 	deck := engine.NewDeck()
 	engine.Shuffle(deck, 42)
@@ -216,10 +216,10 @@ func TestFoundationHitTestDraw3(t *testing.T) {
 		t.Skipf("expected 3 visible waste cards after first draw-3 flip, got %d", visCount)
 	}
 
-	// computeFoundationStartX(3) = 38
+	// computeFoundationStartX(3) = 30
 	fStartX := computeFoundationStartX(visCount)
-	if fStartX != 38 {
-		t.Fatalf("computeFoundationStartX(%d) = %d, want 38", visCount, fStartX)
+	if fStartX != 30 {
+		t.Fatalf("computeFoundationStartX(%d) = %d, want 30", visCount, fStartX)
 	}
 
 	// F0 must be a hit at the actual rendered x.
@@ -228,11 +228,11 @@ func TestFoundationHitTestDraw3(t *testing.T) {
 		t.Errorf("draw-3 F0 at x=%d: got pile=%v ok=%v, want Foundation0 ok=true", fStartX, pile, ok)
 	}
 
-	// x=30 is inside the expanded waste hit region (x=[10,36]), so it resolves
-	// to PileWaste — not Foundation0, which now starts at x=38.
-	wastePile, _, ok := PileHitTestWithWidth(30, 2, state, MinTermWidth)
+	// x=20 is inside the expanded waste hit region (x=[8,28]), so it resolves
+	// to PileWaste — not Foundation0, which now starts at x=30.
+	wastePile, _, ok := PileHitTestWithWidth(20, 2, state, MinTermWidth)
 	if !ok || wastePile != engine.PileWaste {
-		t.Errorf("draw-3: x=30 should hit PileWaste (waste expands to x=[10,36]), got pile=%v ok=%v",
+		t.Errorf("draw-3: x=20 should hit PileWaste (waste expands to x=[8,28]), got pile=%v ok=%v",
 			wastePile, ok)
 	}
 }
