@@ -224,11 +224,7 @@ func RenderTableauPile(p *engine.TableauPile, colIdx int, cursor CursorState, t 
 
 	if fdCount == 0 && len(fuCards) == 0 {
 		state := cardVisualStateForCursor(pid, 0, cursor)
-		s := renderEmptyWithState(state, t)
-		if color, ok := pileArrowColor(pid, cursor, t); ok {
-			s = appendArrow(s, color, t.BoardBackground)
-		}
-		return s
+		return renderEmptyWithState(state, t)
 	}
 
 	// When a drag has removed all face-up cards, the top face-down card is
@@ -259,11 +255,7 @@ func RenderTableauPile(p *engine.TableauPile, colIdx int, cursor CursorState, t 
 		}
 	}
 
-	s := strings.Join(rows, "\n")
-	if color, ok := pileArrowColor(pid, cursor, t); ok {
-		s = appendArrow(s, color, t.BoardBackground)
-	}
-	return s
+	return strings.Join(rows, "\n")
 }
 
 // resolveStateForFaceUp maps a raw cardVisualState to one valid for a face-up card.

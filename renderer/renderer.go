@@ -148,9 +148,16 @@ func (r *Renderer) renderTableau(state *engine.GameState, cursor CursorState) st
 			maxHeight = h
 		}
 	}
-	// Always reserve one extra row for arrow indicators so the board height
-	// is stable regardless of which column (if any) has an arrow appended.
+	// Reserve one row for arrow indicators *before* appending them, so the
+	// board height is stable regardless of which column has an arrow.
 	maxHeight++
+	// Now append arrows — measured heights are already accounted for above.
+	for i := 0; i < 7; i++ {
+		pid := engine.PileID(engine.PileTableau0 + engine.PileID(i))
+		if color, ok := pileArrowColor(pid, cursor, r.theme); ok {
+			cols[i] = appendArrow(cols[i], color, r.theme.BoardBackground)
+		}
+	}
 
 	// Pre-pad shorter columns so JoinHorizontal doesn't add unstyled spaces
 	parts := make([]string, 0, 13)
