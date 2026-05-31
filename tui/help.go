@@ -52,11 +52,13 @@ func RenderKeybindHelp(boardView string, termW, termH int) string {
 		startCol = 0
 	}
 
-	// Center vertically between header (rows 0-1) and footer (last 2 rows of board).
-	boardLines := strings.Count(boardView, "\n") + 1
+	// Center vertically within the visible terminal height, between header
+	// (rows 0-1) and footer (last 2 rows). Using termH rather than the board's
+	// rendered line count prevents the popup from extending past the screen when
+	// the tableau is taller than the terminal.
 	const topPad = 2  // header line + blank spacer
 	const botPad = 2  // blank spacer + footer line
-	playH := boardLines - topPad - botPad
+	playH := termH - topPad - botPad
 	startRow := topPad + (playH-popupH)/2
 	if startRow < topPad {
 		startRow = topPad
