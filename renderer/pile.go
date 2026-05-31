@@ -46,27 +46,25 @@ func cardVisualStateForCursor(pileID engine.PileID, cardIdx int, cursor CursorSt
 	return cardCursor
 }
 
-// renderStockPileFull renders the stock pile respecting cursor state on the border.
+// renderStockPileFull renders the stock pile respecting cursor state.
 func renderStockPileFull(p *engine.StockPile, cursor CursorState, t theme.Theme) string {
+	state := cardVisualStateForCursor(engine.PileStock, 0, cursor)
 	if p.IsEmpty() {
-		state := cardVisualStateForCursor(engine.PileStock, 0, cursor)
 		return renderEmptyWithState(state, t)
 	}
-	state := cardVisualStateForCursor(engine.PileStock, 0, cursor)
-	return renderFaceDownWithState(state, t)
+	return renderStockFaceDown(state, t)
 }
 
-// renderFaceDownWithState renders a face-down card without borders.
-// cursor hover and hint states blink the hatch characters.
-func renderFaceDownWithState(state cardVisualState, t theme.Theme) string {
+// renderStockFaceDown renders the stock pile face-down card as all ▇ rows,
+// visually distinguishing it from tableau face-down cards (▇ top + █ fill).
+func renderStockFaceDown(state cardVisualState, t theme.Theme) string {
 	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.BoardBackground)
 	switch state {
 	case cardCursor, cardHintFrom, cardHintTo:
 		fillStyle = fillStyle.Blink(true)
 	}
-	top := fillStyle.Render(strings.Repeat("▇", CardWidth))
-	fill := fillStyle.Render(strings.Repeat("█", CardWidth))
-	lines := []string{top, fill, fill, fill, fill}
+	row := fillStyle.Render(strings.Repeat("▇", CardWidth))
+	lines := []string{row, row, row, row, row}
 	return strings.Join(lines, "\n")
 }
 
