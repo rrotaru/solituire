@@ -64,8 +64,9 @@ func renderFaceDownWithState(state cardVisualState, t theme.Theme) string {
 	case cardCursor, cardHintFrom, cardHintTo:
 		fillStyle = fillStyle.Blink(true)
 	}
-	fill := fillStyle.Render(strings.Repeat("░", CardWidth))
-	lines := []string{fill, fill, fill, fill, fill}
+	top := fillStyle.Render(strings.Repeat("▇", CardWidth))
+	fill := fillStyle.Render(strings.Repeat("█", CardWidth))
+	lines := []string{top, fill, fill, fill, fill}
 	return strings.Join(lines, "\n")
 }
 

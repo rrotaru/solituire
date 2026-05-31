@@ -95,11 +95,12 @@ func renderEmptyWithState(state cardVisualState, t theme.Theme) string {
 	return strings.Join(lines, "\n")
 }
 
-// renderFaceDown renders a face-down card with hatched interior (no borders).
+// renderFaceDown renders a face-down card: ▇ top row, █ fill rows.
 func renderFaceDown(t theme.Theme) string {
 	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.CardBackground)
-	fill := fillStyle.Render(strings.Repeat("░", CardWidth))
-	lines := []string{fill, fill, fill, fill, fill}
+	top := fillStyle.Render(strings.Repeat("▇", CardWidth))
+	fill := fillStyle.Render(strings.Repeat("█", CardWidth))
+	lines := []string{top, fill, fill, fill, fill}
 	return strings.Join(lines, "\n")
 }
 
@@ -158,7 +159,7 @@ func renderFaceUp(cc cardContent, t theme.Theme) string {
 // cardStubTop renders the single visible row of a face-down card stub in the tableau.
 func cardStubTop(t theme.Theme) string {
 	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.CardBackground)
-	return fillStyle.Render(strings.Repeat("░", CardWidth))
+	return fillStyle.Render(strings.Repeat("▇", CardWidth))
 }
 
 // cardPeekLines renders the single peek row of a non-bottom face-up tableau card.
