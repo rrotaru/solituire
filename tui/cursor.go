@@ -27,8 +27,9 @@ var tabCycleOrder = []engine.PileID{
 // Call RendererCursor() to produce a renderer.CursorState for rendering.
 type Cursor struct {
 	Pile          engine.PileID
-	CardIndex     int // 0-based within the pile's Cards slice
-	Dragging      bool
+	CardIndex     int  // 0-based within the pile's Cards slice
+	Dragging      bool // mouse drag in progress (ghost follows the cursor)
+	Selecting     bool // keyboard pick-up in progress (card stays in place)
 	DragSource    engine.PileID
 	DragCardCount int // number of cards being dragged from DragSource
 	MouseX        int // terminal column of mouse cursor during a drag
@@ -38,6 +39,15 @@ type Cursor struct {
 	HintTo        engine.PileID
 }
 
+// clearPickup resets all pick-up state shared by the mouse drag and keyboard
+// selection flows. It does not touch MouseX/MouseY (mouse-only) or hint state.
+func (c *Cursor) clearPickup() {
+	c.Dragging = false
+	c.Selecting = false
+	c.DragSource = 0
+	c.DragCardCount = 0
+}
+
 // RendererCursor converts the internal cursor state to renderer.CursorState
 // for passing into renderer.Render.
 func (c Cursor) RendererCursor() renderer.CursorState {
@@ -45,6 +55,7 @@ func (c Cursor) RendererCursor() renderer.CursorState {
 		Pile:          c.Pile,
 		CardIndex:     c.CardIndex,
 		Dragging:      c.Dragging,
+		Selecting:     c.Selecting,
 		DragSource:    c.DragSource,
 		DragCardCount: c.DragCardCount,
 		MouseX:        c.MouseX,
