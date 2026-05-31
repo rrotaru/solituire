@@ -11,7 +11,7 @@ const (
 	CardWidth     = 7 // rendered width (no borders)
 	CardHeight    = 5 // rendered height (no borders)
 	MinTermWidth  = 61
-	MinTermHeight = 21
+	MinTermHeight = 23
 	ColGap        = 1                      // gap between tableau columns
 	BoardWidth    = 7*CardWidth + 6*ColGap // = 55, matches 7 tableau columns
 )
@@ -49,10 +49,11 @@ func tableauX(idx int) int {
 // draw-3 mode); pass 1 when the waste state is not known.
 func pileOrigins(wasteVisCount int) map[engine.PileID]image.Point {
 	// Render() join order: header (row 0), "" spacer (row 1), top-row piles
-	// (rows 2..2+CardHeight-1), "" spacer, tableau.
+	// (rows 2..2+CardHeight, always padded to CardHeight+1 for the arrow row),
+	// "" spacer, tableau.
 	topRow := 2
-	// Tableau row starts after the top-row piles + the blank spacer row.
-	tabRow := topRow + CardHeight + 1
+	// Tableau row starts after the top-row piles (CardHeight+1) + the blank spacer row.
+	tabRow := topRow + CardHeight + 2
 
 	origins := map[engine.PileID]image.Point{
 		engine.PileStock: {X: stockWasteX(), Y: topRow},

@@ -99,9 +99,20 @@ func (r *Renderer) renderTopRow(state *engine.GameState, cursor CursorState) str
 	f2 := RenderFoundationPile(state.Foundations[2], 2, cursor, r.theme)
 	f3 := RenderFoundationPile(state.Foundations[3], 3, cursor, r.theme)
 
+	// All top-row piles and gaps are padded to CardHeight+1 so the row height
+	// never shifts when an arrow appears, and lipgloss never fills the extra
+	// row with unstyled spaces.
+	const topRowH = CardHeight + 1
+	stock = r.padColumnHeight(stock, topRowH)
+	waste = r.padColumnHeight(waste, topRowH)
+	f0 = r.padColumnHeight(f0, topRowH)
+	f1 = r.padColumnHeight(f1, topRowH)
+	f2 = r.padColumnHeight(f2, topRowH)
+	f3 = r.padColumnHeight(f3, topRowH)
+
 	leftSection := lipgloss.JoinHorizontal(lipgloss.Top,
 		stock,
-		r.boardGapCol(ColGap, CardHeight),
+		r.boardGapCol(ColGap, topRowH),
 		waste,
 	)
 
@@ -113,14 +124,14 @@ func (r *Renderer) renderTopRow(state *engine.GameState, cursor CursorState) str
 	if gapWidth < 1 {
 		gapWidth = 1
 	}
-	gap := r.boardGapCol(gapWidth, CardHeight)
+	gap := r.boardGapCol(gapWidth, topRowH)
 	rightSection := lipgloss.JoinHorizontal(lipgloss.Top,
 		f0,
-		r.boardGapCol(ColGap, CardHeight),
+		r.boardGapCol(ColGap, topRowH),
 		f1,
-		r.boardGapCol(ColGap, CardHeight),
+		r.boardGapCol(ColGap, topRowH),
 		f2,
-		r.boardGapCol(ColGap, CardHeight),
+		r.boardGapCol(ColGap, topRowH),
 		f3,
 	)
 
@@ -135,6 +146,16 @@ func (r *Renderer) renderTableau(state *engine.GameState, cursor CursorState) st
 		cols[i] = RenderTableauPile(state.Tableau[i], i, cursor, r.theme)
 		if h := strings.Count(cols[i], "\n") + 1; h > maxHeight {
 			maxHeight = h
+		}
+	}
+	// Reserve one row for arrow indicators *before* appending them, so the
+	// board height is stable regardless of which column has an arrow.
+	maxHeight++
+	// Now append arrows — measured heights are already accounted for above.
+	for i := 0; i < 7; i++ {
+		pid := engine.PileID(engine.PileTableau0 + engine.PileID(i))
+		if color, ok := pileArrowColor(pid, cursor, r.theme); ok {
+			cols[i] = appendArrow(cols[i], color, r.theme.BoardBackground)
 		}
 	}
 
