@@ -8,10 +8,10 @@ type ThemeRegistry struct {
 }
 
 // NewRegistry returns a ThemeRegistry pre-loaded with all built-in themes.
-// Order: Classic, Dracula, Solarized Dark, Solarized Light, Nord.
+// Order: Classic, Dracula, Solarized Dark, Solarized Light, Nord, Catppuccin, Tokyo Night.
 func NewRegistry() *ThemeRegistry {
 	return &ThemeRegistry{
-		themes: []Theme{Classic, Dracula, SolarizedDark, SolarizedLight, Nord},
+		themes: []Theme{Classic, Dracula, SolarizedDark, SolarizedLight, Nord, Catppuccin, TokyoNight},
 	}
 }
 

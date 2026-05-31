@@ -14,11 +14,11 @@ func init() {
 	lipgloss.SetColorProfile(termenv.TrueColor)
 }
 
-func TestRegistry_ReturnsFiveThemes(t *testing.T) {
+func TestRegistry_ReturnsAllBuiltInThemes(t *testing.T) {
 	r := theme.NewRegistry()
 	names := r.List()
-	if len(names) != 5 {
-		t.Fatalf("expected 5 themes, got %d: %v", len(names), names)
+	if len(names) != 7 {
+		t.Fatalf("expected 7 themes, got %d: %v", len(names), names)
 	}
 }
 
@@ -48,6 +48,8 @@ func TestRegistry_GetByName(t *testing.T) {
 			"solarized dark":  "Solarized Dark",
 			"solarized light": "Solarized Light",
 			"nord":            "Nord",
+			"catppuccin":      "Catppuccin",
+			"tokyo night":     "Tokyo Night",
 		}
 		for input, want := range cases {
 			got := r.Get(input)
