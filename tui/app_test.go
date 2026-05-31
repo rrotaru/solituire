@@ -5,6 +5,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/x/exp/golden"
 	"solituire/config"
 	"solituire/engine"
 	"solituire/renderer"
@@ -443,4 +444,17 @@ func TestAppModel_RestartDealMsg_NoExtraTickCmd(t *testing.T) {
 	if cmd != nil {
 		t.Error("RestartDealMsg returned a non-nil Cmd; would create a duplicate tick chain")
 	}
+}
+
+// TestAppMenuScreenView is a golden test for the full composed ScreenMenu view:
+// face-down board background with the menu box overlaid in the center.
+func TestAppMenuScreenView(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.Seed = 12345
+	reg := theme.NewRegistry()
+	eng := engine.NewGame(12345, 1)
+	rend := renderer.New(reg.Get(cfg.ThemeName))
+	app := NewAppModel(eng, rend, cfg, reg)
+	// app starts at ScreenMenu; renderer uses MinTermWidth/MinTermHeight defaults
+	golden.RequireEqual(t, []byte(app.View()))
 }

@@ -7,6 +7,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"solituire/config"
+	"solituire/engine"
 	"solituire/theme"
 )
 
@@ -264,6 +265,18 @@ func (m MenuModel) renderDrawMode() string {
 
 func (m MenuModel) renderTheme() string {
 	return fmt.Sprintf("Theme:       \u25c4 %s \u25ba", m.cfg.ThemeName)
+}
+
+// newFaceDownState returns a standard Klondike layout where every card is
+// face-down, used to render the decorative board background on the menu screen.
+func newFaceDownState(drawCount int) *engine.GameState {
+	state := engine.Deal(engine.NewDeck(), drawCount)
+	for _, pile := range state.Tableau {
+		if len(pile.Cards) > 0 {
+			pile.Cards[len(pile.Cards)-1].FaceUp = false
+		}
+	}
+	return state
 }
 
 func (m MenuModel) renderAutoMove() string {
