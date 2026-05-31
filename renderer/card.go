@@ -123,22 +123,24 @@ func renderFaceUp(cc cardContent, t theme.Theme) string {
 		suitColor = t.BlackSuit
 	}
 
+	// Only cursor-hover and hint states show a visible border; normal and
+	// selected (drag) states use spaces so the card appears borderless.
+	visibleBorder := false
 	var borderColor lipgloss.Color
 	switch cc.state {
 	case cardCursor:
+		visibleBorder = true
 		borderColor = t.CursorBorder
-	case cardSelected:
-		borderColor = t.SelectedBorder
 	case cardHintFrom, cardHintTo:
+		visibleBorder = true
 		borderColor = t.HintBorder
-	default:
-		borderColor = t.CardBorder
 	}
 
 	borderStyle := lipgloss.NewStyle().Foreground(borderColor).Background(t.BoardBackground)
 	suitStyle := lipgloss.NewStyle().Foreground(suitColor).Background(t.CardBackground)
 	rankStyle := lipgloss.NewStyle().Foreground(t.CardForeground).Background(t.CardBackground)
 	bgStyle := lipgloss.NewStyle().Background(t.CardBackground)
+	spaceBg := lipgloss.NewStyle().Background(t.BoardBackground)
 
 	// rank strings are 1-2 chars; pad to 2 for alignment
 	rankPad := fmt.Sprintf("%-2s", rank) // left-padded rank (top-left)
@@ -161,13 +163,22 @@ func renderFaceUp(cc cardContent, t theme.Theme) string {
 		suitStyle.Inline(true).Render(suit) +
 		rankStyle.Inline(true).Render(rankPadR)
 
-	top := borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
-	r0 := borderStyle.Render("│") + bgStyle.Render(line0) + borderStyle.Render("│")
-	r1 := borderStyle.Render("│") + bgStyle.Render(blank) + borderStyle.Render("│")
-	r2 := borderStyle.Render("│") + bgStyle.Render(line2) + borderStyle.Render("│")
-	r3 := borderStyle.Render("│") + bgStyle.Render(blank) + borderStyle.Render("│")
-	r4 := borderStyle.Render("│") + bgStyle.Render(line4) + borderStyle.Render("│")
-	bot := borderStyle.Render("└" + strings.Repeat("─", innerWidth) + "┘")
+	var top, vbar, bot string
+	if visibleBorder {
+		top = borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
+		vbar = borderStyle.Render("│")
+		bot = borderStyle.Render("└" + strings.Repeat("─", innerWidth) + "┘")
+	} else {
+		top = spaceBg.Render(strings.Repeat(" ", CardWidth))
+		vbar = spaceBg.Render(" ")
+		bot = spaceBg.Render(strings.Repeat(" ", CardWidth))
+	}
+
+	r0 := vbar + bgStyle.Render(line0) + vbar
+	r1 := vbar + bgStyle.Render(blank) + vbar
+	r2 := vbar + bgStyle.Render(line2) + vbar
+	r3 := vbar + bgStyle.Render(blank) + vbar
+	r4 := vbar + bgStyle.Render(line4) + vbar
 
 	return strings.Join([]string{top, r0, r1, r2, r3, r4, bot}, "\n")
 }
@@ -192,22 +203,22 @@ func cardPeekLines(c engine.Card, state cardVisualState, t theme.Theme) string {
 		suitColor = t.BlackSuit
 	}
 
+	visibleBorder := false
 	var borderColor lipgloss.Color
 	switch state {
 	case cardCursor:
+		visibleBorder = true
 		borderColor = t.CursorBorder
-	case cardSelected:
-		borderColor = t.SelectedBorder
 	case cardHintFrom, cardHintTo:
+		visibleBorder = true
 		borderColor = t.HintBorder
-	default:
-		borderColor = t.CardBorder
 	}
 
 	borderStyle := lipgloss.NewStyle().Foreground(borderColor).Background(t.BoardBackground)
 	suitStyle := lipgloss.NewStyle().Foreground(suitColor).Background(t.CardBackground)
 	rankStyle := lipgloss.NewStyle().Foreground(t.CardForeground).Background(t.CardBackground)
 	bgStyle := lipgloss.NewStyle().Background(t.CardBackground)
+	spaceBg := lipgloss.NewStyle().Background(t.BoardBackground)
 
 	rankPad := fmt.Sprintf("%-2s", rank)
 
@@ -216,8 +227,15 @@ func cardPeekLines(c engine.Card, state cardVisualState, t theme.Theme) string {
 		suitStyle.Inline(true).Render(suit) +
 		bgStyle.Inline(true).Render(strings.Repeat(" ", innerWidth-3))
 
-	top := borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
-	r0 := borderStyle.Render("│") + bgStyle.Render(line0) + borderStyle.Render("│")
+	var top, vbar string
+	if visibleBorder {
+		top = borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
+		vbar = borderStyle.Render("│")
+	} else {
+		top = spaceBg.Render(strings.Repeat(" ", CardWidth))
+		vbar = spaceBg.Render(" ")
+	}
+	r0 := vbar + bgStyle.Render(line0) + vbar
 
 	return strings.Join([]string{top, r0}, "\n")
 }
