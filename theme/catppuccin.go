@@ -10,7 +10,7 @@ var Catppuccin = Theme{
 	CardBackground: lipgloss.Color("#cdd6f4"), // Text
 	CardForeground: lipgloss.Color("#11111b"), // Crust
 	CardBorder:     lipgloss.Color("#585b70"), // Surface2
-	CardFaceDown:   lipgloss.Color("#89b4fa"), // Blue — 7.83:1 vs Base board
+	CardFaceDown:   lipgloss.Color("#cba6f7"), // Mauve — 8.08:1 vs Base board
 	RedSuit:        lipgloss.Color("#f38ba8"), // Red
 	BlackSuit:      lipgloss.Color("#11111b"), // Crust
 
