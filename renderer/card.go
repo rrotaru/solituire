@@ -97,13 +97,13 @@ func renderEmptyWithState(state cardVisualState, t theme.Theme) string {
 	return strings.Join(lines, "\n")
 }
 
-// renderFaceDown renders a face-down card with solid fill interior.
+// renderFaceDown renders a face-down card with hatched interior.
 func renderFaceDown(t theme.Theme) string {
 	borderStyle := lipgloss.NewStyle().Foreground(t.CardBorder).Background(t.BoardBackground)
 	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.CardBackground)
 
-	top := fillStyle.Render(strings.Repeat("█", CardWidth))
-	fill := borderStyle.Render("│") + fillStyle.Render(strings.Repeat("█", innerWidth)) + borderStyle.Render("│")
+	top := borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
+	fill := borderStyle.Render("│") + fillStyle.Render(strings.Repeat("░", innerWidth)) + borderStyle.Render("│")
 	bot := borderStyle.Render("└" + strings.Repeat("─", innerWidth) + "┘")
 
 	lines := []string{top, fill, fill, fill, fill, fill, bot}
@@ -178,11 +178,11 @@ func renderFaceUp(cc cardContent, t theme.Theme) string {
 	return strings.Join([]string{top, r0, r1, r2, r3, r4, bot}, "\n")
 }
 
-// cardStubTop renders only the top line of a face-down card (1 row).
+// cardStubTop renders only the top border line of a face-down card (1 row).
 // Used for fanned face-down cards in tableau columns.
 func cardStubTop(t theme.Theme) string {
-	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.CardBackground)
-	return fillStyle.Render(strings.Repeat("█", CardWidth))
+	borderStyle := lipgloss.NewStyle().Foreground(t.CardBorder).Background(t.BoardBackground)
+	return borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
 }
 
 // cardPeekLines renders the top 2 lines of a face-up card (border + rank/suit line).
