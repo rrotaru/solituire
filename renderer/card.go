@@ -157,8 +157,9 @@ func renderFaceUp(cc cardContent, t theme.Theme) string {
 }
 
 // cardStubTop renders the single visible row of a face-down card stub in the tableau.
+// Background matches the board so the stub sits flush; foreground contrasts against it.
 func cardStubTop(t theme.Theme) string {
-	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.CardBackground)
+	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.BoardBackground)
 	return fillStyle.Render(strings.Repeat("▇", CardWidth))
 }
 
