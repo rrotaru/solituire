@@ -11,7 +11,7 @@ const (
 	CardWidth     = 7 // rendered width (no borders)
 	CardHeight    = 5 // rendered height (no borders)
 	MinTermWidth  = 61
-	MinTermHeight = 21
+	MinTermHeight = 22
 	ColGap        = 1 // gap between tableau columns
 )
 
