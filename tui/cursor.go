@@ -5,21 +5,8 @@ import (
 	"solituire/renderer"
 )
 
-// navCycleOrder is the Left/Right arrow key navigation cycle.
-// Foundations are omitted — they are reachable only via Tab.
-var navCycleOrder = []engine.PileID{
-	engine.PileStock,
-	engine.PileWaste,
-	engine.PileTableau0,
-	engine.PileTableau1,
-	engine.PileTableau2,
-	engine.PileTableau3,
-	engine.PileTableau4,
-	engine.PileTableau5,
-	engine.PileTableau6,
-}
-
-// tabCycleOrder is the Tab / Shift-Tab cycling order across all piles.
+// tabCycleOrder is the navigation cycle shared by Tab/Shift-Tab and the
+// Left/Right arrow keys, covering all piles in board order.
 var tabCycleOrder = []engine.PileID{
 	engine.PileStock,
 	engine.PileWaste,
@@ -68,27 +55,15 @@ func (c Cursor) RendererCursor() renderer.CursorState {
 	}
 }
 
-// MoveLeft cycles one step left in navCycleOrder, wrapping at the start.
-// Foundations are not in navCycleOrder; when the cursor is on any foundation
-// the nearest left neighbor is Waste (the last top-row pile before foundations).
+// MoveLeft cycles one step left in tabCycleOrder, wrapping at the start.
 func (c *Cursor) MoveLeft(state *engine.GameState) {
-	if isFoundationPile(c.Pile) {
-		c.Pile = engine.PileWaste
-	} else {
-		c.Pile = prevInCycle(navCycleOrder, c.Pile)
-	}
+	c.Pile = prevInCycle(tabCycleOrder, c.Pile)
 	c.CardIndex = naturalCardIndex(c.Pile, state)
 }
 
-// MoveRight cycles one step right in navCycleOrder, wrapping at the end.
-// Foundations are not in navCycleOrder; when the cursor is on any foundation
-// the nearest right neighbor is Tableau0 (the first pile after foundations).
+// MoveRight cycles one step right in tabCycleOrder, wrapping at the end.
 func (c *Cursor) MoveRight(state *engine.GameState) {
-	if isFoundationPile(c.Pile) {
-		c.Pile = engine.PileTableau0
-	} else {
-		c.Pile = nextInCycle(navCycleOrder, c.Pile)
-	}
+	c.Pile = nextInCycle(tabCycleOrder, c.Pile)
 	c.CardIndex = naturalCardIndex(c.Pile, state)
 }
 
