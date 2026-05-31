@@ -8,7 +8,7 @@ type GameAction int
 const (
 	ActionNone GameAction = iota
 
-	// Cursor movement — arrow keys and vim keys
+	// Cursor movement — arrow keys
 	ActionCursorUp
 	ActionCursorDown
 	ActionCursorLeft
@@ -33,13 +33,13 @@ const (
 	ActionMoveToFoundation // 'f' — auto-move selected to foundation
 
 	// Meta
-	ActionUndo           // Ctrl+Z
-	ActionRedo           // Ctrl+Y
+	ActionUndo           // 'u'
+	ActionRedo           // 'r'
 	ActionHint           // 'h'
+	ActionKeybindHelp    // '?'
 	ActionNewGame        // Ctrl+N
 	ActionRestartDeal    // Ctrl+R
 	ActionPause          // 'p'
-	ActionHelp           // F1 or 'H'
 	ActionQuit           // 'q' or Ctrl+C
 	ActionToggleAutoMove // Ctrl+A
 	ActionCycleTheme     // 't'
@@ -82,12 +82,6 @@ func translateKey(m tea.KeyMsg) (GameAction, interface{}) {
 		return ActionFlipStock, nil
 	case tea.KeyEsc:
 		return ActionCancel, nil
-	case tea.KeyCtrlZ:
-		return ActionUndo, nil
-	case tea.KeyCtrlY:
-		return ActionRedo, nil
-	case tea.KeyF1:
-		return ActionHelp, nil
 	case tea.KeyCtrlN:
 		return ActionNewGame, nil
 	case tea.KeyCtrlR:
@@ -109,18 +103,16 @@ func translateKey(m tea.KeyMsg) (GameAction, interface{}) {
 
 func translateRune(r rune) (GameAction, interface{}) {
 	switch r {
-	case 'l':
-		return ActionCursorRight, nil
-	case 'k':
-		return ActionCursorUp, nil
-	case 'j':
-		return ActionCursorDown, nil
 	case 'f':
 		return ActionMoveToFoundation, nil
 	case 'h':
 		return ActionHint, nil
-	case 'H':
-		return ActionHelp, nil
+	case 'u':
+		return ActionUndo, nil
+	case 'r':
+		return ActionRedo, nil
+	case '?':
+		return ActionKeybindHelp, nil
 	case 'p':
 		return ActionPause, nil
 	case 't':

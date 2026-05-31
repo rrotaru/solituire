@@ -354,12 +354,12 @@ func TestBoardUndoClearsDrag(t *testing.T) {
 		t.Fatal("precondition: expected Dragging=true")
 	}
 
-	board = sendKey(board, tea.KeyCtrlZ)
+	board = sendRune(board, 'u')
 	if board.cursor.Dragging {
-		t.Error("Ctrl+Z must clear Dragging")
+		t.Error("u must clear Dragging")
 	}
 	if board.cursor.DragSource != 0 || board.cursor.DragCardCount != 0 {
-		t.Error("Ctrl+Z must clear DragSource and DragCardCount")
+		t.Error("u must clear DragSource and DragCardCount")
 	}
 }
 
@@ -370,7 +370,7 @@ func TestBoardRedoClearsDrag(t *testing.T) {
 
 	// Create an undone action to redo.
 	board = sendKey(board, tea.KeySpace) // flip stock
-	board = sendKey(board, tea.KeyCtrlZ) // undo
+	board = sendRune(board, 'u')         // undo
 
 	// Start a drag.
 	board.cursor.Pile = engine.PileTableau3
@@ -380,12 +380,12 @@ func TestBoardRedoClearsDrag(t *testing.T) {
 		t.Fatal("precondition: expected Dragging=true")
 	}
 
-	board = sendKey(board, tea.KeyCtrlY)
+	board = sendRune(board, 'r')
 	if board.cursor.Dragging {
-		t.Error("Ctrl+Y must clear Dragging")
+		t.Error("r must clear Dragging")
 	}
 	if board.cursor.DragSource != 0 || board.cursor.DragCardCount != 0 {
-		t.Error("Ctrl+Y must clear DragSource and DragCardCount")
+		t.Error("r must clear DragSource and DragCardCount")
 	}
 }
 
@@ -399,7 +399,7 @@ func TestBoardUndo(t *testing.T) {
 		t.Fatal("flip produced no waste cards")
 	}
 
-	sendKey(board, tea.KeyCtrlZ)
+	sendRune(board, 'u')
 	if len(eng.State().Waste.Cards) != 0 {
 		t.Errorf("after undo waste should be empty, got %d cards", len(eng.State().Waste.Cards))
 	}
@@ -411,8 +411,8 @@ func TestBoardRedo(t *testing.T) {
 	board = sendKey(board, tea.KeySpace) // flip
 	wasteAfterFlip := len(eng.State().Waste.Cards)
 
-	board = sendKey(board, tea.KeyCtrlZ) // undo
-	sendKey(board, tea.KeyCtrlY)         // redo
+	board = sendRune(board, 'u') // undo
+	sendRune(board, 'r')         // redo
 
 	if len(eng.State().Waste.Cards) != wasteAfterFlip {
 		t.Errorf("after redo waste should have %d cards, got %d", wasteAfterFlip, len(eng.State().Waste.Cards))
@@ -447,13 +447,13 @@ func TestBoardRedoClampsCursor(t *testing.T) {
 	board = sendKey(board, tea.KeyEnter) // place — source pile shrinks
 
 	// Undo restores the source pile; cursor may now be below the new top.
-	board = sendKey(board, tea.KeyCtrlZ)
+	board = sendRune(board, 'u')
 
 	// Redo re-applies the move; source pile shrinks again.
 	// Cursor must be clamped to remain within the pile.
 	board.cursor.Pile = move.From
 	board.cursor.CardIndex = len(eng.State().Tableau[srcCol].Cards) - 1 // park at bottom before redo
-	board = sendKey(board, tea.KeyCtrlY)
+	board = sendRune(board, 'r')
 
 	if isTableauPile(board.cursor.Pile) {
 		col := int(board.cursor.Pile - engine.PileTableau0)
@@ -1540,7 +1540,7 @@ func TestBoardAutoMove_SkippedAfterUndo(t *testing.T) {
 	}
 
 	// Undo the move: 2♠ should return to tableau[0] and stay there.
-	board = sendKey(board, tea.KeyCtrlZ)
+	board = sendRune(board, 'u')
 	_ = board
 
 	if len(eng.State().Foundations[0].Cards) != 1 {

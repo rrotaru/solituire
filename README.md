@@ -7,8 +7,8 @@
 ## Features
 
 - **Full Klondike rules** — draw-1 and draw-3 modes, unlimited stock recycling
-- **Keyboard, mouse & vim keys** — arrows, jkl, number shortcuts, click to select
-- **Undo / Redo** — every move is reversible with `Ctrl+Z` / `Ctrl+Y`
+- **Keyboard & mouse** — arrows, number shortcuts, click to select
+- **Undo / Redo** — every move is reversible with `u` / `r`
 - **Hint engine** — press `h` to highlight a valid move
 - **Auto-move** — press `f` to send a card to the foundation automatically
 - **5 built-in themes** — Classic, Dracula, Solarized Dark, Solarized Light, Nord
@@ -52,19 +52,19 @@ When `--draw` is supplied the menu is skipped and the game starts immediately.
 
 | Key(s) | Action |
 |---|---|
-| `←` `→` / `l` | Move cursor between piles |
-| `↑` `↓` / `k` `j` | Move cursor within a tableau column |
+| `←` `→` | Move cursor between piles |
+| `↑` `↓` | Move cursor within a tableau column |
 | `1`–`7` | Jump to tableau column |
 | `Tab` | Cycle to next pile |
 | `Enter` | Pick up / place selected card |
 | `Space` | Draw from stock |
 | `f` | Auto-move selected card to foundation |
 | `h` | Show a hint |
-| `Ctrl+Z` | Undo |
-| `Ctrl+Y` | Redo |
+| `u` | Undo |
+| `r` | Redo |
 | `t` | Cycle theme |
 | `p` | Pause / resume |
-| `F1` / `H` | Help overlay |
+| `?` | Keybind help |
 | `Escape` | Cancel selection / dismiss overlay |
 | `q` | Quit |
 | Mouse click | Select and place cards |
