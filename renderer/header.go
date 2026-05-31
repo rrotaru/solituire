@@ -10,21 +10,20 @@ import (
 )
 
 // renderHeader builds the single-line header bar showing game stats.
-func renderHeader(state *engine.GameState, termWidth int, t theme.Theme) string {
+func renderHeader(state *engine.GameState, boardWidth int, t theme.Theme) string {
 	elapsed := formatDuration(state.ElapsedTime)
 	content := fmt.Sprintf(
-		" Score: %-6d  Moves: %-5d  Time: %s  Seed: %-10d  Draw: %d ",
+		" Score: %-6d  Moves: %-5d  Time: %s  Draw: %d ",
 		state.Score,
 		state.MoveCount,
 		elapsed,
-		state.Seed,
 		state.DrawCount,
 	)
 
 	style := lipgloss.NewStyle().
 		Background(t.HeaderBackground).
 		Foreground(t.HeaderForeground).
-		Width(termWidth)
+		Width(boardWidth)
 
 	return style.Render(content)
 }

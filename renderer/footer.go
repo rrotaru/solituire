@@ -5,21 +5,21 @@ import (
 	"solituire/theme"
 )
 
-const footerText = " ←/→: move  Enter: select  Space: draw  u: undo  ?: hint  t: theme  F1: help  q: quit "
+const footerText = " ←/→ Enter Space (u)ndo (h)int (t)heme (q)uit "
 
 // renderFooter builds the single-line footer bar with keybinding hints.
-// The hint text is rune-truncated to termWidth before styling so lipgloss
+// The hint text is rune-truncated to boardWidth before styling so lipgloss
 // never has a reason to wrap it into a second line.
-func renderFooter(termWidth int, t theme.Theme) string {
+func renderFooter(boardWidth int, t theme.Theme) string {
 	text := footerText
-	if runes := []rune(text); len(runes) > termWidth {
-		text = string(runes[:termWidth])
+	if runes := []rune(text); len(runes) > boardWidth {
+		text = string(runes[:boardWidth])
 	}
 
 	style := lipgloss.NewStyle().
 		Background(t.FooterBackground).
 		Foreground(t.FooterForeground).
-		Width(termWidth)
+		Width(boardWidth)
 
 	return style.Render(text)
 }

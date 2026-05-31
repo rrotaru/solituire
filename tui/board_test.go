@@ -560,9 +560,9 @@ func TestBoardFKeyWhileDragging_MultiCard(t *testing.T) {
 func TestBoardHintClearedByAction(t *testing.T) {
 	board, _ := newBoard()
 
-	board = sendRune(board, '?') // show hint
+	board = sendRune(board, 'h') // show hint
 	if !board.cursor.ShowHint {
-		t.Fatal("precondition: ShowHint must be true after '?'")
+		t.Fatal("precondition: ShowHint must be true after 'h'")
 	}
 
 	// A cursor movement is a non-hint action and must clear the hint.
@@ -571,26 +571,26 @@ func TestBoardHintClearedByAction(t *testing.T) {
 		t.Error("cursor movement must clear ShowHint")
 	}
 
-	// '?' after the hint was cleared should show a fresh hint (not toggle off).
-	board = sendRune(board, '?')
+	// 'h' after the hint was cleared should show a fresh hint (not toggle off).
+	board = sendRune(board, 'h')
 	if !board.cursor.ShowHint {
-		t.Error("'?' after hint was cleared must re-show a hint")
+		t.Error("'h' after hint was cleared must re-show a hint")
 	}
 }
 
 func TestBoardHintToggle(t *testing.T) {
 	board, _ := newBoard()
 
-	// First '?' should show a hint.
-	board = sendRune(board, '?')
+	// First 'h' should show a hint.
+	board = sendRune(board, 'h')
 	if !board.cursor.ShowHint {
-		t.Error("'?' must set ShowHint=true")
+		t.Error("'h' must set ShowHint=true")
 	}
 
-	// Second '?' should clear the hint.
-	board = sendRune(board, '?')
+	// Second 'h' should clear the hint.
+	board = sendRune(board, 'h')
 	if board.cursor.ShowHint {
-		t.Error("second '?' must clear ShowHint")
+		t.Error("second 'h' must clear ShowHint")
 	}
 }
 

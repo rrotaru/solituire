@@ -35,7 +35,7 @@ const (
 	// Meta
 	ActionUndo           // Ctrl+Z
 	ActionRedo           // Ctrl+Y
-	ActionHint           // '?'
+	ActionHint           // 'h'
 	ActionNewGame        // Ctrl+N
 	ActionRestartDeal    // Ctrl+R
 	ActionPause          // 'p'
@@ -109,8 +109,6 @@ func translateKey(m tea.KeyMsg) (GameAction, interface{}) {
 
 func translateRune(r rune) (GameAction, interface{}) {
 	switch r {
-	case 'h':
-		return ActionCursorLeft, nil
 	case 'l':
 		return ActionCursorRight, nil
 	case 'k':
@@ -119,7 +117,7 @@ func translateRune(r rune) (GameAction, interface{}) {
 		return ActionCursorDown, nil
 	case 'f':
 		return ActionMoveToFoundation, nil
-	case '?':
+	case 'h':
 		return ActionHint, nil
 	case 'H':
 		return ActionHelp, nil
