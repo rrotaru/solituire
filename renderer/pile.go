@@ -77,19 +77,18 @@ func pileArrowColor(pid engine.PileID, cursor CursorState, t theme.Theme) (lipgl
 	return "", false
 }
 
-// appendArrow appends a blank row then a centered ↑ row to s.
+// appendArrow appends a centered bold ↑ row directly below s (1 row below).
 // The width is derived from the first rendered line of s.
 func appendArrow(s string, color lipgloss.Color, bg lipgloss.Color) string {
 	firstLine := strings.Split(s, "\n")[0]
 	w := lipgloss.Width(firstLine)
 	pad := (w - 1) / 2
 	blankStyle := lipgloss.NewStyle().Background(bg)
-	arrowStyle := lipgloss.NewStyle().Foreground(color).Background(bg)
-	blank := blankStyle.Render(strings.Repeat(" ", w))
+	arrowStyle := lipgloss.NewStyle().Foreground(color).Background(bg).Bold(true)
 	arrow := blankStyle.Render(strings.Repeat(" ", pad)) +
 		arrowStyle.Render("↑") +
 		blankStyle.Render(strings.Repeat(" ", w-pad-1))
-	return s + "\n" + blank + "\n" + arrow
+	return s + "\n" + arrow
 }
 
 // RenderStockPile is the exported entry point for stock rendering.
