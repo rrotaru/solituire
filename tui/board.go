@@ -182,9 +182,7 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 				moved = true
 			}
 		}
-		m.cursor.Dragging = false
-		m.cursor.DragSource = 0
-		m.cursor.DragCardCount = 0
+		m.cursor.clearPickup()
 		m.cursor.MouseX = 0
 		m.cursor.MouseY = 0
 		m.clampCursor()
@@ -193,29 +191,23 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		}
 
 	case ActionCancel:
-		m.cursor.Dragging = false
-		m.cursor.DragSource = 0
-		m.cursor.DragCardCount = 0
+		m.cursor.clearPickup()
 		m.cursor.ShowHint = false
 
 	case ActionFlipStock:
-		// Cancel any active drag before flipping so the drag source (which may be
+		// Cancel any active pick-up before flipping so the source (which may be
 		// PileWaste) is not left pointing at a card that is no longer the top card.
-		m.cursor.Dragging = false
-		m.cursor.DragSource = 0
-		m.cursor.DragCardCount = 0
+		m.cursor.clearPickup()
 		m.flipStock(state)
 
 	case ActionMoveToFoundation:
-		if m.cursor.Dragging {
-			// Only a single-card drag can go to a foundation.
+		if m.cursor.Dragging || m.cursor.Selecting {
+			// Only a single picked-up card can go to a foundation.
 			if m.cursor.DragCardCount == 1 {
 				m.moveToFoundation(state, m.cursor.DragSource)
 			}
-			// Clear drag regardless — 'f' always ends the drag gesture.
-			m.cursor.Dragging = false
-			m.cursor.DragSource = 0
-			m.cursor.DragCardCount = 0
+			// Clear pick-up regardless — 'f' always ends the gesture.
+			m.cursor.clearPickup()
 		} else {
 			// For tableau piles the shortcut only applies when the cursor sits on
 			// the top card; pressing 'f' on a non-top face-up card is a no-op so
@@ -231,17 +223,13 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		}
 
 	case ActionUndo:
-		m.cursor.Dragging = false
-		m.cursor.DragSource = 0
-		m.cursor.DragCardCount = 0
+		m.cursor.clearPickup()
 		_ = m.eng.Undo()
 		m.clampCursor()
 		return m, m.winCmd() // skip auto-move: undo must not be immediately reversed
 
 	case ActionRedo:
-		m.cursor.Dragging = false
-		m.cursor.DragSource = 0
-		m.cursor.DragCardCount = 0
+		m.cursor.clearPickup()
 		_ = m.eng.Redo()
 		m.clampCursor()
 		return m, m.winCmd() // skip auto-move: keep redo result stable
@@ -278,16 +266,16 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 		return m, func() tea.Msg { return ConfigChangedMsg{Config: &cfgCopy} }
 	}
 
-	// Skip auto-move while a drag is in progress: the drag source card is still
+	// Skip auto-move while a pick-up is in progress: the source card is still
 	// in the engine state, so auto-move could steal it before the user places it.
-	// After placement handleSelect sets Dragging=false, so auto-move runs then.
-	if !m.cursor.Dragging {
+	// After placement the pick-up state is cleared, so auto-move runs then.
+	if !m.cursor.Dragging && !m.cursor.Selecting {
 		m.applyAutoMove()
 	}
 	if m.eng.IsWon() {
 		return m, m.winCmd()
 	}
-	if !m.cursor.Dragging && !m.autoCompleting && m.eng.IsAutoCompletable() {
+	if !m.cursor.Dragging && !m.cursor.Selecting && !m.autoCompleting && m.eng.IsAutoCompletable() {
 		m.autoCompleting = true
 	}
 	if m.autoCompleting {
@@ -307,8 +295,8 @@ func (m BoardModel) winCmd() tea.Cmd {
 // handleSelect implements the drag-style pick-up / place flow.
 // First Enter picks up cards; second Enter attempts to place them.
 func (m BoardModel) handleSelect(state *engine.GameState) BoardModel {
-	if !m.cursor.Dragging {
-		// Pressing Enter on the stock flips it instead of starting a drag.
+	if !m.cursor.Selecting {
+		// Pressing Enter on the stock flips it instead of starting a selection.
 		if m.cursor.Pile == engine.PileStock {
 			m.flipStock(state)
 			return m
@@ -316,18 +304,16 @@ func (m BoardModel) handleSelect(state *engine.GameState) BoardModel {
 		m.cursor.DragSource = m.cursor.Pile
 		m.cursor.DragCardCount = dragCount(state, m.cursor)
 		if m.cursor.DragCardCount > 0 {
-			m.cursor.Dragging = true
+			m.cursor.Selecting = true
 		}
 	} else {
-		// Attempt to place dragged cards at current cursor position.
+		// Attempt to place selected cards at current cursor position.
 		dest := m.cursor.Pile
 		cmd := m.buildMoveCmd(state, m.cursor.DragSource, m.cursor.DragCardCount, dest)
 		if cmd != nil {
 			_ = m.eng.Execute(cmd) // silent rejection on error
 		}
-		m.cursor.Dragging = false
-		m.cursor.DragSource = 0
-		m.cursor.DragCardCount = 0
+		m.cursor.clearPickup()
 		m.clampCursor()
 	}
 	return m

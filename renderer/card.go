@@ -14,7 +14,8 @@ import (
 type CursorState struct {
 	Pile          engine.PileID
 	CardIndex     int  // 0-based index within the pile's cards slice
-	Dragging      bool // true when a card (stack) is being dragged
+	Dragging      bool // true when a card (stack) is being dragged with the mouse
+	Selecting     bool // true when a card (stack) is picked up via the keyboard
 	DragSource    engine.PileID
 	DragCardCount int // number of cards lifted from DragSource
 	MouseX        int // terminal column of the mouse cursor during drag

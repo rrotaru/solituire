@@ -225,6 +225,7 @@ func TestRendererCursor(t *testing.T) {
 		Pile:      engine.PileTableau3,
 		CardIndex: 2,
 		Dragging:  true,
+		Selecting: true,
 		ShowHint:  true,
 		HintFrom:  engine.PileWaste,
 		HintTo:    engine.PileFoundation1,
@@ -238,6 +239,9 @@ func TestRendererCursor(t *testing.T) {
 	}
 	if rc.Dragging != c.Dragging {
 		t.Errorf("Dragging: got %v, want %v", rc.Dragging, c.Dragging)
+	}
+	if rc.Selecting != c.Selecting {
+		t.Errorf("Selecting: got %v, want %v", rc.Selecting, c.Selecting)
 	}
 	if rc.ShowHint != c.ShowHint {
 		t.Errorf("ShowHint: got %v, want %v", rc.ShowHint, c.ShowHint)

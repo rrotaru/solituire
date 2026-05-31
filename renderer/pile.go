@@ -71,6 +71,17 @@ func pileArrowColor(pid engine.PileID, cursor CursorState, t theme.Theme) (lipgl
 			return t.HintBorder, true
 		}
 	}
+	if cursor.Selecting {
+		// During a keyboard pick-up the source stays marked and the cursor's
+		// current pile shows where the cards would be placed.
+		if pid == cursor.DragSource {
+			return t.SelectedBorder, true
+		}
+		if pid == cursor.Pile {
+			return t.CursorBorder, true
+		}
+		return "", false
+	}
 	if cursor.Pile == pid && !cursor.Dragging {
 		return t.CursorBorder, true
 	}

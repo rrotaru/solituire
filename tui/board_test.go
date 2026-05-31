@@ -123,6 +123,40 @@ func TestBoardViewGolden(t *testing.T) {
 	golden.RequireEqual(t, []byte(got))
 }
 
+// TestBoardSelectionView is a Bug 3 regression test: after pressing Enter to
+// pick up a card via the keyboard, the source card must stay in place (no ghost
+// teleported to the top-left 0,0) and the source pile must be marked with an
+// arrow.
+func TestBoardSelectionView(t *testing.T) {
+	board, _ := newBoard()
+	board.cursor.Pile = engine.PileTableau3
+	board.cursor.CardIndex = len(board.eng.State().Tableau[3].Cards) - 1
+
+	board = sendKey(board, tea.KeyEnter)
+	if !board.cursor.Selecting {
+		t.Fatal("precondition: expected Selecting=true after Enter")
+	}
+	golden.RequireEqual(t, []byte(board.View()))
+}
+
+// TestBoardSelectionMovedView is a Bug 3 regression test: moving the cursor
+// while a keyboard selection is active must render both a source arrow (on the
+// pick-up pile) and a destination arrow (on the cursor's current pile).
+func TestBoardSelectionMovedView(t *testing.T) {
+	board, _ := newBoard()
+	board.cursor.Pile = engine.PileTableau3
+	board.cursor.CardIndex = len(board.eng.State().Tableau[3].Cards) - 1
+
+	board = sendKey(board, tea.KeyEnter) // pick up from T3
+	if !board.cursor.Selecting {
+		t.Fatal("precondition: expected Selecting=true after Enter")
+	}
+	// Move the cursor to a different pile (the prospective destination).
+	board.cursor.Pile = engine.PileTableau5
+	board.cursor.CardIndex = naturalCardIndex(engine.PileTableau5, board.eng.State())
+	golden.RequireEqual(t, []byte(board.View()))
+}
+
 // --- Model state tests ---
 
 func TestBoardDragPickUp(t *testing.T) {
@@ -132,8 +166,8 @@ func TestBoardDragPickUp(t *testing.T) {
 	board.cursor.CardIndex = len(board.eng.State().Tableau[3].Cards) - 1
 
 	board = sendKey(board, tea.KeyEnter)
-	if !board.cursor.Dragging {
-		t.Fatal("expected Dragging=true after picking up a card")
+	if !board.cursor.Selecting {
+		t.Fatal("expected Selecting=true after picking up a card")
 	}
 	if board.cursor.DragSource != engine.PileTableau3 {
 		t.Errorf("DragSource: got %v, want PileTableau3", board.cursor.DragSource)
@@ -149,13 +183,13 @@ func TestBoardDragCancel(t *testing.T) {
 	board.cursor.CardIndex = len(board.eng.State().Tableau[3].Cards) - 1
 
 	board = sendKey(board, tea.KeyEnter) // pick up
-	if !board.cursor.Dragging {
-		t.Fatal("precondition: expected Dragging=true")
+	if !board.cursor.Selecting {
+		t.Fatal("precondition: expected Selecting=true")
 	}
 
 	board = sendKey(board, tea.KeyEsc) // cancel
-	if board.cursor.Dragging {
-		t.Error("expected Dragging=false after Esc")
+	if board.cursor.Selecting {
+		t.Error("expected Selecting=false after Esc")
 	}
 	if board.cursor.DragCardCount != 0 {
 		t.Errorf("expected DragCardCount=0 after cancel, got %d", board.cursor.DragCardCount)
@@ -184,7 +218,7 @@ func TestBoardEnterOnFaceDownTableauCard(t *testing.T) {
 	board.cursor.CardIndex = 0 // always face-down in a freshly dealt game
 
 	board = sendKey(board, tea.KeyEnter)
-	if board.cursor.Dragging {
+	if board.cursor.Selecting {
 		t.Error("Enter on a face-down card must not start a drag")
 	}
 	if board.cursor.DragCardCount != 0 {
@@ -200,7 +234,7 @@ func TestBoardEnterOnEmptyWaste(t *testing.T) {
 	board.cursor.CardIndex = 0
 
 	board = sendKey(board, tea.KeyEnter)
-	if board.cursor.Dragging {
+	if board.cursor.Selecting {
 		t.Error("Enter on empty waste must not start a drag")
 	}
 }
@@ -213,7 +247,7 @@ func TestBoardEnterOnEmptyFoundation(t *testing.T) {
 	board.cursor.CardIndex = 0
 
 	board = sendKey(board, tea.KeyEnter)
-	if board.cursor.Dragging {
+	if board.cursor.Selecting {
 		t.Error("Enter on empty foundation must not start a drag")
 	}
 }
@@ -227,7 +261,7 @@ func TestBoardSelectOnStock_FlipsNotDrags(t *testing.T) {
 	board.cursor.CardIndex = 0
 	board = sendKey(board, tea.KeyEnter)
 
-	if board.cursor.Dragging {
+	if board.cursor.Selecting {
 		t.Error("Enter on stock must not start a drag")
 	}
 	if len(eng.State().Waste.Cards) <= wasteBefore {
@@ -258,8 +292,8 @@ func TestBoardDragPlace_Valid(t *testing.T) {
 	board.cursor.Pile = move.From
 	board.cursor.CardIndex = srcCardIdx
 	board = sendKey(board, tea.KeyEnter)
-	if !board.cursor.Dragging {
-		t.Fatal("expected Dragging=true after pickup")
+	if !board.cursor.Selecting {
+		t.Fatal("expected Selecting=true after pickup")
 	}
 
 	// Move cursor to destination.
@@ -268,8 +302,8 @@ func TestBoardDragPlace_Valid(t *testing.T) {
 
 	// Place.
 	board = sendKey(board, tea.KeyEnter)
-	if board.cursor.Dragging {
-		t.Error("expected Dragging=false after placement")
+	if board.cursor.Selecting {
+		t.Error("expected Selecting=false after placement")
 	}
 	afterLen := len(eng.State().Tableau[srcCol].Cards)
 	if afterLen >= srcLen {
@@ -285,16 +319,16 @@ func TestBoardDragPlace_Invalid(t *testing.T) {
 	board.cursor.Pile = engine.PileTableau0
 	board.cursor.CardIndex = len(eng.State().Tableau[0].Cards) - 1
 	board = sendKey(board, tea.KeyEnter)
-	if !board.cursor.Dragging {
-		t.Fatal("precondition: expected Dragging=true")
+	if !board.cursor.Selecting {
+		t.Fatal("precondition: expected Selecting=true")
 	}
 
 	// Try to place on T0 (same pile — always invalid).
 	board.cursor.Pile = engine.PileTableau0
 	board = sendKey(board, tea.KeyEnter)
 
-	if board.cursor.Dragging {
-		t.Error("expected Dragging=false after attempted placement")
+	if board.cursor.Selecting {
+		t.Error("expected Selecting=false after attempted placement")
 	}
 	if eng.State().MoveCount != moveBefore {
 		t.Error("invalid move must not change MoveCount")
@@ -317,14 +351,14 @@ func TestBoardFlipStockCancelsDrag(t *testing.T) {
 	board.cursor.Pile = engine.PileWaste
 	board.cursor.CardIndex = 0
 	board = sendKey(board, tea.KeyEnter)
-	if !board.cursor.Dragging {
-		t.Fatal("precondition: expected Dragging=true after picking up from waste")
+	if !board.cursor.Selecting {
+		t.Fatal("precondition: expected Selecting=true after picking up from waste")
 	}
 
 	// Flip stock again while drag is active.
 	board = sendKey(board, tea.KeySpace)
 
-	if board.cursor.Dragging {
+	if board.cursor.Selecting {
 		t.Error("Space while dragging must cancel the drag")
 	}
 	if board.cursor.DragSource != 0 || board.cursor.DragCardCount != 0 {
@@ -350,13 +384,13 @@ func TestBoardUndoClearsDrag(t *testing.T) {
 	board.cursor.Pile = engine.PileTableau3
 	board.cursor.CardIndex = len(board.eng.State().Tableau[3].Cards) - 1
 	board = sendKey(board, tea.KeyEnter) // pick up
-	if !board.cursor.Dragging {
-		t.Fatal("precondition: expected Dragging=true")
+	if !board.cursor.Selecting {
+		t.Fatal("precondition: expected Selecting=true")
 	}
 
 	board = sendRune(board, 'u')
-	if board.cursor.Dragging {
-		t.Error("u must clear Dragging")
+	if board.cursor.Selecting {
+		t.Error("u must clear Selecting")
 	}
 	if board.cursor.DragSource != 0 || board.cursor.DragCardCount != 0 {
 		t.Error("u must clear DragSource and DragCardCount")
@@ -376,13 +410,13 @@ func TestBoardRedoClearsDrag(t *testing.T) {
 	board.cursor.Pile = engine.PileTableau3
 	board.cursor.CardIndex = len(eng.State().Tableau[3].Cards) - 1
 	board = sendKey(board, tea.KeyEnter)
-	if !board.cursor.Dragging {
-		t.Fatal("precondition: expected Dragging=true")
+	if !board.cursor.Selecting {
+		t.Fatal("precondition: expected Selecting=true")
 	}
 
 	board = sendRune(board, 'r')
-	if board.cursor.Dragging {
-		t.Error("r must clear Dragging")
+	if board.cursor.Selecting {
+		t.Error("r must clear Selecting")
 	}
 	if board.cursor.DragSource != 0 || board.cursor.DragCardCount != 0 {
 		t.Error("r must clear DragSource and DragCardCount")
@@ -498,8 +532,8 @@ func TestBoardFKeyWhileDragging_SingleCard(t *testing.T) {
 	board.cursor.CardIndex = len(eng.State().Tableau[srcCol].Cards) - 1
 
 	board = sendKey(board, tea.KeyEnter) // pick up one card
-	if !board.cursor.Dragging {
-		t.Fatal("precondition: expected Dragging=true")
+	if !board.cursor.Selecting {
+		t.Fatal("precondition: expected Selecting=true")
 	}
 
 	// Move cursor to an unrelated pile to prove 'f' uses DragSource, not cursor.
@@ -507,8 +541,8 @@ func TestBoardFKeyWhileDragging_SingleCard(t *testing.T) {
 
 	board = sendRune(board, 'f') // should complete the drag to foundation
 
-	if board.cursor.Dragging {
-		t.Error("'f' while dragging must clear Dragging")
+	if board.cursor.Selecting {
+		t.Error("'f' while dragging must clear Selecting")
 	}
 	if board.cursor.DragSource != 0 {
 		t.Error("'f' while dragging must clear DragSource")
@@ -540,15 +574,15 @@ func TestBoardFKeyWhileDragging_MultiCard(t *testing.T) {
 	board.cursor.Pile = srcPile
 	board.cursor.CardIndex = fdCount
 	board = sendKey(board, tea.KeyEnter)
-	if !board.cursor.Dragging || board.cursor.DragCardCount < 2 {
+	if !board.cursor.Selecting || board.cursor.DragCardCount < 2 {
 		t.Skip("could not start a multi-card drag")
 	}
 
 	movesBefore := eng.State().MoveCount
 	board = sendRune(board, 'f')
 
-	if board.cursor.Dragging {
-		t.Error("'f' while dragging must clear Dragging even for multi-card drag")
+	if board.cursor.Selecting {
+		t.Error("'f' while dragging must clear Selecting even for multi-card drag")
 	}
 	if eng.State().MoveCount != movesBefore {
 		t.Error("multi-card drag + 'f' must not move any card")
@@ -1628,12 +1662,12 @@ func TestBoardAutoMove_SkippedWhileDragging(t *testing.T) {
 	cfg.AutoMoveEnabled = true
 	board := NewBoardModel(eng, rend, cfg)
 
-	// Pick up 2♠ (first Enter → Dragging = true).
+	// Pick up 2♠ (first Enter → Selecting = true).
 	board.cursor.Pile = engine.PileTableau0
 	board.cursor.CardIndex = 0
 	board = sendKey(board, tea.KeyEnter)
 
-	if !board.cursor.Dragging {
+	if !board.cursor.Selecting {
 		t.Fatal("setup: Enter must start a drag")
 	}
 
@@ -1735,7 +1769,7 @@ func TestBoardAutoComplete_NotStartedWhileDragging(t *testing.T) {
 	board.cursor.CardIndex = 0
 	board = sendKey(board, tea.KeyEnter)
 
-	if !board.cursor.Dragging {
+	if !board.cursor.Selecting {
 		t.Fatal("setup: Enter must start a drag on a near-won board")
 	}
 
