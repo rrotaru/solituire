@@ -43,17 +43,15 @@ type cardContent struct {
 	state cardVisualState
 }
 
-// renderCard renders a single card cell as a 9×7 Lipgloss string.
+// renderCard renders a single card cell as a 7×5 Lipgloss string (no borders).
 //
-// Full card structure (CardWidth=9, CardHeight=7):
+// Full card structure (CardWidth=7, CardHeight=5):
 //
-//	┌───────┐
-//	│K      │
-//	│  ♠    │
-//	│       │
-//	│    ♠  │
-//	│      K│
-//	└───────┘
+//	K ♠
+//
+//
+//
+//	    ♠ K
 func renderCard(cc cardContent, t theme.Theme) string {
 	switch cc.state {
 	case cardEmpty:
@@ -65,7 +63,7 @@ func renderCard(cc cardContent, t theme.Theme) string {
 	}
 }
 
-// innerWidth is CardWidth minus the 2 border chars = 7.
+// innerWidth is used only for empty-slot dashed borders (CardWidth minus 2 border chars).
 const innerWidth = CardWidth - 2
 
 // renderEmpty renders an empty pile slot with a dashed border.
@@ -93,24 +91,21 @@ func renderEmptyWithState(state cardVisualState, t theme.Theme) string {
 	mid := borderStyle.Render("│") + bgStyle.Render(strings.Repeat(" ", innerWidth)) + borderStyle.Render("│")
 	bot := borderStyle.Render("╰" + strings.Repeat("╌", innerWidth) + "╯")
 
-	lines := []string{top, mid, mid, mid, mid, mid, bot}
+	lines := []string{top, mid, mid, mid, bot}
 	return strings.Join(lines, "\n")
 }
 
-// renderFaceDown renders a face-down card with hatched interior.
+// renderFaceDown renders a face-down card with hatched interior (no borders).
 func renderFaceDown(t theme.Theme) string {
-	borderStyle := lipgloss.NewStyle().Foreground(t.CardBorder).Background(t.BoardBackground)
 	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.CardBackground)
-
-	top := borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
-	fill := borderStyle.Render("│") + fillStyle.Render(strings.Repeat("░", innerWidth)) + borderStyle.Render("│")
-	bot := borderStyle.Render("└" + strings.Repeat("─", innerWidth) + "┘")
-
-	lines := []string{top, fill, fill, fill, fill, fill, bot}
+	fill := fillStyle.Render(strings.Repeat("░", CardWidth))
+	lines := []string{fill, fill, fill, fill, fill}
 	return strings.Join(lines, "\n")
 }
 
-// renderFaceUp renders a face-up card with rank and suit, applying visual state borders.
+// renderFaceUp renders a face-up card without borders.
+// cursor hover: rank and suit blink.
+// hint: entire card blinks.
 func renderFaceUp(cc cardContent, t theme.Theme) string {
 	c := cc.card
 	rank := c.Rank.String()
@@ -123,70 +118,52 @@ func renderFaceUp(cc cardContent, t theme.Theme) string {
 		suitColor = t.BlackSuit
 	}
 
-	// Only cursor-hover and hint states show a visible border; normal and
-	// selected (drag) states use spaces so the card appears borderless.
-	visibleBorder := false
-	var borderColor lipgloss.Color
-	switch cc.state {
-	case cardCursor:
-		visibleBorder = true
-		borderColor = t.CursorBorder
-	case cardHintFrom, cardHintTo:
-		visibleBorder = true
-		borderColor = t.HintBorder
-	}
-
-	borderStyle := lipgloss.NewStyle().Foreground(borderColor).Background(t.BoardBackground)
 	suitStyle := lipgloss.NewStyle().Foreground(suitColor).Background(t.CardBackground)
 	rankStyle := lipgloss.NewStyle().Foreground(t.CardForeground).Background(t.CardBackground)
 	bgStyle := lipgloss.NewStyle().Background(t.CardBackground)
-	spaceBg := lipgloss.NewStyle().Background(t.BoardBackground)
 
-	// rank strings are 1-2 chars; pad to 2 for alignment
-	rankPad := fmt.Sprintf("%-2s", rank) // left-padded rank (top-left)
-	rankPadR := fmt.Sprintf("%2s", rank) // right-padded rank (bottom-right)
-
-	blank := strings.Repeat(" ", innerWidth)
-
-	// line0: "K♠     " — rank+suit together at top-left (2+1+4 = 7)
-	line0 := rankStyle.Inline(true).Render(rankPad) +
-		suitStyle.Inline(true).Render(suit) +
-		bgStyle.Inline(true).Render(strings.Repeat(" ", innerWidth-3))
-
-	// line4: "     ♠K" — suit+rank together at bottom-right (4+1+2 = 7)
-	line4 := bgStyle.Inline(true).Render(strings.Repeat(" ", innerWidth-3)) +
-		suitStyle.Inline(true).Render(suit) +
-		rankStyle.Inline(true).Render(rankPadR)
-
-	var top, vbar, bot string
-	if visibleBorder {
-		top = borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
-		vbar = borderStyle.Render("│")
-		bot = borderStyle.Render("└" + strings.Repeat("─", innerWidth) + "┘")
-	} else {
-		top = spaceBg.Render(strings.Repeat(" ", CardWidth))
-		vbar = spaceBg.Render(" ")
-		bot = spaceBg.Render(strings.Repeat(" ", CardWidth))
+	switch cc.state {
+	case cardCursor:
+		rankStyle = rankStyle.Blink(true)
+		suitStyle = suitStyle.Blink(true)
+	case cardHintFrom, cardHintTo:
+		rankStyle = rankStyle.Blink(true)
+		suitStyle = suitStyle.Blink(true)
+		bgStyle = bgStyle.Blink(true)
 	}
 
-	r0 := vbar + bgStyle.Render(line0) + vbar
-	r1 := vbar + bgStyle.Render(blank) + vbar
-	r2 := vbar + bgStyle.Render(blank) + vbar
-	r3 := vbar + bgStyle.Render(blank) + vbar
-	r4 := vbar + bgStyle.Render(line4) + vbar
+	// rank strings are 1-2 chars; pad to 2 for alignment
+	rankPad := fmt.Sprintf("%-2s", rank) // left-aligned (top-left)
+	rankPadR := fmt.Sprintf("%2s", rank) // right-aligned (bottom-right)
 
-	return strings.Join([]string{top, r0, r1, r2, r3, r4, bot}, "\n")
+	blank := bgStyle.Render(strings.Repeat(" ", CardWidth))
+
+	// line0: rank+suit at top-left (2+1+4 = CardWidth)
+	line0 := bgStyle.Render(
+		rankStyle.Inline(true).Render(rankPad) +
+			suitStyle.Inline(true).Render(suit) +
+			bgStyle.Inline(true).Render(strings.Repeat(" ", CardWidth-3)),
+	)
+
+	// line4: suit+rank at bottom-right (4+1+2 = CardWidth)
+	line4 := bgStyle.Render(
+		bgStyle.Inline(true).Render(strings.Repeat(" ", CardWidth-3)) +
+			suitStyle.Inline(true).Render(suit) +
+			rankStyle.Inline(true).Render(rankPadR),
+	)
+
+	return strings.Join([]string{line0, blank, blank, blank, line4}, "\n")
 }
 
-// cardStubTop renders only the top border line of a face-down card (1 row).
-// Used for fanned face-down cards in tableau columns.
+// cardStubTop renders the single visible row of a face-down card stub in the tableau.
 func cardStubTop(t theme.Theme) string {
-	borderStyle := lipgloss.NewStyle().Foreground(t.CardBorder).Background(t.BoardBackground)
-	return borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
+	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.CardBackground)
+	return fillStyle.Render(strings.Repeat("░", CardWidth))
 }
 
-// cardPeekLines renders the top 2 lines of a face-up card (border + rank/suit line).
-// Used for non-top fanned face-up cards in tableau columns.
+// cardPeekLines renders the single peek row of a non-bottom face-up tableau card.
+// cursor hover: rank and suit blink.
+// hint: entire row blinks.
 func cardPeekLines(c engine.Card, state cardVisualState, t theme.Theme) string {
 	rank := c.Rank.String()
 	suit := c.Suit.Symbol()
@@ -198,39 +175,25 @@ func cardPeekLines(c engine.Card, state cardVisualState, t theme.Theme) string {
 		suitColor = t.BlackSuit
 	}
 
-	visibleBorder := false
-	var borderColor lipgloss.Color
-	switch state {
-	case cardCursor:
-		visibleBorder = true
-		borderColor = t.CursorBorder
-	case cardHintFrom, cardHintTo:
-		visibleBorder = true
-		borderColor = t.HintBorder
-	}
-
-	borderStyle := lipgloss.NewStyle().Foreground(borderColor).Background(t.BoardBackground)
 	suitStyle := lipgloss.NewStyle().Foreground(suitColor).Background(t.CardBackground)
 	rankStyle := lipgloss.NewStyle().Foreground(t.CardForeground).Background(t.CardBackground)
 	bgStyle := lipgloss.NewStyle().Background(t.CardBackground)
-	spaceBg := lipgloss.NewStyle().Background(t.BoardBackground)
+
+	switch state {
+	case cardCursor:
+		rankStyle = rankStyle.Blink(true)
+		suitStyle = suitStyle.Blink(true)
+	case cardHintFrom, cardHintTo:
+		rankStyle = rankStyle.Blink(true)
+		suitStyle = suitStyle.Blink(true)
+		bgStyle = bgStyle.Blink(true)
+	}
 
 	rankPad := fmt.Sprintf("%-2s", rank)
 
-	// line0: "K♠     " — rank+suit together at top-left (2+1+4 = 7)
-	line0 := rankStyle.Inline(true).Render(rankPad) +
-		suitStyle.Inline(true).Render(suit) +
-		bgStyle.Inline(true).Render(strings.Repeat(" ", innerWidth-3))
-
-	var top, vbar string
-	if visibleBorder {
-		top = borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
-		vbar = borderStyle.Render("│")
-	} else {
-		top = spaceBg.Render(strings.Repeat(" ", CardWidth))
-		vbar = spaceBg.Render(" ")
-	}
-	r0 := vbar + bgStyle.Render(line0) + vbar
-
-	return strings.Join([]string{top, r0}, "\n")
+	return bgStyle.Render(
+		rankStyle.Inline(true).Render(rankPad) +
+			suitStyle.Inline(true).Render(suit) +
+			bgStyle.Inline(true).Render(strings.Repeat(" ", CardWidth-3)),
+	)
 }

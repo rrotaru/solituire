@@ -8,10 +8,10 @@ import (
 
 // Card and terminal size constants exported for Agent C's hit-testing (T16).
 const (
-	CardWidth     = 9 // total lipgloss-rendered width including borders
-	CardHeight    = 7 // max full-card height including borders
-	MinTermWidth  = 78
-	MinTermHeight = 25
+	CardWidth     = 7 // rendered width (no borders)
+	CardHeight    = 5 // rendered height (no borders)
+	MinTermWidth  = 60
+	MinTermHeight = 20
 	ColGap        = 1 // gap between tableau columns
 )
 
@@ -150,10 +150,10 @@ func pileHitTestWithWidth(x, y int, state *engine.GameState, _ int) (engine.Pile
 			}
 			row++
 		}
-		// Face-up fanned cards: all but last occupy 2 rows, last occupies full CardHeight
+		// Face-up fanned cards: all but last occupy 1 row (peek), last occupies full CardHeight
 		for fi := range fuCards {
 			cardIdx := fdCount + fi
-			height := 2
+			height := 1
 			if fi == len(fuCards)-1 {
 				height = CardHeight
 			}

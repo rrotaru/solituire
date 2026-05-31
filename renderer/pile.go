@@ -56,27 +56,16 @@ func renderStockPileFull(p *engine.StockPile, cursor CursorState, t theme.Theme)
 	return renderFaceDownWithState(state, t)
 }
 
-// renderFaceDownWithState renders a face-down card with a state-driven border color.
+// renderFaceDownWithState renders a face-down card without borders.
+// cursor hover and hint states blink the hatch characters.
 func renderFaceDownWithState(state cardVisualState, t theme.Theme) string {
-	var borderColor lipgloss.Color
-	switch state {
-	case cardCursor:
-		borderColor = t.CursorBorder
-	case cardSelected:
-		borderColor = t.SelectedBorder
-	case cardHintFrom, cardHintTo:
-		borderColor = t.HintBorder
-	default:
-		borderColor = t.CardBorder
-	}
-	borderStyle := lipgloss.NewStyle().Foreground(borderColor).Background(t.BoardBackground)
 	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.CardBackground)
-
-	top := borderStyle.Render("┌" + strings.Repeat("─", innerWidth) + "┐")
-	fill := borderStyle.Render("│") + fillStyle.Render(strings.Repeat("░", innerWidth)) + borderStyle.Render("│")
-	bot := borderStyle.Render("└" + strings.Repeat("─", innerWidth) + "┘")
-
-	lines := []string{top, fill, fill, fill, fill, fill, bot}
+	switch state {
+	case cardCursor, cardHintFrom, cardHintTo:
+		fillStyle = fillStyle.Blink(true)
+	}
+	fill := fillStyle.Render(strings.Repeat("░", CardWidth))
+	lines := []string{fill, fill, fill, fill, fill}
 	return strings.Join(lines, "\n")
 }
 
@@ -168,14 +157,14 @@ func renderEmptyWithSuit(suit string, state cardVisualState, t theme.Theme) stri
 
 	top := borderStyle.Render("╭" + strings.Repeat("╌", innerWidth) + "╮")
 	blank := borderStyle.Render("│") + bgStyle.Render(strings.Repeat(" ", innerWidth)) + borderStyle.Render("│")
-	// center the suit symbol on row 3 (middle of 5 inner rows)
+	// center the suit symbol on the middle row
 	left := (innerWidth - 1) / 2
 	right := innerWidth - 1 - left
 	midContent := bgStyle.Render(strings.Repeat(" ", left)) + textStyle.Render(suit) + bgStyle.Render(strings.Repeat(" ", right))
 	mid := borderStyle.Render("│") + midContent + borderStyle.Render("│")
 	bot := borderStyle.Render("╰" + strings.Repeat("╌", innerWidth) + "╯")
 
-	lines := []string{top, blank, blank, mid, blank, blank, bot}
+	lines := []string{top, blank, mid, blank, bot}
 	return strings.Join(lines, "\n")
 }
 
