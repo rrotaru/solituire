@@ -61,7 +61,7 @@ func renderStockFaceDown(state cardVisualState, t theme.Theme) string {
 	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.BoardBackground)
 	switch state {
 	case cardCursor, cardHintFrom, cardHintTo:
-		fillStyle = fillStyle.Blink(true)
+		fillStyle = fillStyle.Reverse(true)
 	}
 	row := fillStyle.Render(strings.Repeat("█", CardWidth))
 	lines := []string{row, row, row, row, row}

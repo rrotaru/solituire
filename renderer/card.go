@@ -106,8 +106,8 @@ func renderFaceDown(t theme.Theme) string {
 }
 
 // renderFaceUp renders a face-up card without borders.
-// cursor hover: rank and suit blink.
-// hint: entire card blinks.
+// cursor hover: rank and suit are reversed.
+// hint: entire card is reversed.
 func renderFaceUp(cc cardContent, t theme.Theme) string {
 	c := cc.card
 	rank := c.Rank.String()
@@ -126,12 +126,12 @@ func renderFaceUp(cc cardContent, t theme.Theme) string {
 
 	switch cc.state {
 	case cardCursor:
-		rankStyle = rankStyle.Blink(true)
-		suitStyle = suitStyle.Blink(true)
+		rankStyle = rankStyle.Reverse(true)
+		suitStyle = suitStyle.Reverse(true)
 	case cardHintFrom, cardHintTo:
-		rankStyle = rankStyle.Blink(true)
-		suitStyle = suitStyle.Blink(true)
-		bgStyle = bgStyle.Blink(true)
+		rankStyle = rankStyle.Reverse(true)
+		suitStyle = suitStyle.Reverse(true)
+		bgStyle = bgStyle.Reverse(true)
 	}
 
 	// rank strings are 1-2 chars; pad to 2 for alignment
@@ -165,8 +165,8 @@ func cardStubTop(t theme.Theme) string {
 }
 
 // cardPeekLines renders the single peek row of a non-bottom face-up tableau card.
-// cursor hover: rank and suit blink.
-// hint: entire row blinks.
+// cursor hover: rank and suit are reversed.
+// hint: entire row is reversed.
 func cardPeekLines(c engine.Card, state cardVisualState, t theme.Theme) string {
 	rank := c.Rank.String()
 	suit := c.Suit.Symbol()
@@ -184,12 +184,12 @@ func cardPeekLines(c engine.Card, state cardVisualState, t theme.Theme) string {
 
 	switch state {
 	case cardCursor:
-		rankStyle = rankStyle.Blink(true)
-		suitStyle = suitStyle.Blink(true)
+		rankStyle = rankStyle.Reverse(true)
+		suitStyle = suitStyle.Reverse(true)
 	case cardHintFrom, cardHintTo:
-		rankStyle = rankStyle.Blink(true)
-		suitStyle = suitStyle.Blink(true)
-		bgStyle = bgStyle.Blink(true)
+		rankStyle = rankStyle.Reverse(true)
+		suitStyle = suitStyle.Reverse(true)
+		bgStyle = bgStyle.Reverse(true)
 	}
 
 	rankPad := fmt.Sprintf("%-2s", rank)
