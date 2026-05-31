@@ -153,11 +153,6 @@ func renderFaceUp(cc cardContent, t theme.Theme) string {
 		suitStyle.Inline(true).Render(suit) +
 		bgStyle.Inline(true).Render(strings.Repeat(" ", innerWidth-3))
 
-	// line2: "   ♠   " — suit centered (3+1+3 = 7)
-	line2 := bgStyle.Inline(true).Render(strings.Repeat(" ", 3)) +
-		suitStyle.Inline(true).Render(suit) +
-		bgStyle.Inline(true).Render(strings.Repeat(" ", 3))
-
 	// line4: "     ♠K" — suit+rank together at bottom-right (4+1+2 = 7)
 	line4 := bgStyle.Inline(true).Render(strings.Repeat(" ", innerWidth-3)) +
 		suitStyle.Inline(true).Render(suit) +
@@ -176,7 +171,7 @@ func renderFaceUp(cc cardContent, t theme.Theme) string {
 
 	r0 := vbar + bgStyle.Render(line0) + vbar
 	r1 := vbar + bgStyle.Render(blank) + vbar
-	r2 := vbar + bgStyle.Render(line2) + vbar
+	r2 := vbar + bgStyle.Render(blank) + vbar
 	r3 := vbar + bgStyle.Render(blank) + vbar
 	r4 := vbar + bgStyle.Render(line4) + vbar
 
