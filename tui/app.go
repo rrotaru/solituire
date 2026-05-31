@@ -2,9 +2,11 @@ package tui
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"solituire/config"
 	"solituire/engine"
 	"solituire/renderer"
@@ -268,7 +270,27 @@ func (m AppModel) View() string {
 	case ScreenWin:
 		return m.celebration.View()
 	case ScreenMenu:
-		return m.menu.View()
+		boardStr := m.rend.Render(newFaceDownState(m.cfg.DrawCount), renderer.CursorState{}, m.cfg)
+		menuStr := m.menu.View()
+		menuLines := strings.Split(menuStr, "\n")
+		menuH := len(menuLines)
+		menuW := lipgloss.Width(menuLines[0])
+
+		// Center horizontally within the board content columns (tableau spans
+		// BoardWidth chars, left-aligned at x=0).
+		startCol := (renderer.BoardWidth - menuW) / 2
+		if startCol < 0 {
+			startCol = 0
+		}
+
+		// Center vertically between the header (row 0) and footer (last row).
+		boardLineCount := strings.Count(boardStr, "\n") + 1
+		startRow := 1 + (boardLineCount-2-menuH)/2
+		if startRow < 1 {
+			startRow = 1
+		}
+
+		return renderer.Overlay(boardStr, menuStr, startRow, startCol, m.windowW)
 	}
 	return ""
 }
