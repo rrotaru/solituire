@@ -22,7 +22,7 @@ func newSeed42DrawState() *engine.GameState {
 // Layout geometry (draw-1, wasteVisCount=1):
 //
 //	topRow = 2   (header row 0 + blank spacer row 1)
-//	tabRow = 8   (topRow + CardHeight(5) + blank spacer(1))
+//	tabRow = 9   (topRow + CardHeight+1(6) + blank spacer(1))
 //
 //	computeFoundationStartX(1): leftWidth=15, gap=9 → fStartX=24
 //
@@ -33,9 +33,9 @@ func newSeed42DrawState() *engine.GameState {
 //	Foundation1  32   2
 //	Foundation2  40   2
 //	Foundation3  48   2
-//	Tableau0     0    8
-//	Tableau1     8    8   (1 fd stub at row 8, 1 fu at rows 9..13)
-//	Tableau6     48   8   (6 fd stubs rows 8..13, 1 fu at rows 14..18)
+//	Tableau0     0    9
+//	Tableau1     8    9   (1 fd stub at row 9, 1 fu at rows 10..14)
+//	Tableau6     48   9   (6 fd stubs rows 9..14, 1 fu at rows 15..19)
 func TestPileHitTestWithWidth(t *testing.T) {
 	state := newSeed42DrawState()
 
@@ -65,37 +65,37 @@ func TestPileHitTestWithWidth(t *testing.T) {
 		{"foundation 2", 42, 2, &wantHit{engine.PileFoundation2, 0}},
 		{"foundation 3", 50, 2, &wantHit{engine.PileFoundation3, 0}},
 
-		// ── Tableau T0 (0 fd, 1 fu occupying rows 8..12) ─────────────────────
-		{"T0 fu top row", 4, 8, &wantHit{engine.PileTableau0, 0}},
-		{"T0 fu bottom row", 4, 12, &wantHit{engine.PileTableau0, 0}},
-		{"T0 center", 4, 10, &wantHit{engine.PileTableau0, 0}},
+		// ── Tableau T0 (0 fd, 1 fu occupying rows 9..13) ─────────────────────
+		{"T0 fu top row", 4, 9, &wantHit{engine.PileTableau0, 0}},
+		{"T0 fu bottom row", 4, 13, &wantHit{engine.PileTableau0, 0}},
+		{"T0 center", 4, 11, &wantHit{engine.PileTableau0, 0}},
 
-		// ── Tableau T1 (1 fd at row 8, 1 fu at rows 9..13) ───────────────────
-		{"T1 fd stub", 10, 8, &wantHit{engine.PileTableau1, 0}},
-		{"T1 fu top row", 10, 9, &wantHit{engine.PileTableau1, 1}},
-		{"T1 fu bottom row", 10, 13, &wantHit{engine.PileTableau1, 1}},
+		// ── Tableau T1 (1 fd at row 9, 1 fu at rows 10..14) ───────────────────
+		{"T1 fd stub", 10, 9, &wantHit{engine.PileTableau1, 0}},
+		{"T1 fu top row", 10, 10, &wantHit{engine.PileTableau1, 1}},
+		{"T1 fu bottom row", 10, 14, &wantHit{engine.PileTableau1, 1}},
 
-		// ── Tableau T2 (2 fd at rows 8,9; 1 fu at rows 10..14) ───────────────
-		{"T2 fd stub 0", 20, 8, &wantHit{engine.PileTableau2, 0}},
-		{"T2 fd stub 1", 20, 9, &wantHit{engine.PileTableau2, 1}},
-		{"T2 fu card", 20, 10, &wantHit{engine.PileTableau2, 2}},
-		{"T2 fu bottom row", 20, 14, &wantHit{engine.PileTableau2, 2}},
+		// ── Tableau T2 (2 fd at rows 9,10; 1 fu at rows 11..15) ───────────────
+		{"T2 fd stub 0", 20, 9, &wantHit{engine.PileTableau2, 0}},
+		{"T2 fd stub 1", 20, 10, &wantHit{engine.PileTableau2, 1}},
+		{"T2 fu card", 20, 11, &wantHit{engine.PileTableau2, 2}},
+		{"T2 fu bottom row", 20, 15, &wantHit{engine.PileTableau2, 2}},
 
-		// ── Tableau T6 (6 fd stubs rows 8..13; 1 fu at rows 14..18) ──────────
-		{"T6 fd stub 0", 50, 8, &wantHit{engine.PileTableau6, 0}},
-		{"T6 fd stub 3", 50, 11, &wantHit{engine.PileTableau6, 3}},
-		{"T6 fd stub 5", 50, 13, &wantHit{engine.PileTableau6, 5}},
-		{"T6 fu card top row", 50, 14, &wantHit{engine.PileTableau6, 6}},
-		{"T6 fu card bottom row", 50, 18, &wantHit{engine.PileTableau6, 6}},
-		{"T6 last valid x", 54, 14, &wantHit{engine.PileTableau6, 6}},
+		// ── Tableau T6 (6 fd stubs rows 9..14; 1 fu at rows 15..19) ──────────
+		{"T6 fd stub 0", 50, 9, &wantHit{engine.PileTableau6, 0}},
+		{"T6 fd stub 3", 50, 12, &wantHit{engine.PileTableau6, 3}},
+		{"T6 fd stub 5", 50, 14, &wantHit{engine.PileTableau6, 5}},
+		{"T6 fu card top row", 50, 15, &wantHit{engine.PileTableau6, 6}},
+		{"T6 fu card bottom row", 50, 19, &wantHit{engine.PileTableau6, 6}},
+		{"T6 last valid x", 54, 15, &wantHit{engine.PileTableau6, 6}},
 
 		// ── Misses ───────────────────────────────────────────────────────────
 		{"above top row", 4, 1, nil},
 		{"stock-waste gap", 7, 2, nil},
 		{"gap before foundation 0", 20, 2, nil},
-		{"gap row below top piles", 4, 7, nil}, // tabRow=8; row 7 is the blank spacer
+		{"gap row below top piles", 4, 7, nil}, // rows 7-8 are blank (pad + spacer)
 		{"right of T6", 55, 10, nil},           // T6 occupies x=[48,54]; x=55 is outside
-		{"below T0 fu card", 4, 13, nil},       // T0 fu ends at row 12 (8+5-1)
+		{"below T0 fu card", 4, 14, nil},       // T0 fu ends at row 13 (9+5-1)
 		{"far below tableau", 4, 30, nil},
 		{"between waste and foundation", 18, 2, nil},
 	}
