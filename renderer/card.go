@@ -96,8 +96,9 @@ func renderEmptyWithState(state cardVisualState, t theme.Theme) string {
 }
 
 // renderFaceDown renders a face-down card: ▇ top row, █ fill rows.
+// Background matches the board; foreground contrasts against it.
 func renderFaceDown(t theme.Theme) string {
-	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.CardBackground)
+	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.BoardBackground)
 	top := fillStyle.Render(strings.Repeat("▇", CardWidth))
 	fill := fillStyle.Render(strings.Repeat("█", CardWidth))
 	lines := []string{top, fill, fill, fill, fill}

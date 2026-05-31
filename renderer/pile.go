@@ -59,7 +59,7 @@ func renderStockPileFull(p *engine.StockPile, cursor CursorState, t theme.Theme)
 // renderFaceDownWithState renders a face-down card without borders.
 // cursor hover and hint states blink the hatch characters.
 func renderFaceDownWithState(state cardVisualState, t theme.Theme) string {
-	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.CardBackground)
+	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.BoardBackground)
 	switch state {
 	case cardCursor, cardHintFrom, cardHintTo:
 		fillStyle = fillStyle.Blink(true)
@@ -190,14 +190,22 @@ func RenderTableauPile(p *engine.TableauPile, colIdx int, cursor CursorState, t 
 		return renderEmptyWithState(state, t)
 	}
 
+	// When a drag has removed all face-up cards, the top face-down card is
+	// newly exposed — render it as a full card so the player can see it clearly.
+	topFDFull := draggingFromHere && len(fuCards) == 0 && fdCount > 0
+
 	var rows []string
 
-	// Face-down stubs: each is 1 row (top border line only)
+	// Face-down stubs: each is 1 row except the topmost when promoted to full.
 	for i := 0; i < fdCount; i++ {
-		rows = append(rows, cardStubTop(t))
+		if topFDFull && i == fdCount-1 {
+			rows = append(rows, renderFaceDown(t))
+		} else {
+			rows = append(rows, cardStubTop(t))
+		}
 	}
 
-	// Face-up cards: all but last get 2-line peek; last gets full render
+	// Face-up cards: all but last get 1-line peek; last gets full render
 	for fi, c := range fuCards {
 		cardIdx := fdCount + fi
 		state := cardVisualStateForCursor(pid, cardIdx, cursor)
