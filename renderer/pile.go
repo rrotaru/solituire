@@ -63,7 +63,7 @@ func renderStockFaceDown(state cardVisualState, t theme.Theme) string {
 	case cardCursor, cardHintFrom, cardHintTo:
 		fillStyle = fillStyle.Blink(true)
 	}
-	row := fillStyle.Render(strings.Repeat("▇", CardWidth))
+	row := fillStyle.Render(strings.Repeat("█", CardWidth))
 	lines := []string{row, row, row, row, row}
 	return strings.Join(lines, "\n")
 }
