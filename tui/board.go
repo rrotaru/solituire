@@ -180,6 +180,10 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 			cmd := m.buildMoveCmd(state, m.cursor.DragSource, m.cursor.DragCardCount, pile)
 			if cmd != nil && m.eng.Execute(cmd) == nil {
 				moved = true
+				// Select the newly placed card (the destination's new bottom
+				// card) rather than its previous top card, which would now sit
+				// mid-pile and be highlighted as a lifted selection.
+				m.cursor.CardIndex = naturalCardIndex(pile, state)
 			}
 		}
 		m.cursor.clearPickup()
@@ -310,8 +314,10 @@ func (m BoardModel) handleSelect(state *engine.GameState) BoardModel {
 		// Attempt to place selected cards at current cursor position.
 		dest := m.cursor.Pile
 		cmd := m.buildMoveCmd(state, m.cursor.DragSource, m.cursor.DragCardCount, dest)
-		if cmd != nil {
-			_ = m.eng.Execute(cmd) // silent rejection on error
+		if cmd != nil && m.eng.Execute(cmd) == nil { // silent rejection on error
+			// Select the newly placed card (the destination's new bottom card)
+			// rather than its previous top card.
+			m.cursor.CardIndex = naturalCardIndex(dest, state)
 		}
 		m.cursor.clearPickup()
 		m.clampCursor()

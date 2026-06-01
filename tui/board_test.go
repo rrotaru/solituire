@@ -1197,6 +1197,67 @@ func TestBoardMouseDragPlace_Valid(t *testing.T) {
 	}
 }
 
+// firstTableauMove returns a valid tableau-to-tableau move for the seed-42 deal,
+// or signals the caller to skip if none exists.
+func firstTableauMove(t *testing.T, eng *testEngine) engine.Move {
+	t.Helper()
+	for _, m := range eng.ValidMoves() {
+		if isTableauPile(m.From) && isTableauPile(m.To) {
+			return m
+		}
+	}
+	t.Skip("no tableau-to-tableau move available with seed 42")
+	return engine.Move{}
+}
+
+// TestBoardMouseDragPlace_SelectsDroppedCard guards against a regression where,
+// after dropping cards onto a pile, the cursor highlighted the destination's
+// previous top card (now mid-pile) instead of the newly dropped card.
+func TestBoardMouseDragPlace_SelectsDroppedCard(t *testing.T) {
+	board, eng := newBoard()
+	move := firstTableauMove(t, eng)
+
+	srcCol := int(move.From - engine.PileTableau0)
+	srcCardIdx := len(eng.State().Tableau[srcCol].Cards) - move.CardCount
+
+	board = clickPile(board, move.From, srcCardIdx)
+	board = releasePile(board, move.To, naturalCardIndex(move.To, eng.State()))
+
+	destPile := eng.State().Tableau[int(move.To-engine.PileTableau0)]
+	if got, want := board.cursor.CardIndex, len(destPile.Cards)-1; got != want {
+		t.Errorf("after drop, cursor.CardIndex=%d, want %d (the newly dropped card)", got, want)
+	}
+	if board.cursor.Pile != move.To {
+		t.Errorf("after drop, cursor.Pile=%v, want %v", board.cursor.Pile, move.To)
+	}
+}
+
+// TestBoardKeyboardPlace_SelectsPlacedCard is the keyboard counterpart: after
+// placing a picked-up card the cursor must select the newly placed card.
+func TestBoardKeyboardPlace_SelectsPlacedCard(t *testing.T) {
+	board, eng := newBoard()
+	move := firstTableauMove(t, eng)
+
+	srcCol := int(move.From - engine.PileTableau0)
+	board.cursor.Pile = move.From
+	board.cursor.CardIndex = len(eng.State().Tableau[srcCol].Cards) - move.CardCount
+	board = sendKey(board, tea.KeyEnter) // pick up
+	if !board.cursor.Selecting {
+		t.Fatal("expected Selecting=true after pick up")
+	}
+	board.cursor.Pile = move.To
+	board.cursor.CardIndex = naturalCardIndex(move.To, eng.State())
+	board = sendKey(board, tea.KeyEnter) // place
+
+	destPile := eng.State().Tableau[int(move.To-engine.PileTableau0)]
+	if got, want := board.cursor.CardIndex, len(destPile.Cards)-1; got != want {
+		t.Errorf("after place, cursor.CardIndex=%d, want %d (the newly placed card)", got, want)
+	}
+	if board.cursor.Selecting {
+		t.Error("expected Selecting=false after place")
+	}
+}
+
 // TestBoardMouseDragPlace_FaceDownCard verifies that clicking a face-down
 // tableau card does not start a drag (face-down cards are not legal drag sources).
 func TestBoardMouseDragPlace_FaceDownCard(t *testing.T) {
