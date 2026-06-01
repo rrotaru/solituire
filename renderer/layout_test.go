@@ -16,7 +16,7 @@ func newSeed42DrawState() *engine.GameState {
 	return state
 }
 
-// TestPileHitTestWithWidth exercises pileHitTestWithWidth with known terminal
+// TestPileHitTestWithWidth exercises PileHitTestWithWidth with known terminal
 // coordinates derived from the seed-42 draw-1 deal (empty waste, visCount=1).
 //
 // Layout geometry (draw-1, wasteVisCount=1):

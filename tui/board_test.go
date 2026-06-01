@@ -157,6 +157,59 @@ func TestBoardSelectionMovedView(t *testing.T) {
 	golden.RequireEqual(t, []byte(board.View()))
 }
 
+// liftRunPile is a tableau column with 2 face-down cards beneath a 4-card
+// face-up run (K♠ Q♥ J♠ 10♥). The seed-42 deal never produces a multi-card
+// face-up run, so the lifted-card golden tests install this column directly.
+func liftRunPile() *engine.TableauPile {
+	return &engine.TableauPile{Cards: []engine.Card{
+		{Suit: engine.Spades, Rank: engine.Five, FaceUp: false},
+		{Suit: engine.Hearts, Rank: engine.Four, FaceUp: false},
+		{Suit: engine.Spades, Rank: engine.King, FaceUp: true},
+		{Suit: engine.Hearts, Rank: engine.Queen, FaceUp: true},
+		{Suit: engine.Spades, Rank: engine.Jack, FaceUp: true},
+		{Suit: engine.Hearts, Rank: engine.Ten, FaceUp: true},
+	}}
+}
+
+// TestBoardLiftedNavigationView verifies that pressing Up within a multi-card
+// face-up run lifts the focal card: it renders in full with the arrow beneath
+// it and the cards below it become a small stack.
+func TestBoardLiftedNavigationView(t *testing.T) {
+	board, eng := newBoard()
+	eng.State().Tableau[0] = liftRunPile()
+	board.cursor.Pile = engine.PileTableau0
+	board.cursor.CardIndex = len(eng.State().Tableau[0].Cards) - 1 // bottom card
+
+	// Navigate up twice: focal lifts to Q♥, with J♠ and 10♥ stacked below.
+	board = sendKey(board, tea.KeyUp)
+	board = sendKey(board, tea.KeyUp)
+	if board.cursor.CardIndex != 3 {
+		t.Fatalf("precondition: CardIndex=%d, want 3", board.cursor.CardIndex)
+	}
+	golden.RequireEqual(t, []byte(board.View()))
+}
+
+// TestBoardSelectionLiftedView verifies that during a keyboard pick-up of a
+// multi-card run, the source column keeps the lifted look (top selected card in
+// full above the arrow, the rest of the run stacked below) while the cursor sits
+// on a prospective destination.
+func TestBoardSelectionLiftedView(t *testing.T) {
+	board, eng := newBoard()
+	eng.State().Tableau[0] = liftRunPile()
+	board.cursor.Pile = engine.PileTableau0
+	board.cursor.CardIndex = 3 // Q♥ → picks up Q♥, J♠, 10♥
+
+	board = sendKey(board, tea.KeyEnter) // pick up the 3-card run from T0
+	if !board.cursor.Selecting || board.cursor.DragCardCount != 3 {
+		t.Fatalf("precondition: Selecting=%v DragCardCount=%d, want true/3",
+			board.cursor.Selecting, board.cursor.DragCardCount)
+	}
+	// Move the cursor to a prospective destination pile.
+	board.cursor.Pile = engine.PileTableau2
+	board.cursor.CardIndex = naturalCardIndex(engine.PileTableau2, eng.State())
+	golden.RequireEqual(t, []byte(board.View()))
+}
+
 // --- Model state tests ---
 
 func TestBoardDragPickUp(t *testing.T) {

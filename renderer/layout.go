@@ -80,17 +80,26 @@ func pileOrigins(wasteVisCount int) map[engine.PileID]image.Point {
 // hit, or (0, 0, false) on miss. cardIndex is 0-based from the top of the
 // pile's visible cards.
 func PileHitTest(x, y int, state *engine.GameState) (engine.PileID, int, bool) {
-	return pileHitTestWithWidth(x, y, state, 0)
+	return pileHitTest(x, y, state, CursorState{})
 }
 
 // PileHitTestWithWidth is equivalent to PileHitTest. The termWidth parameter
 // is accepted for API compatibility but is no longer used; foundation
 // positions are computed from the game state instead.
-func PileHitTestWithWidth(x, y int, state *engine.GameState, termWidth int) (engine.PileID, int, bool) {
-	return pileHitTestWithWidth(x, y, state, termWidth)
+func PileHitTestWithWidth(x, y int, state *engine.GameState, _ int) (engine.PileID, int, bool) {
+	return pileHitTest(x, y, state, CursorState{})
 }
 
-func pileHitTestWithWidth(x, y int, state *engine.GameState, _ int) (engine.PileID, int, bool) {
+// PileHitTestWithCursor maps (x, y) to a pile and card index using the same
+// per-column layout the renderer drew for the given cursor. This matters when a
+// tableau column is keyboard-"lifted": the focal card is rendered in full at a
+// shifted position, so a cursor-unaware hit test would map clicks to the wrong
+// card. Callers that drive mouse input from the live cursor should use this.
+func PileHitTestWithCursor(x, y int, state *engine.GameState, cursor CursorState) (engine.PileID, int, bool) {
+	return pileHitTest(x, y, state, cursor)
+}
+
+func pileHitTest(x, y int, state *engine.GameState, cursor CursorState) (engine.PileID, int, bool) {
 	// Derive waste visible count from state so foundation x-positions match
 	// the rendered layout in all draw modes (draw-1 and draw-3).
 	wasteVisCount := len(state.Waste.VisibleCards())
@@ -144,6 +153,12 @@ func pileHitTestWithWidth(x, y int, state *engine.GameState, _ int) (engine.Pile
 		fdCount := pile.FaceDownCount()
 		fuCards := pile.FaceUpCards()
 
+		// Mirror the renderer's layout: the focal card occupies a full CardHeight
+		// while every other face-up card is a 1-row peek, and the arrow (when
+		// shown) inserts a row directly below the focal card.
+		focalFi := tableauFocalFi(pid, fdCount, len(fuCards), cursor)
+		arrow := pileShowsArrow(pid, cursor)
+
 		row := o.Y
 		// Face-down stubs
 		for ci := 0; ci < fdCount; ci++ {
@@ -152,17 +167,21 @@ func pileHitTestWithWidth(x, y int, state *engine.GameState, _ int) (engine.Pile
 			}
 			row++
 		}
-		// Face-up fanned cards: all but last occupy 1 row (peek), last occupies full CardHeight
+		// Face-up fanned cards: the focal card occupies full CardHeight, the rest
+		// occupy 1 row (peek). The arrow row below the focal card is a miss.
 		for fi := range fuCards {
 			cardIdx := fdCount + fi
 			height := 1
-			if fi == len(fuCards)-1 {
+			if fi == focalFi {
 				height = CardHeight
 			}
 			if y >= row && y < row+height {
 				return pid, cardIdx, true
 			}
 			row += height
+			if fi == focalFi && arrow {
+				row++
+			}
 		}
 	}
 

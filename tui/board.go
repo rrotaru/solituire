@@ -135,7 +135,7 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 	case ActionDragStart:
 		// Left mouse button pressed: hit-test and begin a drag gesture.
 		mouse := payload.(tea.MouseMsg)
-		pile, cardIdx, hit := renderer.PileHitTestWithWidth(mouse.X, mouse.Y, state, m.width)
+		pile, cardIdx, hit := renderer.PileHitTestWithCursor(mouse.X, mouse.Y, state, m.cursor.RendererCursor())
 		if !hit {
 			return m, nil // miss-click: ignore
 		}
@@ -172,7 +172,7 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 			return m, nil
 		}
 		mouse := payload.(tea.MouseMsg)
-		pile, cardIdx, hit := renderer.PileHitTestWithWidth(mouse.X, mouse.Y, state, m.width)
+		pile, cardIdx, hit := renderer.PileHitTestWithCursor(mouse.X, mouse.Y, state, m.cursor.RendererCursor())
 		moved := false
 		if hit && pile != m.cursor.DragSource {
 			m.cursor.Pile = pile

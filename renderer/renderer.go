@@ -140,31 +140,31 @@ func (r *Renderer) renderTopRow(state *engine.GameState, cursor CursorState) str
 
 // renderTableau renders all 7 tableau columns side by side, aligned to their tops.
 func (r *Renderer) renderTableau(state *engine.GameState, cursor CursorState) string {
+	// RenderTableauPile embeds its own arrow (which may sit mid-column when the
+	// focal card is lifted), so measure each column's *body* height by excluding
+	// that arrow row. Reserving one row for the arrow on top of the tallest body
+	// keeps the board height stable regardless of which column shows an arrow.
 	cols := make([]string, 7)
-	maxHeight := 0
+	maxBody := 0
 	for i := 0; i < 7; i++ {
 		cols[i] = RenderTableauPile(state.Tableau[i], i, cursor, r.theme)
-		if h := strings.Count(cols[i], "\n") + 1; h > maxHeight {
-			maxHeight = h
-		}
-	}
-	// Reserve one row for arrow indicators *before* appending them, so the
-	// board height is stable regardless of which column has an arrow.
-	maxHeight++
-	// Now append arrows — measured heights are already accounted for above.
-	for i := 0; i < 7; i++ {
+		h := strings.Count(cols[i], "\n") + 1
 		pid := engine.PileID(engine.PileTableau0 + engine.PileID(i))
-		if color, ok := pileArrowColor(pid, cursor, r.theme); ok {
-			cols[i] = appendArrow(cols[i], color, r.theme.BoardBackground)
+		if pileShowsArrow(pid, cursor) {
+			h-- // exclude the embedded arrow row from the body measurement
+		}
+		if h > maxBody {
+			maxBody = h
 		}
 	}
+	targetHeight := maxBody + 1
 
 	// Pre-pad shorter columns so JoinHorizontal doesn't add unstyled spaces
 	parts := make([]string, 0, 13)
 	for i, col := range cols {
-		parts = append(parts, r.padColumnHeight(col, maxHeight))
+		parts = append(parts, r.padColumnHeight(col, targetHeight))
 		if i < 6 {
-			parts = append(parts, r.boardGapCol(ColGap, maxHeight))
+			parts = append(parts, r.boardGapCol(ColGap, targetHeight))
 		}
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Top, parts...)
