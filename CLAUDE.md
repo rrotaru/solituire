@@ -103,9 +103,10 @@ go install github.com/charmbracelet/vhs@v0.9.0
 # ffmpeg and ttyd must also be present (apt install ffmpeg ttyd on Debian/Ubuntu)
 ```
 
-Then regenerate all tapes (mirrors what `make vhs` and CI do):
+Then build the binary and regenerate all tapes (mirrors what `make vhs` and CI do):
 
 ```bash
+make build
 export PATH=$PATH:$(go env GOPATH)/bin
 for tape in tapes/*.tape; do VHS_NO_SANDBOX=true vhs "$tape"; done
 ```
