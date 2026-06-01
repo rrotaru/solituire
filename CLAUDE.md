@@ -122,9 +122,12 @@ make vhs   # requires a running Docker daemon
 After either method, review the diff and commit the updated files:
 
 ```bash
-git diff docs/demo/
-git add docs/demo/*.gif
+git diff docs/demo/ testdata/vhs/
+git add docs/demo/*.gif testdata/vhs/*.png
 ```
+
+`testdata/vhs/*.png` are visual baseline screenshots committed alongside the
+GIFs — they must be kept in sync when rendering changes.
 
 ## Linting
 
