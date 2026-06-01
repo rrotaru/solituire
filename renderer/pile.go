@@ -64,42 +64,81 @@ func renderStockFaceDown(state cardVisualState, t theme.Theme) string {
 	return strings.Join(lines, "\n")
 }
 
-// pileArrowColor returns (color, true) when an arrow indicator should be rendered for pid.
-func pileArrowColor(pid engine.PileID, cursor CursorState, t theme.Theme) (lipgloss.Color, bool) {
-	if cursor.ShowHint {
-		if pid == cursor.HintFrom || pid == cursor.HintTo {
-			return t.HintBorder, true
-		}
+// pileShowsArrow reports whether an arrow indicator is drawn for pid. It mirrors
+// pileArrowColor's boolean decision exactly but needs no theme, so hit-testing
+// and rendering can share it and never disagree on the layout.
+func pileShowsArrow(pid engine.PileID, cursor CursorState) bool {
+	if cursor.ShowHint && (pid == cursor.HintFrom || pid == cursor.HintTo) {
+		return true
 	}
 	if cursor.Selecting {
 		// During a keyboard pick-up the source stays marked and the cursor's
 		// current pile shows where the cards would be placed.
-		if pid == cursor.DragSource {
-			return t.SelectedBorder, true
-		}
-		if pid == cursor.Pile {
-			return t.CursorBorder, true
-		}
+		return pid == cursor.DragSource || pid == cursor.Pile
+	}
+	return cursor.Pile == pid && !cursor.Dragging
+}
+
+// pileArrowColor returns (color, true) when an arrow indicator should be rendered for pid.
+func pileArrowColor(pid engine.PileID, cursor CursorState, t theme.Theme) (lipgloss.Color, bool) {
+	if !pileShowsArrow(pid, cursor) {
 		return "", false
 	}
-	if cursor.Pile == pid && !cursor.Dragging {
+	switch {
+	case cursor.ShowHint && (pid == cursor.HintFrom || pid == cursor.HintTo):
+		return t.HintBorder, true
+	case cursor.Selecting && pid == cursor.DragSource:
+		return t.SelectedBorder, true
+	default:
 		return t.CursorBorder, true
 	}
-	return "", false
+}
+
+// tableauFocalFi returns the index *within the face-up slice* of the card that
+// should be rendered in full with the arrow directly beneath it. fuLen is the
+// number of visible face-up cards (after any drag truncation). It returns -1
+// when the column has no face-up cards.
+//
+// By default the focal card is the bottom card, so the arrow sits at the bottom
+// of the column (the historical behavior). When the keyboard cursor hovers the
+// column, or a keyboard pick-up is active on it, the focal card is "lifted" to
+// the selected card / top of the picked-up run instead.
+func tableauFocalFi(pid engine.PileID, fdCount, fuLen int, cursor CursorState) int {
+	if fuLen <= 0 {
+		return -1
+	}
+	focal := fuLen - 1
+	switch {
+	case cursor.Selecting && cursor.DragSource == pid && cursor.DragCardCount > 0:
+		if f := fuLen - cursor.DragCardCount; f >= 0 && f < fuLen {
+			focal = f // top of the picked-up run
+		}
+	case !cursor.Dragging && !cursor.Selecting && cursor.Pile == pid:
+		if f := cursor.CardIndex - fdCount; f >= 0 && f < fuLen {
+			focal = f // card under the keyboard cursor
+		}
+	}
+	return focal
+}
+
+// arrowRow builds a centered bold ↑ row of the given width.
+func arrowRow(width int, color lipgloss.Color, bg lipgloss.Color) string {
+	if width < 1 {
+		width = 1
+	}
+	pad := (width - 1) / 2
+	blankStyle := lipgloss.NewStyle().Background(bg)
+	arrowStyle := lipgloss.NewStyle().Foreground(color).Background(bg).Bold(true)
+	return blankStyle.Render(strings.Repeat(" ", pad)) +
+		arrowStyle.Render("↑") +
+		blankStyle.Render(strings.Repeat(" ", width-pad-1))
 }
 
 // appendArrow appends a centered bold ↑ row directly below s (1 row below).
 // The width is derived from the first rendered line of s.
 func appendArrow(s string, color lipgloss.Color, bg lipgloss.Color) string {
 	firstLine := strings.Split(s, "\n")[0]
-	w := lipgloss.Width(firstLine)
-	pad := (w - 1) / 2
-	blankStyle := lipgloss.NewStyle().Background(bg)
-	arrowStyle := lipgloss.NewStyle().Foreground(color).Background(bg).Bold(true)
-	arrow := blankStyle.Render(strings.Repeat(" ", pad)) +
-		arrowStyle.Render("↑") +
-		blankStyle.Render(strings.Repeat(" ", w-pad-1))
-	return s + "\n" + arrow
+	return s + "\n" + arrowRow(lipgloss.Width(firstLine), color, bg)
 }
 
 // RenderStockPile is the exported entry point for stock rendering.
@@ -218,8 +257,11 @@ func renderEmptyWithSuit(suit string, state cardVisualState, t theme.Theme) stri
 }
 
 // RenderTableauPile renders a tableau column as a vertical stack.
-// Face-down cards show as single-line stubs; face-up cards fan with 2-line peeks
-// except the bottom card which is fully rendered.
+// Face-down cards show as single-line stubs; face-up cards fan with 1-line peeks
+// except the focal card, which is fully rendered with the cursor arrow directly
+// beneath it. The focal card defaults to the bottom card but follows the
+// keyboard cursor (or the top of a keyboard pick-up), so the cards below it form
+// a small stack under the arrow showing what would be picked up.
 // During a drag from this column the lifted cards are omitted so the pile looks depleted.
 func RenderTableauPile(p *engine.TableauPile, colIdx int, cursor CursorState, t theme.Theme) string {
 	pid := engine.PileID(engine.PileTableau0 + engine.PileID(colIdx))
@@ -235,12 +277,22 @@ func RenderTableauPile(p *engine.TableauPile, colIdx int, cursor CursorState, t 
 
 	if fdCount == 0 && len(fuCards) == 0 {
 		state := cardVisualStateForCursor(pid, 0, cursor)
-		return renderEmptyWithState(state, t)
+		s := renderEmptyWithState(state, t)
+		if color, ok := pileArrowColor(pid, cursor, t); ok {
+			s = appendArrow(s, color, t.BoardBackground)
+		}
+		return s
 	}
 
 	// When a drag has removed all face-up cards, the top face-down card is
 	// newly exposed — render it as a full card so the player can see it clearly.
 	topFDFull := len(fuCards) == 0 && fdCount > 0
+
+	// The focal card renders in full with the arrow beneath it; every other
+	// face-up card is a 1-line peek. Cards below the focal card therefore form a
+	// small stack under the arrow, showing what would be picked up with it.
+	arrowColor, showArrow := pileArrowColor(pid, cursor, t)
+	focalFi := tableauFocalFi(pid, fdCount, len(fuCards), cursor)
 
 	var rows []string
 
@@ -253,16 +305,20 @@ func RenderTableauPile(p *engine.TableauPile, colIdx int, cursor CursorState, t 
 		}
 	}
 
-	// Face-up cards: all but last get 1-line peek; last gets full render
+	// Face-up cards: the focal card renders full (with the arrow directly below
+	// it); the rest render as 1-line peeks.
 	for fi, c := range fuCards {
 		cardIdx := fdCount + fi
 		state := cardVisualStateForCursor(pid, cardIdx, cursor)
 		state = resolveStateForFaceUp(state)
 
-		if fi < len(fuCards)-1 {
-			rows = append(rows, cardPeekLines(c, state, t))
-		} else {
+		if fi == focalFi {
 			rows = append(rows, renderCard(cardContent{card: c, state: state}, t))
+			if showArrow {
+				rows = append(rows, arrowRow(CardWidth, arrowColor, t.BoardBackground))
+			}
+		} else {
+			rows = append(rows, cardPeekLines(c, state, t))
 		}
 	}
 

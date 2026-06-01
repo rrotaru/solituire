@@ -157,6 +157,59 @@ func TestBoardSelectionMovedView(t *testing.T) {
 	golden.RequireEqual(t, []byte(board.View()))
 }
 
+// liftRunPile is a tableau column with 2 face-down cards beneath a 4-card
+// face-up run (K♠ Q♥ J♠ 10♥). The seed-42 deal never produces a multi-card
+// face-up run, so the lifted-card golden tests install this column directly.
+func liftRunPile() *engine.TableauPile {
+	return &engine.TableauPile{Cards: []engine.Card{
+		{Suit: engine.Spades, Rank: engine.Five, FaceUp: false},
+		{Suit: engine.Hearts, Rank: engine.Four, FaceUp: false},
+		{Suit: engine.Spades, Rank: engine.King, FaceUp: true},
+		{Suit: engine.Hearts, Rank: engine.Queen, FaceUp: true},
+		{Suit: engine.Spades, Rank: engine.Jack, FaceUp: true},
+		{Suit: engine.Hearts, Rank: engine.Ten, FaceUp: true},
+	}}
+}
+
+// TestBoardLiftedNavigationView verifies that pressing Up within a multi-card
+// face-up run lifts the focal card: it renders in full with the arrow beneath
+// it and the cards below it become a small stack.
+func TestBoardLiftedNavigationView(t *testing.T) {
+	board, eng := newBoard()
+	eng.State().Tableau[0] = liftRunPile()
+	board.cursor.Pile = engine.PileTableau0
+	board.cursor.CardIndex = len(eng.State().Tableau[0].Cards) - 1 // bottom card
+
+	// Navigate up twice: focal lifts to Q♥, with J♠ and 10♥ stacked below.
+	board = sendKey(board, tea.KeyUp)
+	board = sendKey(board, tea.KeyUp)
+	if board.cursor.CardIndex != 3 {
+		t.Fatalf("precondition: CardIndex=%d, want 3", board.cursor.CardIndex)
+	}
+	golden.RequireEqual(t, []byte(board.View()))
+}
+
+// TestBoardSelectionLiftedView verifies that during a keyboard pick-up of a
+// multi-card run, the source column keeps the lifted look (top selected card in
+// full above the arrow, the rest of the run stacked below) while the cursor sits
+// on a prospective destination.
+func TestBoardSelectionLiftedView(t *testing.T) {
+	board, eng := newBoard()
+	eng.State().Tableau[0] = liftRunPile()
+	board.cursor.Pile = engine.PileTableau0
+	board.cursor.CardIndex = 3 // Q♥ → picks up Q♥, J♠, 10♥
+
+	board = sendKey(board, tea.KeyEnter) // pick up the 3-card run from T0
+	if !board.cursor.Selecting || board.cursor.DragCardCount != 3 {
+		t.Fatalf("precondition: Selecting=%v DragCardCount=%d, want true/3",
+			board.cursor.Selecting, board.cursor.DragCardCount)
+	}
+	// Move the cursor to a prospective destination pile.
+	board.cursor.Pile = engine.PileTableau2
+	board.cursor.CardIndex = naturalCardIndex(engine.PileTableau2, eng.State())
+	golden.RequireEqual(t, []byte(board.View()))
+}
+
 // --- Model state tests ---
 
 func TestBoardDragPickUp(t *testing.T) {
@@ -1141,6 +1194,67 @@ func TestBoardMouseDragPlace_Valid(t *testing.T) {
 	afterLen := len(eng.State().Tableau[srcCol].Cards)
 	if afterLen >= srcLen {
 		t.Errorf("source pile must shrink after valid move: before=%d after=%d", srcLen, afterLen)
+	}
+}
+
+// firstTableauMove returns a valid tableau-to-tableau move for the seed-42 deal,
+// or signals the caller to skip if none exists.
+func firstTableauMove(t *testing.T, eng *testEngine) engine.Move {
+	t.Helper()
+	for _, m := range eng.ValidMoves() {
+		if isTableauPile(m.From) && isTableauPile(m.To) {
+			return m
+		}
+	}
+	t.Skip("no tableau-to-tableau move available with seed 42")
+	return engine.Move{}
+}
+
+// TestBoardMouseDragPlace_SelectsDroppedCard guards against a regression where,
+// after dropping cards onto a pile, the cursor highlighted the destination's
+// previous top card (now mid-pile) instead of the newly dropped card.
+func TestBoardMouseDragPlace_SelectsDroppedCard(t *testing.T) {
+	board, eng := newBoard()
+	move := firstTableauMove(t, eng)
+
+	srcCol := int(move.From - engine.PileTableau0)
+	srcCardIdx := len(eng.State().Tableau[srcCol].Cards) - move.CardCount
+
+	board = clickPile(board, move.From, srcCardIdx)
+	board = releasePile(board, move.To, naturalCardIndex(move.To, eng.State()))
+
+	destPile := eng.State().Tableau[int(move.To-engine.PileTableau0)]
+	if got, want := board.cursor.CardIndex, len(destPile.Cards)-1; got != want {
+		t.Errorf("after drop, cursor.CardIndex=%d, want %d (the newly dropped card)", got, want)
+	}
+	if board.cursor.Pile != move.To {
+		t.Errorf("after drop, cursor.Pile=%v, want %v", board.cursor.Pile, move.To)
+	}
+}
+
+// TestBoardKeyboardPlace_SelectsPlacedCard is the keyboard counterpart: after
+// placing a picked-up card the cursor must select the newly placed card.
+func TestBoardKeyboardPlace_SelectsPlacedCard(t *testing.T) {
+	board, eng := newBoard()
+	move := firstTableauMove(t, eng)
+
+	srcCol := int(move.From - engine.PileTableau0)
+	board.cursor.Pile = move.From
+	board.cursor.CardIndex = len(eng.State().Tableau[srcCol].Cards) - move.CardCount
+	board = sendKey(board, tea.KeyEnter) // pick up
+	if !board.cursor.Selecting {
+		t.Fatal("expected Selecting=true after pick up")
+	}
+	board.cursor.Pile = move.To
+	board.cursor.CardIndex = naturalCardIndex(move.To, eng.State())
+	board = sendKey(board, tea.KeyEnter) // place
+
+	destPile := eng.State().Tableau[int(move.To-engine.PileTableau0)]
+	if got, want := board.cursor.CardIndex, len(destPile.Cards)-1; got != want {
+		t.Errorf("after place, cursor.CardIndex=%d, want %d (the newly placed card)", got, want)
+	}
+	if board.cursor.Selecting {
+		t.Error("expected Selecting=false after place")
 	}
 }
 
