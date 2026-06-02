@@ -66,18 +66,6 @@ func (c Cursor) RendererCursor() renderer.CursorState {
 	}
 }
 
-// MoveLeft cycles one step left in tabCycleOrder, wrapping at the start.
-func (c *Cursor) MoveLeft(state *engine.GameState) {
-	c.Pile = prevInCycle(tabCycleOrder, c.Pile)
-	c.CardIndex = naturalCardIndex(c.Pile, state)
-}
-
-// MoveRight cycles one step right in tabCycleOrder, wrapping at the end.
-func (c *Cursor) MoveRight(state *engine.GameState) {
-	c.Pile = nextInCycle(tabCycleOrder, c.Pile)
-	c.CardIndex = naturalCardIndex(c.Pile, state)
-}
-
 // TabNext cycles one step forward in tabCycleOrder, wrapping at the end.
 func (c *Cursor) TabNext(state *engine.GameState) {
 	c.Pile = nextInCycle(tabCycleOrder, c.Pile)
@@ -90,13 +78,20 @@ func (c *Cursor) TabPrev(state *engine.GameState) {
 	c.CardIndex = naturalCardIndex(c.Pile, state)
 }
 
+// MoveLeft cycles one step left through the piles. Left/right arrow navigation
+// is identical to Shift-Tab/Tab cycling, so it delegates to TabPrev/TabNext.
+func (c *Cursor) MoveLeft(state *engine.GameState) { c.TabPrev(state) }
+
+// MoveRight cycles one step right through the piles (see MoveLeft).
+func (c *Cursor) MoveRight(state *engine.GameState) { c.TabNext(state) }
+
 // MoveUp decreases CardIndex within a tableau column, stopping at the topmost
 // face-up card. No-op if the current pile is not a tableau pile.
 func (c *Cursor) MoveUp(state *engine.GameState) {
 	if !isTableauPile(c.Pile) {
 		return
 	}
-	col := int(c.Pile - engine.PileTableau0)
+	col := c.Pile.TableauIndex()
 	pile := state.Tableau[col]
 	minIdx := pile.FaceDownCount()
 	if c.CardIndex > minIdx {
@@ -110,7 +105,7 @@ func (c *Cursor) MoveDown(state *engine.GameState) {
 	if !isTableauPile(c.Pile) {
 		return
 	}
-	col := int(c.Pile - engine.PileTableau0)
+	col := c.Pile.TableauIndex()
 	pile := state.Tableau[col]
 	if pile.IsEmpty() {
 		return
@@ -136,7 +131,7 @@ func (c *Cursor) JumpToColumn(col int, state *engine.GameState) {
 //   - All others: 0
 func naturalCardIndex(pile engine.PileID, state *engine.GameState) int {
 	if isTableauPile(pile) {
-		col := int(pile - engine.PileTableau0)
+		col := pile.TableauIndex()
 		p := state.Tableau[col]
 		if len(p.Cards) > 0 {
 			return len(p.Cards) - 1
@@ -145,15 +140,11 @@ func naturalCardIndex(pile engine.PileID, state *engine.GameState) int {
 	return 0
 }
 
-// isTableauPile returns true if id is one of PileTableau0..PileTableau6.
-func isTableauPile(id engine.PileID) bool {
-	return id >= engine.PileTableau0 && id <= engine.PileTableau6
-}
-
-// isFoundationPile returns true if id is one of PileFoundation0..PileFoundation3.
-func isFoundationPile(id engine.PileID) bool {
-	return id >= engine.PileFoundation0 && id <= engine.PileFoundation3
-}
+// isTableauPile and isFoundationPile are package-local shorthand for the
+// corresponding engine.PileID methods, keeping the classification logic defined
+// in exactly one place (the engine).
+func isTableauPile(id engine.PileID) bool    { return id.IsTableau() }
+func isFoundationPile(id engine.PileID) bool { return id.IsFoundation() }
 
 // nextInCycle returns the PileID after current in the cycle, wrapping to the first.
 // If current is not found, returns the first element.

@@ -217,7 +217,7 @@ func (m BoardModel) handleAction(action GameAction, payload interface{}) (tea.Mo
 			// the top card; pressing 'f' on a non-top face-up card is a no-op so
 			// that the action target always matches the highlighted card.
 			if isTableauPile(m.cursor.Pile) {
-				col := int(m.cursor.Pile - engine.PileTableau0)
+				col := m.cursor.Pile.TableauIndex()
 				pile := state.Tableau[col]
 				if pile.IsEmpty() || m.cursor.CardIndex != len(pile.Cards)-1 {
 					break
@@ -329,7 +329,7 @@ func (m BoardModel) handleSelect(state *engine.GameState) BoardModel {
 // Returns 0 when the pile has no card to pick up.
 func dragCount(state *engine.GameState, c Cursor) int {
 	if isTableauPile(c.Pile) {
-		col := int(c.Pile - engine.PileTableau0)
+		col := c.Pile.TableauIndex()
 		pile := state.Tableau[col]
 		if c.CardIndex < pile.FaceDownCount() {
 			return 0 // face-down cards cannot be dragged
@@ -347,7 +347,7 @@ func dragCount(state *engine.GameState, c Cursor) int {
 		return 1
 	}
 	if isFoundationPile(c.Pile) {
-		fi := int(c.Pile - engine.PileFoundation0)
+		fi := c.Pile.FoundationIndex()
 		if state.Foundations[fi].TopCard() == nil {
 			return 0
 		}
@@ -360,10 +360,10 @@ func dragCount(state *engine.GameState, c Cursor) int {
 // Returns nil if the combination is unsupported (will result in a silent rejection).
 func (m BoardModel) buildMoveCmd(state *engine.GameState, from engine.PileID, count int, to engine.PileID) engine.Command {
 	if isFoundationPile(to) && count == 1 {
-		fi := int(to - engine.PileFoundation0)
+		fi := to.FoundationIndex()
 		moveCmd := &engine.MoveToFoundationCmd{From: from, FoundationIdx: fi}
 		if isTableauPile(from) {
-			srcCol := int(from - engine.PileTableau0)
+			srcCol := from.TableauIndex()
 			srcPile := state.Tableau[srcCol]
 			newTopIdx := len(srcPile.Cards) - 2 // after removing the one moved card
 			if newTopIdx >= 0 && !srcPile.Cards[newTopIdx].FaceUp {
@@ -382,7 +382,7 @@ func (m BoardModel) buildMoveCmd(state *engine.GameState, from engine.PileID, co
 		moveCmd := &engine.MoveCardCmd{From: from, To: to, CardCount: count}
 		if isTableauPile(from) {
 			// Determine if a face-down card will be exposed after the move.
-			srcCol := int(from - engine.PileTableau0)
+			srcCol := from.TableauIndex()
 			srcPile := state.Tableau[srcCol]
 			newTopIdx := len(srcPile.Cards) - count - 1
 			if newTopIdx >= 0 && !srcPile.Cards[newTopIdx].FaceUp {
@@ -416,10 +416,10 @@ func (m *BoardModel) moveToFoundation(state *engine.GameState, src engine.PileID
 	case src == engine.PileWaste:
 		card = state.Waste.TopCard()
 	case isTableauPile(src):
-		col := int(src - engine.PileTableau0)
+		col := src.TableauIndex()
 		card = state.Tableau[col].TopCard()
 	case isFoundationPile(src):
-		fi := int(src - engine.PileFoundation0)
+		fi := src.FoundationIndex()
 		card = state.Foundations[fi].TopCard()
 	}
 	if card == nil {
@@ -456,7 +456,7 @@ func (m *BoardModel) toggleHint(state *engine.GameState) {
 func (m *BoardModel) clampCursor() {
 	state := m.eng.State()
 	if isTableauPile(m.cursor.Pile) {
-		col := int(m.cursor.Pile - engine.PileTableau0)
+		col := m.cursor.Pile.TableauIndex()
 		pile := state.Tableau[col]
 		if pile.IsEmpty() {
 			m.cursor.CardIndex = 0

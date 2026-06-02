@@ -38,10 +38,10 @@ func (g *Game) CanUndo() bool { return g.history.CanUndo() }
 // CanRedo reports whether there is a move to redo.
 func (g *Game) CanRedo() bool { return g.history.CanRedo() }
 
-// IsWon returns true when all four foundation piles each contain 13 cards.
+// IsWon returns true when all four foundation piles are complete (Ace-King).
 func (g *Game) IsWon() bool {
 	for _, f := range g.state.Foundations {
-		if len(f.Cards) != 13 {
+		if !f.IsComplete() {
 			return false
 		}
 	}
@@ -184,6 +184,28 @@ const (
 	PileTableau5
 	PileTableau6
 )
+
+// IsTableau reports whether p identifies one of the seven tableau columns.
+func (p PileID) IsTableau() bool {
+	return p >= PileTableau0 && p <= PileTableau6
+}
+
+// IsFoundation reports whether p identifies one of the four foundation piles.
+func (p PileID) IsFoundation() bool {
+	return p >= PileFoundation0 && p <= PileFoundation3
+}
+
+// TableauIndex returns the 0-based column index for a tableau PileID.
+// The result is only meaningful when IsTableau reports true.
+func (p PileID) TableauIndex() int {
+	return int(p - PileTableau0)
+}
+
+// FoundationIndex returns the 0-based index for a foundation PileID.
+// The result is only meaningful when IsFoundation reports true.
+func (p PileID) FoundationIndex() int {
+	return int(p - PileFoundation0)
+}
 
 // GameState holds the complete, serialisable state of a Klondike game.
 // All mutable operations go through Command.Execute so that Undo is always possible.

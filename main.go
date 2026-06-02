@@ -47,11 +47,11 @@ func main() {
 	if *seedFlag != 0 {
 		cfg.Seed = *seedFlag
 	}
-	if *drawFlag != 1 && *drawFlag != 3 {
-		fmt.Fprintf(os.Stderr, "klondike: --draw must be 1 or 3 (got %d)\n", *drawFlag)
+	cfg.DrawCount = *drawFlag
+	if err := cfg.Validate(); err != nil {
+		fmt.Fprintf(os.Stderr, "klondike: %v\n", err)
 		os.Exit(1)
 	}
-	cfg.DrawCount = *drawFlag
 
 	seed := cfg.Seed
 	if seed == 0 {
