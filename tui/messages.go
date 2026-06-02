@@ -7,20 +7,6 @@ import (
 	"solituire/theme"
 )
 
-// AppScreen identifies which screen the application is currently showing.
-// Defined here (not app.go) so that ChangeScreenMsg compiles in T9.
-// T13 must NOT redefine this type.
-type AppScreen int
-
-const (
-	ScreenMenu AppScreen = iota
-	ScreenPlaying
-	ScreenPaused
-	ScreenKeybindHelp
-	ScreenQuitConfirm
-	ScreenWin
-)
-
 // Game lifecycle
 
 type NewGameMsg struct {

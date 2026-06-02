@@ -1,5 +1,11 @@
 # Klondike Solitaire TUI — Architecture & Design Document
 
+> **Status:** This is the original architecture and design document. The shipped
+> code is the source of truth for exact signatures and naming. Sections 1–13 are
+> kept in sync with the implementation at a structural level; the detailed test
+> catalog (§14) and the task/agent breakdown (§15) are historical planning
+> artifacts and are intentionally **not** maintained against the final code.
+
 ## 1. Project Overview
 
 A fully-featured Klondike Solitaire game built as a terminal user interface (TUI) application in Go, using the [Bubbletea](https://github.com/charmbracelet/bubbletea) framework and [Lipgloss](https://github.com/charmbracelet/lipgloss) for styling. The application targets a premium, polished terminal experience with multiple input methods, themeable card rendering, and complete game features including undo/redo, hints, and auto-complete.
@@ -56,8 +62,10 @@ klondike/
 ├── go.sum
 │
 ├── engine/                     # Pure game logic — zero TUI dependency
-│   ├── interfaces.go           # GameEngine, Scorer, Command interfaces
-│   ├── game.go                 # GameState struct, implements GameEngine
+│   ├── interfaces.go           # GameEngine, Command interfaces
+│   ├── game.go                 # Game orchestrator (implements GameEngine)
+│   ├── state.go                # GameState struct
+│   ├── pile_id.go              # PileID type, constants, and classification methods
 │   ├── card.go                 # Card, Suit, Rank types and helpers
 │   ├── deck.go                 # Deck creation, deterministic shuffle
 │   ├── tableau.go              # Tableau pile logic (columns)
@@ -73,9 +81,7 @@ klondike/
 │   ├── app.go                  # Root Bubbletea model, orchestrates sub-models
 │   ├── board.go                # Board sub-model (gameplay screen)
 │   ├── menu.go                 # Settings/start menu sub-model
-│   ├── help.go                 # Help overlay sub-model
-│   ├── pause.go                # Pause screen sub-model
-│   ├── dialog.go               # Confirmation dialog sub-model (quit, restart)
+│   ├── help.go                 # Keybind help overlay rendering
 │   ├── celebration.go          # Win animation sub-model
 │   ├── input.go                # Input translator (keypress/mouse → game commands)
 │   ├── cursor.go               # Cursor state and navigation logic
@@ -90,10 +96,13 @@ klondike/
 │   └── layout.go               # Spatial layout calculations, minimum size check
 │
 ├── theme/                      # Color theme definitions
-│   ├── theme.go                # Theme struct and interface
+│   ├── theme.go                # Theme struct
 │   ├── classic.go              # Green felt theme
 │   ├── dracula.go              # Dracula color scheme
-│   ├── solarized.go            # Solarized color scheme
+│   ├── solarized.go            # Solarized Dark + Light color schemes
+│   ├── nord.go                 # Nord color scheme
+│   ├── catppuccin.go           # Catppuccin Mocha color scheme
+│   ├── tokyonight.go           # Tokyo Night color scheme
 │   └── registry.go             # Theme registry (list, get by name)
 │
 └── config/                     # Game configuration
@@ -157,7 +166,6 @@ type GameEngine interface {
 type Command interface {
     Execute(state *GameState) error
     Undo(state *GameState) error
-    Description() string  // For debugging/logging: "Move K♠ from tableau[3] to tableau[0]"
 }
 ```
 
@@ -172,21 +180,14 @@ type Command interface {
 |`FlipTableauCardCmd` |tableau column index              |Auto-triggered, but still a command            |
 |`CompoundCmd`        |[]Command                         |Groups atomic commands (e.g., move + auto-flip)|
 
-**CompoundCmd is essential.** When a player moves a card off a tableau column and the newly exposed card is auto-flipped, that’s two atomic operations that must undo as one. The `CompoundCmd` wraps them so a single Ctrl+Z undoes the whole logical action.
+**CompoundCmd is essential.** When a player moves a card off a tableau column and the newly exposed card is auto-flipped, that’s two atomic operations that must undo as one. The `CompoundCmd` wraps them so a single undo reverses the whole logical action.
 
-### 4.3 Scorer Interface
+### 4.3 Scoring
 
-```go
-// engine/interfaces.go
-
-type Scorer interface {
-    OnMove(move Move, state *GameState) int   // Returns point delta
-    OnUndo(move Move, state *GameState) int   // Returns point delta (negative of original)
-    OnRecycleStock() int                       // Returns -100 for standard
-}
-```
-
-Even though only Standard scoring is implemented initially, the interface exists so Vegas scoring can be added later without touching existing code.
+Scoring is computed by the concrete `StandardScorer` (`engine/scoring.go`), called
+directly from `Game.scoreForCmd` (`engine/game.go`). It assigns the standard
+Klondike point deltas (Section 2.2) per command type. There is no scoring
+interface; an alternative scheme (e.g. Vegas) would add another scorer type.
 
 -----
 
@@ -259,7 +260,7 @@ func (w *WastePile) TopCard() *Card         // The one playable card
 ### 5.3 Full Game State
 
 ```go
-// engine/game.go
+// engine/state.go
 
 type GameState struct {
     Tableau     [7]*TableauPile
@@ -321,7 +322,7 @@ func (h *History) Clear()
 1. Player action is translated to a `Command` (or `CompoundCmd` if auto-flip triggers).
 1. `Command.Execute(state)` is called. If it returns an error, the move is silently rejected.
 1. On success, the command is pushed to `History.undoStack`. The `redoStack` is cleared.
-1. Scorer calculates point delta and updates `state.Score`.
+1. `Game.scoreForCmd` calculates the point delta (via `StandardScorer`) and updates `state.Score`.
 
 **Undo flow:**
 
@@ -402,7 +403,7 @@ const (
     ScreenMenu AppScreen = iota
     ScreenPlaying
     ScreenPaused
-    ScreenHelp
+    ScreenKeybindHelp
     ScreenQuitConfirm
     ScreenWin
 )
@@ -410,20 +411,19 @@ const (
 type AppModel struct {
     screen       AppScreen
     engine       engine.GameEngine
-    config       *config.Config
-    theme        *theme.Theme
+    cfg          *config.Config
+    themes       *theme.ThemeRegistry
+    rend         *renderer.Renderer
 
-    // Sub-models
+    // Sub-models (the pause, keybind-help, and quit-confirm screens are
+    // rendered inline in AppModel rather than as dedicated sub-models).
     menu         MenuModel
     board        BoardModel
-    pause        PauseModel
-    help         HelpModel
-    dialog       DialogModel
     celebration  CelebrationModel
 
     // Global state
-    windowWidth  int
-    windowHeight int
+    windowW      int
+    windowH      int
     tooSmall     bool
 }
 ```
@@ -513,18 +513,18 @@ const (
     // Shortcuts
     ActionFlipStock    // Spacebar
     ActionJumpToColumn // 1-7 number keys
-    ActionMoveToFoundation // 'f' — auto-move selected to foundation
+    ActionMoveToFoundation // 'f' — move selected card to foundation
 
     // Meta
-    ActionUndo         // Ctrl+Z
-    ActionRedo         // Ctrl+Y or Ctrl+Shift+Z
-    ActionHint         // 'h' or '?'
+    ActionUndo         // 'u'
+    ActionRedo         // 'r'
+    ActionHint         // 'h'
+    ActionKeybindHelp  // '?'
     ActionNewGame      // Ctrl+N
     ActionRestartDeal  // Ctrl+R
     ActionPause        // 'p'
-    ActionHelp         // F1
     ActionQuit         // 'q' or Ctrl+C
-    ActionToggleAutoMove // Ctrl+A — toggle auto-foundation
+    ActionToggleAutoMove // Ctrl+A — toggle continuous auto-move
     ActionCycleTheme   // 't'
 )
 
@@ -535,32 +535,35 @@ func TranslateInput(msg tea.Msg) (GameAction, ...payload)
 
 |Key            |Action                  |Context              |
 |---------------|------------------------|---------------------|
-|←/→ or h/l     |Move cursor left/right  |Between piles        |
-|↑/↓ or j/k     |Move cursor up/down     |Within tableau column|
+|←/→            |Move cursor between piles |All piles           |
+|↑/↓            |Move cursor within column |Tableau column      |
 |Tab / Shift+Tab|Cycle to next/prev pile |All piles            |
 |1-7            |Jump to tableau column  |Direct jump          |
-|Enter          |Select / Place card     |Toggle drag state    |
+|Enter          |Select / Place card     |Toggle pick-up state |
 |Space          |Flip stock              |Always               |
 |Esc            |Cancel selection        |When card selected   |
-|f              |Move to foundation      |When card selected   |
-|Ctrl+Z         |Undo                    |Always               |
-|Ctrl+Y         |Redo                    |Always               |
-|?              |Hint                    |Always               |
-|F1             |Help overlay            |Always               |
+|f              |Move card to foundation |Top / selected card  |
+|u              |Undo                    |Always               |
+|r              |Redo                    |Always               |
+|h              |Hint                    |Always               |
+|?              |Keybind help overlay    |Always               |
 |p              |Pause                   |During play          |
 |Ctrl+N         |New game                |Always               |
 |Ctrl+R         |Restart deal            |Always               |
-|Ctrl+A         |Toggle auto-foundation  |Always               |
+|Ctrl+A         |Toggle auto-move        |Always               |
 |t              |Cycle theme             |Always               |
 |q              |Quit (with confirm)     |Always               |
 |Mouse click    |Select/place at position|Always               |
 
 ### 8.3 Cursor Model
 
-```go
-// tui/cursor.go
+`PileID` is an `engine` type (`engine/pile_id.go`), shared by the engine and the
+TUI so both refer to piles by the same identity:
 
-type PileID int
+```go
+// engine/pile_id.go
+
+type PileID uint8
 const (
     PileStock PileID = iota
     PileWaste
@@ -573,15 +576,25 @@ const (
     // ...
     PileTableau6
 )
+```
 
-type CursorState struct {
-    CurrentPile  PileID
-    CardIndex    int     // Position within a fanned tableau column (0 = deepest face-up)
+The TUI cursor (`tui/cursor.go`, type `Cursor`) tracks position plus pick-up and
+hint state, and exposes `RendererCursor()` to produce the `renderer.CursorState`
+the renderer consumes:
 
-    // Drag state
-    Dragging     bool
-    DragSource   PileID
-    DragIndex    int     // How many cards are being dragged (from CardIndex to top)
+```go
+// tui/cursor.go
+
+type Cursor struct {
+    Pile          engine.PileID
+    CardIndex     int  // position within the pile's Cards slice
+
+    // Pick-up state (mouse drag or keyboard selection)
+    Dragging      bool
+    Selecting     bool
+    DragSource    engine.PileID
+    DragCardCount int  // number of cards lifted from DragSource
+    // ... mouse + hint fields
 }
 ```
 
@@ -628,7 +641,7 @@ type CursorState struct {
 │                      │ 2♣│                                           │
 │                                                                      │
 ├──────────────────────────────────────────────────────────────────────┤
-│  ←/→: move  Enter: select  Space: draw  ?: hint  F1: help  q: quit │  ← Footer bar
+│  ←/→:move  ↵:select  ␣:draw  (u)ndo  (h)int  (t)heme  (q)uit       │  ← Footer bar
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -650,11 +663,11 @@ Face-down:
 
 ### 9.3 Minimum Terminal Size
 
-- **Width**: 7 tableau columns × 7 chars + 6 gaps × 2 chars = 61 chars minimum for tableau. Add stock/waste area → ~75 columns minimum.
-- **Height**: Header (1) + stock row (3) + gap (1) + max tableau depth (~15 fanned) + footer (1) = ~22 rows minimum.
-- **Minimum**: 78 × 24 (with some breathing room).
+- **Width**: 7 tableau columns × 7 chars + 6 gaps = the board content width; the enforced minimum is `MinTermWidth`.
+- **Height**: header + stock row + gaps + fanned tableau depth + footer; the enforced minimum is `MinTermHeight`.
+- **Minimum**: `61 × 23` (`renderer/layout.go`: `MinTermWidth = 61`, `MinTermHeight = 23`).
 
-If terminal is smaller, render a centered message: “Terminal too small. Need at least 78×24. Current: {w}×{h}”.
+If the terminal is smaller, render a centered message: “Terminal too small. Need at least 61×23. Current: {w}×{h}”.
 
 ### 9.4 Render Pipeline
 
@@ -662,23 +675,20 @@ If terminal is smaller, render a centered message: “Terminal too small. Need a
 // renderer/renderer.go
 
 type Renderer struct {
-    theme  *theme.Theme
+    theme  theme.Theme
     width  int
     height int
 }
 
-func (r *Renderer) Render(state *engine.GameState, cursor *tui.CursorState, config *config.Config) string {
-    header := r.renderHeader(state)
-    stockArea := r.renderStockWasteFoundations(state, cursor)
+// Render takes only engine state and a renderer-owned CursorState; it does not
+// depend on the config package.
+func (r *Renderer) Render(state *engine.GameState, cursor CursorState) string {
+    header := renderHeader(state, BoardWidth, r.theme)
+    topRow := r.renderTopRow(state, cursor)
     tableau := r.renderTableau(state, cursor)
-    footer := r.renderFooter(config)
+    footer := renderFooter(BoardWidth, r.theme)
 
-    return lipgloss.JoinVertical(lipgloss.Left,
-        header,
-        stockArea,
-        tableau,
-        footer,
-    )
+    return strings.Join([]string{header, "", topRow, "", tableau, "", footer}, "\n")
 }
 ```
 
@@ -709,7 +719,7 @@ type Theme struct {
 
     // Card colors
     CardBackground     lipgloss.Color
-    CardBorder         lipgloss.Color
+    CardForeground     lipgloss.Color   // rank text on face-up cards
     CardFaceDown       lipgloss.Color
     RedSuit            lipgloss.Color   // Hearts, Diamonds
     BlackSuit          lipgloss.Color   // Spades, Clubs
@@ -739,8 +749,10 @@ type Theme struct {
 - **Solarized Dark**: Base03 background, Base0 text, orange/blue accents.
 - **Solarized Light**: Base3 background, Base00 text, same accents.
 - **Nord**: Arctic blue palette, frost accents.
+- **Catppuccin**: Catppuccin Mocha — soft pastels on a dark base.
+- **Tokyo Night**: Deep blues with bright accents (Night variant).
 
-Themes are registered in a `ThemeRegistry` and cycled with the `t` key.
+All seven themes are registered in a `ThemeRegistry` and cycled with the `t` key.
 
 -----
 

@@ -214,8 +214,8 @@ in CI when a new version tag is created.
 engine/          Game rules, state machine, scoring, hint engine
 renderer/        ANSI terminal rendering (cards, piles, layout, header/footer)
 tui/             Bubbletea app model, keyboard/mouse input, cursor, menus
-theme/           5 built-in colour themes
-config/          Persistent user config (draw count, theme)
+theme/           7 built-in colour themes
+config/          Session config (draw count, theme, auto-move)
 tapes/           VHS tape scripts for smoke tests and demo GIF generation
 docs/demo/       Animated GIF assets used in the README
 testdata/vhs/    PNG screenshot outputs from VHS smoke tests

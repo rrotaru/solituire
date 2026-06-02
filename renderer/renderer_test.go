@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/x/exp/golden"
-	"solituire/config"
 	"solituire/engine"
 	"solituire/theme"
 )
@@ -25,10 +24,9 @@ func TestRendererFullBoard(t *testing.T) {
 	r := New(theme.Classic)
 	r.SetSize(80, 30)
 
-	cfg := config.DefaultConfig()
 	cursor := CursorState{Pile: engine.PileTableau0, CardIndex: 0}
 
-	got := r.Render(state, cursor, cfg)
+	got := r.Render(state, cursor)
 	golden.RequireEqual(t, []byte(got))
 }
 
@@ -37,10 +35,9 @@ func TestRendererFullBoardDraw3(t *testing.T) {
 	r := New(theme.Classic)
 	r.SetSize(80, 30)
 
-	cfg := &config.Config{DrawCount: 3, ThemeName: "classic"}
 	cursor := CursorState{Pile: engine.PileStock, CardIndex: 0}
 
-	got := r.Render(state, cursor, cfg)
+	got := r.Render(state, cursor)
 	golden.RequireEqual(t, []byte(got))
 }
 
@@ -49,9 +46,8 @@ func TestRendererTooSmall(t *testing.T) {
 	r := New(theme.Classic)
 	r.SetSize(40, 12)
 
-	cfg := config.DefaultConfig()
 	cursor := CursorState{}
 
-	got := r.Render(state, cursor, cfg)
+	got := r.Render(state, cursor)
 	golden.RequireEqual(t, []byte(got))
 }

@@ -52,12 +52,14 @@ func renderStockPileFull(p *engine.StockPile, cursor CursorState, t theme.Theme)
 	if p.IsEmpty() {
 		return renderEmptyWithState(state, t)
 	}
-	return renderStockFaceDown(state, t)
+	return renderStockFaceDown(t)
 }
 
 // renderStockFaceDown renders the stock pile face-down card as all ▇ rows,
 // visually distinguishing it from tableau face-down cards (▇ top + █ fill).
-func renderStockFaceDown(state cardVisualState, t theme.Theme) string {
+// The stock card body has no cursor/selection variant — the hover arrow is
+// drawn separately by RenderStockPile — so it takes no cursor state.
+func renderStockFaceDown(t theme.Theme) string {
 	fillStyle := lipgloss.NewStyle().Foreground(t.CardFaceDown).Background(t.BoardBackground)
 	row := fillStyle.Render(strings.Repeat("█", CardWidth))
 	lines := []string{row, row, row, row, row}
@@ -308,17 +310,16 @@ func RenderTableauPile(p *engine.TableauPile, colIdx int, cursor CursorState, t 
 	// Face-up cards: the focal card renders full (with the arrow directly below
 	// it); the rest render as 1-line peeks.
 	for fi, c := range fuCards {
-		cardIdx := fdCount + fi
-		state := cardVisualStateForCursor(pid, cardIdx, cursor)
-		state = resolveStateForFaceUp(state)
-
 		if fi == focalFi {
+			state := resolveStateForFaceUp(cardVisualStateForCursor(pid, fdCount+fi, cursor))
 			rows = append(rows, renderCard(cardContent{card: c, state: state}, t))
 			if showArrow {
 				rows = append(rows, arrowRow(CardWidth, arrowColor, t.BoardBackground))
 			}
 		} else {
-			rows = append(rows, cardPeekLines(c, state, t))
+			// Peek rows are always rendered in the card's natural colors; the
+			// focal card and the arrow convey cursor/selection state.
+			rows = append(rows, cardTopLine(c, t))
 		}
 	}
 

@@ -110,7 +110,6 @@ func renderFaceDown(t theme.Theme) string {
 // Hover and hint indicators are rendered as arrows below the pile, not on the card itself.
 func renderFaceUp(cc cardContent, t theme.Theme) string {
 	c := cc.card
-	rank := c.Rank.String()
 	suit := c.Suit.Symbol()
 
 	var suitColor lipgloss.Color
@@ -124,20 +123,13 @@ func renderFaceUp(cc cardContent, t theme.Theme) string {
 	rankStyle := lipgloss.NewStyle().Foreground(t.CardForeground).Background(t.CardBackground)
 	bgStyle := lipgloss.NewStyle().Background(t.CardBackground)
 
-	// rank strings are 1-2 chars; pad to 2 for alignment
-	rankPad := fmt.Sprintf("%-2s", rank) // left-aligned (top-left)
-	rankPadR := fmt.Sprintf("%2s", rank) // right-aligned (bottom-right)
-
 	blank := bgStyle.Render(strings.Repeat(" ", CardWidth))
 
-	// line0: rank+suit at top-left (2+1+4 = CardWidth)
-	line0 := bgStyle.Render(
-		rankStyle.Inline(true).Render(rankPad) +
-			suitStyle.Inline(true).Render(suit) +
-			bgStyle.Inline(true).Render(strings.Repeat(" ", CardWidth-3)),
-	)
+	// line0: rank+suit at top-left — shared with the fanned peek row.
+	line0 := cardTopLine(c, t)
 
 	// line4: suit+rank at bottom-right (4+1+2 = CardWidth)
+	rankPadR := fmt.Sprintf("%2s", c.Rank.String()) // right-aligned
 	line4 := bgStyle.Render(
 		bgStyle.Inline(true).Render(strings.Repeat(" ", CardWidth-3)) +
 			suitStyle.Inline(true).Render(suit) +
@@ -154,28 +146,25 @@ func cardStubTop(t theme.Theme) string {
 	return fillStyle.Render(strings.Repeat("▇", CardWidth))
 }
 
-// cardPeekLines renders the single peek row of a non-bottom face-up tableau card.
-// Hover and hint indicators are rendered as arrows below the pile, not on the card itself.
-func cardPeekLines(c engine.Card, state cardVisualState, t theme.Theme) string {
-	rank := c.Rank.String()
-	suit := c.Suit.Symbol()
-
-	var suitColor lipgloss.Color
+// cardTopLine renders the top-left "rank+suit" row of a face-up card. It is the
+// full card's first line and is also rendered on its own as the single-row peek
+// for a fanned (non-focal) tableau card. Hover/hint indicators are drawn as
+// arrows below the pile, never on the card itself, so this takes no cursor state.
+func cardTopLine(c engine.Card, t theme.Theme) string {
+	suitColor := t.BlackSuit
 	if c.Color() == engine.Red {
 		suitColor = t.RedSuit
-	} else {
-		suitColor = t.BlackSuit
 	}
 
 	suitStyle := lipgloss.NewStyle().Foreground(suitColor).Background(t.CardBackground)
 	rankStyle := lipgloss.NewStyle().Foreground(t.CardForeground).Background(t.CardBackground)
 	bgStyle := lipgloss.NewStyle().Background(t.CardBackground)
 
-	rankPad := fmt.Sprintf("%-2s", rank)
+	rankPad := fmt.Sprintf("%-2s", c.Rank.String()) // left-aligned (top-left)
 
 	return bgStyle.Render(
 		rankStyle.Inline(true).Render(rankPad) +
-			suitStyle.Inline(true).Render(suit) +
+			suitStyle.Inline(true).Render(c.Suit.Symbol()) +
 			bgStyle.Inline(true).Render(strings.Repeat(" ", CardWidth-3)),
 	)
 }

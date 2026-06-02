@@ -1,6 +1,7 @@
 package engine
 
-// StandardScorer implements Scorer with standard Klondike point values:
+// StandardScorer computes point deltas for scoring events using standard
+// Klondike point values:
 //
 //	Waste → Tableau:         +5
 //	Waste → Foundation:      +10

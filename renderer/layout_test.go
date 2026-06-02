@@ -16,8 +16,9 @@ func newSeed42DrawState() *engine.GameState {
 	return state
 }
 
-// TestPileHitTestWithWidth exercises PileHitTestWithWidth with known terminal
-// coordinates derived from the seed-42 draw-1 deal (empty waste, visCount=1).
+// TestPileHitTest exercises PileHitTestWithCursor (zero cursor) with known
+// terminal coordinates derived from the seed-42 draw-1 deal (empty waste,
+// visCount=1).
 //
 // Layout geometry (draw-1, wasteVisCount=1):
 //
@@ -36,7 +37,7 @@ func newSeed42DrawState() *engine.GameState {
 //	Tableau0     0    9
 //	Tableau1     8    9   (1 fd stub at row 9, 1 fu at rows 10..14)
 //	Tableau6     48   9   (6 fd stubs rows 9..14, 1 fu at rows 15..19)
-func TestPileHitTestWithWidth(t *testing.T) {
+func TestPileHitTest(t *testing.T) {
 	state := newSeed42DrawState()
 
 	type wantHit struct {
@@ -100,11 +101,9 @@ func TestPileHitTestWithWidth(t *testing.T) {
 		{"between waste and foundation", 18, 2, nil},
 	}
 
-	termWidth := MinTermWidth // 78
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pile, cardIdx, ok := PileHitTestWithWidth(tt.x, tt.y, state, termWidth)
+			pile, cardIdx, ok := PileHitTestWithCursor(tt.x, tt.y, state, CursorState{})
 			if tt.want == nil {
 				if ok {
 					t.Errorf("expected miss at (%d,%d), got pile=%v cardIndex=%d",
@@ -123,20 +122,6 @@ func TestPileHitTestWithWidth(t *testing.T) {
 				t.Errorf("(%d,%d): cardIndex = %d, want %d", tt.x, tt.y, cardIdx, tt.want.cardIndex)
 			}
 		})
-	}
-}
-
-// TestPileHitTest_DefaultWidth verifies that PileHitTest (no explicit width)
-// returns the same result as PileHitTestWithWidth(MinTermWidth) for a
-// coordinate that hits the stock pile regardless of terminal width.
-func TestPileHitTest_DefaultWidth(t *testing.T) {
-	state := newSeed42DrawState()
-	// Stock is at (0,2) regardless of terminal width.
-	p1, c1, ok1 := PileHitTest(4, 5, state)
-	p2, c2, ok2 := PileHitTestWithWidth(4, 5, state, MinTermWidth)
-	if ok1 != ok2 || p1 != p2 || c1 != c2 {
-		t.Errorf("PileHitTest and PileHitTestWithWidth(MinTermWidth) disagree: "+
-			"got (%v,%d,%v) vs (%v,%d,%v)", p1, c1, ok1, p2, c2, ok2)
 	}
 }
 
@@ -166,31 +151,28 @@ func TestPileHitTestWaste_Draw3Expansion(t *testing.T) {
 	rightCardX := wasteOriginX + (visCount-1)*CardWidth + 1
 	clickY := 4 // within top-row Y range [2, 2+CardHeight-1] = [2, 6]
 
-	pile, _, ok := PileHitTestWithWidth(rightCardX, clickY, state, MinTermWidth)
+	pile, _, ok := PileHitTestWithCursor(rightCardX, clickY, state, CursorState{})
 	if !ok || pile != engine.PileWaste {
 		t.Errorf("rightmost draw-3 waste card at x=%d: got pile=%v ok=%v, want PileWaste ok=true",
 			rightCardX, pile, ok)
 	}
 }
 
-// TestPileHitTestWithWidth_WiderTerminal verifies that foundation positions
-// are fixed relative to the tableau width and do not shift with terminal width.
-func TestPileHitTestWithWidth_WiderTerminal(t *testing.T) {
+// TestPileHitTest_FoundationPositionsFixed verifies that foundation positions
+// are fixed relative to the tableau width: they are computed from the game
+// state, independent of any terminal-width input.
+func TestPileHitTest_FoundationPositionsFixed(t *testing.T) {
 	state := newSeed42DrawState()
 
-	// Foundation x-positions come from computeFoundationStartX(wasteVisCount),
-	// not from termWidth. F0 starts at x=24 (draw-1); x=28 is within F0=[24,30].
-	for _, termWidth := range []int{60, 120, 200} {
-		pile, _, ok := PileHitTestWithWidth(28, 2, state, termWidth)
-		if !ok || pile != engine.PileFoundation0 {
-			t.Errorf("termWidth=%d: x=28 got pile=%v ok=%v, want Foundation0 ok=true",
-				termWidth, pile, ok)
-		}
-		// A click well past the layout boundary must miss all piles.
-		_, _, ok = PileHitTestWithWidth(70, 2, state, termWidth)
-		if ok {
-			t.Errorf("termWidth=%d: x=70 should miss all piles", termWidth)
-		}
+	// Foundation x-positions come from computeFoundationStartX(wasteVisCount).
+	// F0 starts at x=24 (draw-1); x=28 is within F0=[24,30].
+	pile, _, ok := PileHitTestWithCursor(28, 2, state, CursorState{})
+	if !ok || pile != engine.PileFoundation0 {
+		t.Errorf("x=28 got pile=%v ok=%v, want Foundation0 ok=true", pile, ok)
+	}
+	// A click well past the layout boundary must miss all piles.
+	if _, _, ok = PileHitTestWithCursor(70, 2, state, CursorState{}); ok {
+		t.Error("x=70 should miss all piles")
 	}
 }
 
@@ -223,14 +205,14 @@ func TestFoundationHitTestDraw3(t *testing.T) {
 	}
 
 	// F0 must be a hit at the actual rendered x.
-	pile, _, ok := PileHitTestWithWidth(fStartX, 2, state, MinTermWidth)
+	pile, _, ok := PileHitTestWithCursor(fStartX, 2, state, CursorState{})
 	if !ok || pile != engine.PileFoundation0 {
 		t.Errorf("draw-3 F0 at x=%d: got pile=%v ok=%v, want Foundation0 ok=true", fStartX, pile, ok)
 	}
 
 	// x=20 is inside the expanded waste hit region (x=[8,28]), so it resolves
 	// to PileWaste — not Foundation0, which now starts at x=30.
-	wastePile, _, ok := PileHitTestWithWidth(20, 2, state, MinTermWidth)
+	wastePile, _, ok := PileHitTestWithCursor(20, 2, state, CursorState{})
 	if !ok || wastePile != engine.PileWaste {
 		t.Errorf("draw-3: x=20 should hit PileWaste (waste expands to x=[8,28]), got pile=%v ok=%v",
 			wastePile, ok)

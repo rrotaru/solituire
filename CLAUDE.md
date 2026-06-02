@@ -36,8 +36,8 @@ Go 1.24 TUI application (Klondike Solitaire) built with bubbletea + lipgloss.
 engine/      Game rules, state machine, scoring, hint engine
 renderer/    ANSI terminal rendering (cards, piles, layout)
 tui/         Bubbletea app model, input handling, menus, cursor
-theme/       5 built-in colour themes
-config/      Persistent user configuration
+theme/       7 built-in colour themes
+config/      Session configuration (draw count, theme, auto-move)
 ```
 
 ## Key commands

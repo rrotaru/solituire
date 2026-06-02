@@ -31,12 +31,12 @@ func ghostCardInfo(state *engine.GameState, cursor CursorState) (*engine.Card, i
 	case src == engine.PileWaste:
 		return state.Waste.TopCard(), 1
 
-	case src >= engine.PileFoundation0 && src <= engine.PileFoundation3:
-		fi := int(src - engine.PileFoundation0)
+	case src.IsFoundation():
+		fi := src.FoundationIndex()
 		return state.Foundations[fi].TopCard(), 1
 
-	case src >= engine.PileTableau0 && src <= engine.PileTableau6:
-		col := int(src - engine.PileTableau0)
+	case src.IsTableau():
+		col := src.TableauIndex()
 		pile := state.Tableau[col]
 		fuCards := pile.FaceUpCards()
 		if count > len(fuCards) || count == 0 {

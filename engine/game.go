@@ -1,7 +1,5 @@
 package engine
 
-import "time"
-
 // Game implements GameEngine. It wires together GameState, History, and StandardScorer.
 // Create instances via NewGame — do not construct directly.
 type Game struct {
@@ -38,10 +36,10 @@ func (g *Game) CanUndo() bool { return g.history.CanUndo() }
 // CanRedo reports whether there is a move to redo.
 func (g *Game) CanRedo() bool { return g.history.CanRedo() }
 
-// IsWon returns true when all four foundation piles each contain 13 cards.
+// IsWon returns true when all four foundation piles are complete (Ace-King).
 func (g *Game) IsWon() bool {
 	for _, f := range g.state.Foundations {
-		if len(f.Cards) != 13 {
+		if !f.IsComplete() {
 			return false
 		}
 	}
@@ -165,36 +163,3 @@ func (g *Game) ValidMoves() []Move { return ValidMoves(g.state) }
 
 // IsValidMove reports whether move is legal in the current state.
 func (g *Game) IsValidMove(move Move) bool { return ValidateMove(g.state, move) == nil }
-
-// PileID identifies a pile in GameState without pointer equality.
-type PileID uint8
-
-const (
-	PileStock PileID = iota
-	PileWaste
-	PileFoundation0 // foundations are PileFoundation0 + index (0-3)
-	PileFoundation1
-	PileFoundation2
-	PileFoundation3
-	PileTableau0 // tableau columns are PileTableau0 + index (0-6)
-	PileTableau1
-	PileTableau2
-	PileTableau3
-	PileTableau4
-	PileTableau5
-	PileTableau6
-)
-
-// GameState holds the complete, serialisable state of a Klondike game.
-// All mutable operations go through Command.Execute so that Undo is always possible.
-type GameState struct {
-	Tableau     [7]*TableauPile
-	Foundations [4]*FoundationPile
-	Stock       *StockPile
-	Waste       *WastePile
-	Score       int
-	MoveCount   int
-	ElapsedTime time.Duration
-	DrawCount   int // 1 or 3
-	Seed        int64
-}

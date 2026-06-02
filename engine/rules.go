@@ -108,25 +108,14 @@ func ValidMoves(state *GameState) []Move {
 	return moves
 }
 
-// isTableauPile returns true if id is one of PileTableau0..PileTableau6.
-func isTableauPile(id PileID) bool {
-	return id >= PileTableau0 && id <= PileTableau6
-}
-
-// isFoundationPile returns true if id is one of PileFoundation0..PileFoundation3.
-func isFoundationPile(id PileID) bool {
-	return id >= PileFoundation0 && id <= PileFoundation3
-}
-
-// tableauIndex returns the 0-based column index for a tableau PileID.
-func tableauIndex(id PileID) int {
-	return int(id - PileTableau0)
-}
-
-// foundationIndex returns the 0-based index for a foundation PileID.
-func foundationIndex(id PileID) int {
-	return int(id - PileFoundation0)
-}
+// isTableauPile, isFoundationPile, tableauIndex, and foundationIndex are
+// package-local shorthand for the corresponding PileID methods. The
+// classification logic itself lives on PileID (see game.go) so it is defined
+// exactly once.
+func isTableauPile(id PileID) bool    { return id.IsTableau() }
+func isFoundationPile(id PileID) bool { return id.IsFoundation() }
+func tableauIndex(id PileID) int      { return id.TableauIndex() }
+func foundationIndex(id PileID) int   { return id.FoundationIndex() }
 
 // isValidTableauPlacement reports whether card can be placed onto dest.
 // Empty dest accepts only Kings. Non-empty dest requires opposite color

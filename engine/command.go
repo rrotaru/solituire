@@ -3,7 +3,6 @@ package engine
 import (
 	"errors"
 	"fmt"
-	"strings"
 )
 
 // MoveCardCmd moves CardCount cards from pile From to pile To.
@@ -70,10 +69,6 @@ func (c *MoveCardCmd) Undo(state *GameState) error {
 	return nil
 }
 
-func (c *MoveCardCmd) Description() string {
-	return fmt.Sprintf("Move %d card(s) from pile %d to pile %d", c.CardCount, c.From, c.To)
-}
-
 // MoveToFoundationCmd moves the top card of pile From to the foundation at FoundationIdx.
 // Specialized command used by auto-move logic.
 type MoveToFoundationCmd struct {
@@ -124,10 +119,6 @@ func (c *MoveToFoundationCmd) Undo(state *GameState) error {
 		state.Tableau[ti].Cards = append(state.Tableau[ti].Cards, card)
 	}
 	return nil
-}
-
-func (c *MoveToFoundationCmd) Description() string {
-	return fmt.Sprintf("Move top card from pile %d to foundation %d", c.From, c.FoundationIdx)
 }
 
 // FlipStockCmd draws DrawCount cards from the stock to the waste pile.
@@ -187,10 +178,6 @@ func (c *FlipStockCmd) Undo(state *GameState) error {
 	return nil
 }
 
-func (c *FlipStockCmd) Description() string {
-	return "Flip stock cards to waste"
-}
-
 // RecycleStockCmd moves all waste cards back to the stock (face-down, reversed).
 type RecycleStockCmd struct{}
 
@@ -227,10 +214,6 @@ func (c *RecycleStockCmd) Undo(state *GameState) error {
 	state.Waste.Cards = append(state.Waste.Cards, waste...)
 	state.Stock.Cards = state.Stock.Cards[:0]
 	return nil
-}
-
-func (c *RecycleStockCmd) Description() string {
-	return "Recycle waste to stock"
 }
 
 // FlipTableauCardCmd flips the top face-down card of tableau column ColumnIdx face-up.
@@ -271,10 +254,6 @@ func (c *FlipTableauCardCmd) Undo(state *GameState) error {
 	return nil
 }
 
-func (c *FlipTableauCardCmd) Description() string {
-	return fmt.Sprintf("Flip top card of tableau column %d face-up", c.ColumnIdx)
-}
-
 // CompoundCmd groups multiple atomic commands so they undo as a single logical action.
 // Example: move + auto-flip must undo together with one Ctrl+Z.
 type CompoundCmd struct {
@@ -301,12 +280,4 @@ func (c *CompoundCmd) Undo(state *GameState) error {
 		}
 	}
 	return nil
-}
-
-func (c *CompoundCmd) Description() string {
-	parts := make([]string, len(c.Cmds))
-	for i, cmd := range c.Cmds {
-		parts[i] = cmd.Description()
-	}
-	return strings.Join(parts, " + ")
 }
