@@ -74,27 +74,16 @@ func pileOrigins(wasteVisCount int) map[engine.PileID]image.Point {
 	return origins
 }
 
-// PileHitTest maps terminal coordinates (x, y) to a pile and card index.
-// Foundation positions are derived from the game state (waste visible count)
-// so draw-3 mode is handled correctly. Returns (pileID, cardIndex, true) on
-// hit, or (0, 0, false) on miss. cardIndex is 0-based from the top of the
-// pile's visible cards.
-func PileHitTest(x, y int, state *engine.GameState) (engine.PileID, int, bool) {
-	return pileHitTest(x, y, state, CursorState{})
-}
-
-// PileHitTestWithWidth is equivalent to PileHitTest. The termWidth parameter
-// is accepted for API compatibility but is no longer used; foundation
-// positions are computed from the game state instead.
-func PileHitTestWithWidth(x, y int, state *engine.GameState, _ int) (engine.PileID, int, bool) {
-	return pileHitTest(x, y, state, CursorState{})
-}
-
 // PileHitTestWithCursor maps (x, y) to a pile and card index using the same
 // per-column layout the renderer drew for the given cursor. This matters when a
 // tableau column is keyboard-"lifted": the focal card is rendered in full at a
 // shifted position, so a cursor-unaware hit test would map clicks to the wrong
 // card. Callers that drive mouse input from the live cursor should use this.
+//
+// Foundation positions are derived from the game state (waste visible count) so
+// draw-3 mode is handled correctly. Returns (pileID, cardIndex, true) on hit,
+// or (0, 0, false) on miss. cardIndex is 0-based from the top of the pile's
+// visible cards. Pass a zero CursorState when no cursor is active.
 func PileHitTestWithCursor(x, y int, state *engine.GameState, cursor CursorState) (engine.PileID, int, bool) {
 	return pileHitTest(x, y, state, cursor)
 }

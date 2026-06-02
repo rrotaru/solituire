@@ -9,7 +9,6 @@ var TokyoNight = Theme{
 
 	CardBackground: lipgloss.Color("#c0caf5"), // fg
 	CardForeground: lipgloss.Color("#1a1b26"), // bg
-	CardBorder:     lipgloss.Color("#565f89"), // comment
 	CardFaceDown:   lipgloss.Color("#7aa2f7"), // blue — 6.79:1 vs bg board
 	RedSuit:        lipgloss.Color("#f7768e"), // red
 	BlackSuit:      lipgloss.Color("#1a1b26"), // bg

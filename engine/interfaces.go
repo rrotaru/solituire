@@ -32,14 +32,4 @@ type GameEngine interface {
 type Command interface {
 	Execute(state *GameState) error
 	Undo(state *GameState) error
-	Description() string // human-readable, e.g. "Move K♠ from tableau[3] to tableau[0]"
-}
-
-// Scorer computes point deltas for scoring events.
-// The interface exists so alternative scoring systems (e.g. Vegas) can be added
-// without changing existing code.
-type Scorer interface {
-	OnMove(move Move, state *GameState) int // returns point delta
-	OnFlipTableau() int                     // returns +5 for standard scoring
-	OnRecycleStock() int                    // returns -100 for standard scoring
 }

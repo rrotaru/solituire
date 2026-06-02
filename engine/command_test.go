@@ -489,14 +489,3 @@ func TestCompoundCmd_RollbackOnPartialFailure(t *testing.T) {
 	tabEqual(t, "T0 rolled back", state.Tableau[0].Cards, pre0)
 	tabEqual(t, "T1 rolled back", state.Tableau[1].Cards, pre1)
 }
-
-func TestCompoundCmd_Description(t *testing.T) {
-	cmd := &CompoundCmd{Cmds: []Command{
-		&FlipTableauCardCmd{ColumnIdx: 0},
-		&FlipTableauCardCmd{ColumnIdx: 1},
-	}}
-	desc := cmd.Description()
-	if desc == "" {
-		t.Error("Description should not be empty")
-	}
-}

@@ -925,7 +925,7 @@ func TestBoardWinEmitsGameWonMsg(t *testing.T) {
 }
 
 // TestBoardMouseClickMovesAndSelects verifies that a left-click mouse event
-// translates coordinates via PileHitTestWithWidth and runs select on the
+// translates coordinates via PileHitTestWithCursor and runs select on the
 // clicked pile, not the current keyboard cursor position.
 func TestBoardMouseClickMovesAndSelects(t *testing.T) {
 	board, eng := newBoard()

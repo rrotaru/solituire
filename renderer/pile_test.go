@@ -104,10 +104,10 @@ func TestPileHitTestLiftedColumn(t *testing.T) {
 		})
 	}
 
-	// Without the lift, the same y=14 click maps to the bottom card (10♥, index
-	// 5) because the bottom card is the one rendered full — proving the hit test
-	// follows the cursor-driven layout.
-	if pile, idx, ok := PileHitTest(3, 14, state); !ok || pile != engine.PileTableau0 || idx != 5 {
-		t.Fatalf("default hit test got (%v, %d, %v), want (Tableau0, 5, true)", pile, idx, ok)
+	// With a zero cursor, the same y=14 click maps to the bottom card (10♥,
+	// index 5) because the bottom card is the one rendered full — proving the
+	// hit test follows the cursor-driven layout.
+	if pile, idx, ok := PileHitTestWithCursor(3, 14, state, CursorState{}); !ok || pile != engine.PileTableau0 || idx != 5 {
+		t.Fatalf("zero-cursor hit test got (%v, %d, %v), want (Tableau0, 5, true)", pile, idx, ok)
 	}
 }

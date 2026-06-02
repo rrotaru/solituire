@@ -8,7 +8,6 @@ var Nord = Theme{
 
 	CardBackground: lipgloss.Color("#eceff4"),
 	CardForeground: lipgloss.Color("#2e3440"),
-	CardBorder:     lipgloss.Color("#d8dee9"),
 	CardFaceDown:   lipgloss.Color("#5e81ac"), // Frost nord10 — 3.11:1 vs nord0 board
 	RedSuit:        lipgloss.Color("#bf616a"),
 	BlackSuit:      lipgloss.Color("#2e3440"),
