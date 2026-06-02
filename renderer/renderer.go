@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"solituire/config"
 	"solituire/engine"
 	"solituire/theme"
 )
@@ -41,7 +40,7 @@ func (r *Renderer) SetSize(w, h int) {
 // Render produces the complete board string for use as the Bubbletea View().
 // If the terminal is smaller than MinTermWidth × MinTermHeight, a fallback
 // message is returned instead.
-func (r *Renderer) Render(state *engine.GameState, cursor CursorState, cfg *config.Config) string {
+func (r *Renderer) Render(state *engine.GameState, cursor CursorState) string {
 	if r.width < MinTermWidth || r.height < MinTermHeight {
 		return r.renderTooSmall()
 	}

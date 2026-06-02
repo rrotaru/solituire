@@ -13,9 +13,20 @@ import (
 	"solituire/theme"
 )
 
+// AppScreen identifies which screen the application is currently showing.
+type AppScreen int
+
+const (
+	ScreenMenu AppScreen = iota
+	ScreenPlaying
+	ScreenPaused
+	ScreenKeybindHelp
+	ScreenQuitConfirm
+	ScreenWin
+)
+
 // AppModel is the root Bubbletea model. It owns screen state, routes messages
 // to the active sub-model, and delegates rendering to the appropriate view.
-// AppScreen is defined in messages.go — do not redefine it here.
 type AppModel struct {
 	screen      AppScreen
 	prevScreen  AppScreen // screen to return to when ScreenQuitConfirm is canceled
@@ -270,7 +281,7 @@ func (m AppModel) View() string {
 	case ScreenWin:
 		return m.celebration.View()
 	case ScreenMenu:
-		boardStr := m.rend.Render(newFaceDownState(m.cfg.DrawCount), renderer.CursorState{}, m.cfg)
+		boardStr := m.rend.Render(newFaceDownState(m.cfg.DrawCount), renderer.CursorState{})
 		menuStr := m.menu.View()
 		menuLines := strings.Split(menuStr, "\n")
 		menuH := len(menuLines)

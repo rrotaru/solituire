@@ -82,7 +82,7 @@ func (m BoardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // View delegates rendering to the renderer.
 func (m BoardModel) View() string {
-	return m.rend.Render(m.eng.State(), m.cursor.RendererCursor(), m.cfg)
+	return m.rend.Render(m.eng.State(), m.cursor.RendererCursor())
 }
 
 // handleAction translates a GameAction into cursor movement, engine commands,
