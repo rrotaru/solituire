@@ -1411,7 +1411,7 @@ func TestBoardMouseDragSamePile(t *testing.T) {
 	}
 }
 
-// ── T17: Auto-Complete + Auto-Move ───────────────────────────────────────────
+// ── Auto-Complete + Auto-Move ────────────────────────────────────────────────
 
 // newNearWonBoard creates a BoardModel where only 4 Kings remain (one per suit,
 // face-up in tableau[0..3]). All other 48 cards are on their foundations.

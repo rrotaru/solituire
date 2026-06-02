@@ -6,7 +6,7 @@ import (
 	"solituire/engine"
 )
 
-// Card and terminal size constants exported for Agent C's hit-testing (T16).
+// Card and terminal size constants, exported for hit-testing and layout geometry.
 const (
 	CardWidth     = 7 // rendered width (no borders)
 	CardHeight    = 5 // rendered height (no borders)

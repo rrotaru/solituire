@@ -42,9 +42,8 @@ type AppModel struct {
 	tooSmall    bool
 }
 
-// NewAppModel creates a ready-to-run AppModel starting on ScreenPlaying.
-// When the Menu sub-model is added in T14, the initial screen should be
-// changed to ScreenMenu.
+// NewAppModel creates a ready-to-run AppModel starting on the settings menu
+// (ScreenMenu). Use WithScreen to start directly on the board.
 func NewAppModel(
 	eng engine.GameEngine,
 	rend *renderer.Renderer,
@@ -194,9 +193,9 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// Route remaining messages to the active sub-model.
-	// Non-playing screens handle key input minimally here so users are never
-	// trapped; these cases will be replaced by real sub-models in T14/T15/T18.
+	// Route remaining messages to the active sub-model. The pause and
+	// quit-confirm screens are handled inline here with minimal key handling
+	// (any key resumes / cancels) rather than via dedicated sub-models.
 	switch m.screen {
 	case ScreenPlaying:
 		updated, cmd := m.board.Update(msg)
@@ -253,13 +252,13 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// View renders the active screen. Placeholder strings for screens whose
-// sub-models have not yet been implemented are replaced in later phases:
-//   - ScreenMenu      → tui/menu.go (T14)
-//   - ScreenPaused        → tui/pause.go (T15)
-//   - ScreenKeybindHelp   → tui/help.go
-//   - ScreenQuitConfirm   → tui/dialog.go (T15)
-//   - ScreenWin       → tui/celebration.go (T18)
+// View renders the active screen:
+//   - ScreenMenu        → the settings menu overlaid on a face-down board
+//   - ScreenPlaying     → the board sub-model
+//   - ScreenPaused      → an inline "paused" message
+//   - ScreenKeybindHelp → the keybind help overlay (help.go)
+//   - ScreenQuitConfirm → an inline quit-confirmation prompt
+//   - ScreenWin         → the celebration sub-model
 func (m AppModel) View() string {
 	if m.tooSmall {
 		return fmt.Sprintf(

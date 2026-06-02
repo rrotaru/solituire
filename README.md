@@ -10,8 +10,8 @@
 - **Keyboard & mouse** — arrows, number shortcuts, click to select
 - **Undo / Redo** — every move is reversible with `u` / `r`
 - **Hint engine** — press `h` to highlight a valid move
-- **Auto-move** — press `f` to send a card to the foundation automatically
-- **5 built-in themes** — Classic, Dracula, Solarized Dark, Solarized Light, Nord
+- **Foundation shortcuts** — press `f` to send the selected card to its foundation, or toggle continuous auto-move with `Ctrl+A`
+- **7 built-in themes** — Classic, Dracula, Solarized Dark, Solarized Light, Nord, Catppuccin, Tokyo Night
 - **Seeded games** — replay any game exactly with `--seed`
 - **Score & timer** — standard Klondike point system tracked in the header
 
@@ -34,8 +34,9 @@ go build -o klondike .
 ./klondike [flags]
 
 Flags:
-  --seed int    RNG seed for the deal (0 = random)
-  --draw int    Cards to draw per stock flip: 1 or 3 (default 1)
+  --seed int64   RNG seed for the deal (0 = random)
+  --draw int     Cards to draw per stock flip: 1 or 3 (default 1)
+  --version      Print version and exit
 ```
 
 When `--draw` is supplied the menu is skipped and the game starts immediately.
@@ -55,15 +56,18 @@ When `--draw` is supplied the menu is skipped and the game starts immediately.
 | `←` `→` | Move cursor between piles |
 | `↑` `↓` | Move cursor within a tableau column |
 | `1`–`7` | Jump to tableau column |
-| `Tab` | Cycle to next pile |
+| `Tab` / `Shift+Tab` | Cycle to next / previous pile |
 | `Enter` | Pick up / place selected card |
 | `Space` | Draw from stock |
-| `f` | Auto-move selected card to foundation |
+| `f` | Move selected card to foundation |
 | `h` | Show a hint |
 | `u` | Undo |
 | `r` | Redo |
 | `t` | Cycle theme |
 | `p` | Pause / resume |
+| `Ctrl+A` | Toggle continuous auto-move to foundation |
+| `Ctrl+N` | Start a new game |
+| `Ctrl+R` | Restart the same deal |
 | `?` | Keybind help |
 | `Escape` | Cancel selection / dismiss overlay |
 | `q` | Quit |
@@ -80,6 +84,8 @@ Cycle through themes in-game with `t`, or select one from the start menu.
 | Solarized Dark | Warm tones on the Solarized dark base |
 | Solarized Light | Warm tones on the Solarized light base |
 | Nord | Cool blues and greys from the Nord palette |
+| Catppuccin | Catppuccin Mocha — soft pastels on a dark base |
+| Tokyo Night | Deep blues with bright accents (Night variant) |
 
 ## Scoring
 
@@ -109,7 +115,7 @@ docker run --rm --privileged --shm-size=512m \
   ghcr.io/charmbracelet/vhs tapes/board-initial.tape
 ```
 
-Terminal must be at least **78 × 25** characters; the game shows a warning if the window is too small.
+Terminal must be at least **61 × 23** characters; the game shows a warning if the window is too small.
 
 ## License
 
